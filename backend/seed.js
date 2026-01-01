@@ -2,33 +2,48 @@ const fs = require("fs");
 const path = require("path");
 const { parse } = require("csv-parse/sync");
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBDocumentClient, PutCommand, ScanCommand, DeleteCommand } = require("@aws-sdk/lib-dynamodb");
 
 const client = new DynamoDBClient({ region: "ap-northeast-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const CSV_FILE_PATH = path.join(__dirname, "phrases.csv");
+const TABLE_NAME = "karuta-phrases";
 
 async function seed() {
   try {
-    // 1. CSVファイルを読み込む
+    // 1. 既存のデータを全件取得する
+    console.log("Cleaning up old data...");
+    const scanResult = await docClient.send(new ScanCommand({ TableName: TABLE_NAME }));
+    const oldItems = scanResult.Items || [];
+
+    // 2. 既存のデータをすべて削除する
+    for (const item of oldItems) {
+      await docClient.send(
+        new DeleteCommand({
+          TableName: TABLE_NAME,
+          Key: { id: item.id },
+        })
+      );
+    }
+    console.log(`Deleted ${oldItems.length} old records.`);
+
+    // 3. CSVファイルを読み込む
     const fileContent = fs.readFileSync(CSV_FILE_PATH, "utf-8");
 
-    // 2. CSVをパースする
+    // 4. CSVをパースする
     const records = parse(fileContent, {
       columns: true,
       skip_empty_lines: true,
     });
 
-    console.log(`Read ${records.length} records from CSV.`);
+    console.log(`Read ${records.length} new records from CSV.`);
 
-    // 3. DynamoDBに投入する
-    // IDはユニークである必要があるため、kanaをIDとして使用するか、uuidを生成する。
-    // 今回は「かな」をID（キー）として使用する形式にします。
+    // 5. 新しいデータを投入する
     for (const record of records) {
       await docClient.send(
         new PutCommand({
-          TableName: "karuta-phrases",
+          TableName: TABLE_NAME,
           Item: {
             id: record.kana.trim(), // IDとして「かな」を使用
             level: parseInt(record.level.trim(), 10),
@@ -40,7 +55,7 @@ async function seed() {
       console.log(`Seeded: [Lv${record.level}] ${record.kana} - ${record.phrase}`);
     }
 
-    console.log("Seeding completed successfully.");
+    console.log("Seeding completed successfully (Full Replace).");
   } catch (error) {
     console.error("Seeding failed:", error);
   }
