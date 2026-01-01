@@ -4,31 +4,22 @@ import "./App.css";
 function App() {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(() => {
-    // 初回ロード時にURLパラメータからカテゴリを取得
     const params = new URLSearchParams(window.location.search);
     return params.get("category");
   });
   const [currentPhrase, setCurrentPhrase] = useState(null);
   const [loading, setLoading] = useState(false);
-  // カテゴリごとの履歴を保持するオブジェクト
   const [historyByCategory, setHistoryByCategory] = useState({});
 
-  // 現在のカテゴリの履歴を取得
   const currentHistory = selectedCategory ? (historyByCategory[selectedCategory] || []) : [];
 
-  // カテゴリ一覧を取得
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        console.log("Fetching categories...");
         const response = await fetch("https://zr6f3qp6vg.execute-api.ap-northeast-1.amazonaws.com/dev/get-categories");
-        console.log("Response status:", response.status);
         const data = await response.json();
-        console.log("Data received:", data);
         if (response.ok) {
           setCategories(data.categories || []);
-        } else {
-          console.error("Fetch categories failed:", data.message);
         }
       } catch (error) {
         console.error("Error fetching categories:", error);
@@ -60,7 +51,6 @@ function App() {
     if (!selectedCategory) return;
     
     setLoading(true);
-    // 0.5秒スリープ
     await new Promise(resolve => setTimeout(resolve, 500));
     
     try {
@@ -117,7 +107,6 @@ function App() {
     }
   };
 
-  // URLパラメータと状態を同期させる
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (selectedCategory) {
@@ -129,7 +118,6 @@ function App() {
     }
   }, [selectedCategory]);
 
-  // ブラウザの「戻る」「進む」に対応
   useEffect(() => {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
@@ -142,44 +130,50 @@ function App() {
   const resetGame = () => {
     setSelectedCategory(null);
     setCurrentPhrase(null);
-    // 選び直す際、履歴は保持したままにする（またはリセットしたい場合はここで行う）
-    // 今回は「履歴が混ざらない」ことが目的なので、保持したままトップに戻れるようにします。
   };
 
   // カテゴリ選択画面
   if (!selectedCategory) {
     return (
-      <div className="App">
-        <h1>カルタ読み上げアプリ</h1>
-        <div className="category-selection">
-          <h2>カルタの種類を選んでね</h2>
-          <div className="category-buttons">
+      <div className="container py-5">
+        <header className="text-center mb-5">
+          <h1 className="display-4 fw-bold">カルタ読み上げアプリ</h1>
+        </header>
+        
+        <main className="category-selection-container p-4 mx-auto" style={{ maxWidth: "600px" }}>
+          <h2 className="h4 text-center mb-4 text-dark">カルタの種類を選んでね</h2>
+          <div className="d-flex flex-wrap gap-3 justify-content-center">
             {categories.length === 0 ? (
-              <p className="loading-text">読み込み中...</p>
+              <div className="text-success fw-bold p-3">読み込み中...</div>
             ) : (
               categories.map(cat => (
-                <button key={cat} onClick={() => setSelectedCategory(cat)} className="category-button">
+                <button 
+                  key={cat} 
+                  onClick={() => setSelectedCategory(cat)} 
+                  className="btn btn-lg px-4 py-3 fw-bold rounded-pill shadow-sm"
+                  style={{ backgroundColor: "#e44d26", color: "white" }}
+                >
                   {cat}
                 </button>
               ))
             )}
           </div>
-        </div>
+        </main>
       </div>
     );
   }
 
   // カルタプレイ画面
   return (
-    <div className="App">
-      <div className="header-nav">
-        <h1>{selectedCategory}</h1>
-      </div>
+    <div className="container py-4">
+      <header className="text-center mb-4">
+        <h1 className="h2 fw-bold">{selectedCategory}</h1>
+      </header>
       
-      <div className="card">
+      <main className="text-center">
         {currentPhrase && (
-          <div className="yomifuda-container">
-            <div className="yomifuda">
+          <div className="d-flex justify-content-center mb-4">
+            <div className="yomifuda shadow-lg">
               <div className="yomifuda-kana">
                 <span>{currentPhrase.kana || currentPhrase.phrase[0]}</span>
               </div>
@@ -187,7 +181,7 @@ function App() {
                 {currentPhrase.phrase}
               </div>
               {currentPhrase.level !== "-" && (
-                <div className="yomifuda-level">
+                <div className="yomifuda-level fw-bold">
                   レベル: {currentPhrase.level}
                 </div>
               )}
@@ -195,39 +189,52 @@ function App() {
           </div>
         )}
 
-        <div className="button-group">
-          <button onClick={playKaruta} disabled={loading} className="main-button">
+        <div className="d-flex flex-wrap gap-3 justify-content-center mb-5">
+          <button 
+            onClick={playKaruta} 
+            disabled={loading} 
+            className="btn btn-lg px-4 py-3 fw-bold rounded-pill shadow"
+            style={{ backgroundColor: "#e44d26", color: "white" }}
+          >
+            {loading ? (
+              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            ) : null}
             {loading ? "読み込み中..." : "次の札を読み上げる"}
           </button>
-          <button onClick={repeatPhrase} disabled={loading || !currentPhrase} className="sub-button">
+          <button 
+            onClick={repeatPhrase} 
+            disabled={loading || !currentPhrase} 
+            className="btn btn-lg px-4 py-3 fw-bold rounded-pill border-3 border-dark bg-white text-dark shadow-sm"
+          >
             もう一度読み上げる
           </button>
         </div>
-      </div>
+      </main>
 
-      <div className="history">
-        <h2>これまでに読み上げた札</h2>
+      <section className="history mx-auto" style={{ maxWidth: "600px" }}>
+        <h2 className="h4 fw-bold mb-3 border-bottom pb-2">これまでに読み上げた札</h2>
         {currentHistory.length === 0 ? (
-          <p>まだ読み上げた札はありません。</p>
+          <p className="text-muted text-center py-3">まだ読み上げた札はありません。</p>
         ) : (
-          <ul>
+          <ul className="list-group list-group-flush shadow-sm rounded">
             {currentHistory.map((p, index) => (
-              <li key={`${p.id}-${currentHistory.length - index}`}>
-                {p.level !== "-" && <span className="history-level">Lv.{p.level}</span>}
-                {p.phrase}
+              <li key={`${p.id}-${currentHistory.length - index}`} className="list-group-item">
+                {p.level !== "-" && <span className="badge bg-danger me-2">Lv.{p.level}</span>}
+                <span className="text-dark">{p.phrase}</span>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </section>
 
-      <p className="read-the-docs">
-        リロードすると履歴はリセットされます。
-      </p>
-
-      <div className="footer-nav">
-        <button onClick={resetGame} className="back-button">カルタの種類を選び直す</button>
-      </div>
+      <footer className="text-center mt-5 pt-4 border-top">
+        <p className="text-muted small mb-4">
+          リロードすると履歴はリセットされます。
+        </p>
+        <button onClick={resetGame} className="btn btn-outline-secondary px-4 rounded-pill">
+          カルタの種類を選び直す
+        </button>
+      </footer>
     </div>
   );
 }
