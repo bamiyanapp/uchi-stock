@@ -23,17 +23,21 @@ async function seed() {
     console.log(`Read ${records.length} records from CSV.`);
 
     // 3. DynamoDBに投入する
+    // IDはユニークである必要があるため、kanaをIDとして使用するか、uuidを生成する。
+    // 今回は「かな」をID（キー）として使用する形式にします。
     for (const record of records) {
       await docClient.send(
         new PutCommand({
           TableName: "karuta-phrases",
           Item: {
-            id: record.id.trim(),
+            id: record.kana.trim(), // IDとして「かな」を使用
+            level: parseInt(record.level.trim(), 10),
+            kana: record.kana.trim(),
             phrase: record.phrase.trim(),
           },
         })
       );
-      console.log(`Seeded: ${record.phrase}`);
+      console.log(`Seeded: [Lv${record.level}] ${record.kana} - ${record.phrase}`);
     }
 
     console.log("Seeding completed successfully.");
