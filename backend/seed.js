@@ -42,18 +42,23 @@ async function seed() {
 
     // 5. 新しいデータを投入する
     for (const record of records) {
-      const levelRaw = record.level.trim();
-      const level = levelRaw === "-" ? "-" : parseInt(levelRaw, 10);
+      const levelRaw = record.level ? record.level.trim() : "-";
+      let level;
+      if (levelRaw === "-" || isNaN(parseInt(levelRaw, 10))) {
+        level = "-";
+      } else {
+        level = parseInt(levelRaw, 10);
+      }
       
       await docClient.send(
         new PutCommand({
           TableName: TABLE_NAME,
           Item: {
             id: crypto.randomUUID(), // UUIDを生成してIDとする
-            category: record.category.trim(),
+            category: record.category ? record.category.trim() : "大ピンチ図鑑",
             level: level,
-            kana: record.kana.trim(),
-            phrase: record.phrase.trim(),
+            kana: record.kana ? record.kana.trim() : "-",
+            phrase: record.phrase ? record.phrase.trim() : "",
           },
         })
       );
