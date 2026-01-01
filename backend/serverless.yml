@@ -1,0 +1,47 @@
+service: karuta-app
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ap-northeast-1
+  environment:
+    TABLE_NAME: ${self:custom.tableName}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Scan
+            - dynamodb:Query
+            - dynamodb:GetItem
+          Resource: !GetAtt KarutaTable.Arn
+        - Effect: Allow
+          Action:
+            - polly:SynthesizeSpeech
+          Resource: "*"
+
+custom:
+  tableName: karuta-phrases
+
+functions:
+  getPhrase:
+    handler: handler.getPhrase
+    events:
+      - http:
+          path: get-phrase
+          method: get
+          cors: true
+
+resources:
+  Resources:
+    KarutaTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
