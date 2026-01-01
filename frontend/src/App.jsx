@@ -10,7 +10,11 @@ function App() {
   });
   const [currentPhrase, setCurrentPhrase] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [readPhrases, setReadPhrases] = useState([]);
+  // カテゴリごとの履歴を保持するオブジェクト
+  const [historyByCategory, setHistoryByCategory] = useState({});
+
+  // 現在のカテゴリの履歴を取得
+  const currentHistory = selectedCategory ? (historyByCategory[selectedCategory] || []) : [];
 
   // カテゴリ一覧を取得
   useEffect(() => {
@@ -75,7 +79,7 @@ function App() {
           throw new Error(data.message || "Fetch failed");
         }
 
-        if (!readPhrases.find(p => p.id === data.id)) {
+        if (!currentHistory.find(p => p.id === data.id)) {
           isDuplicate = false;
         } else {
           retryCount++;
@@ -88,7 +92,10 @@ function App() {
       }
 
       setCurrentPhrase(data);
-      setReadPhrases(prev => [data, ...prev]);
+      setHistoryByCategory(prev => ({
+        ...prev,
+        [selectedCategory]: [data, ...(prev[selectedCategory] || [])]
+      }));
       
       await playAudio(data.audioData);
 
@@ -135,7 +142,8 @@ function App() {
   const resetGame = () => {
     setSelectedCategory(null);
     setCurrentPhrase(null);
-    setReadPhrases([]);
+    // 選び直す際、履歴は保持したままにする（またはリセットしたい場合はここで行う）
+    // 今回は「履歴が混ざらない」ことが目的なので、保持したままトップに戻れるようにします。
   };
 
   // カテゴリ選択画面
@@ -199,12 +207,12 @@ function App() {
 
       <div className="history">
         <h2>これまでに読み上げた札</h2>
-        {readPhrases.length === 0 ? (
+        {currentHistory.length === 0 ? (
           <p>まだ読み上げた札はありません。</p>
         ) : (
           <ul>
-            {readPhrases.map((p, index) => (
-              <li key={`${p.id}-${readPhrases.length - index}`}>
+            {currentHistory.map((p, index) => (
+              <li key={`${p.id}-${currentHistory.length - index}`}>
                 {p.level !== "-" && <span className="history-level">Lv.{p.level}</span>}
                 {p.phrase}
               </li>
