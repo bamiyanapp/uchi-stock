@@ -38,17 +38,32 @@ exports.getPhrase = async (event) => {
       Text: text,
       OutputFormat: "mp3",
       VoiceId: "Mizuki", // 日本語女性ボイス
-      Engine: "standard" // 明示的に指定
+      Engine: "standard"
     };
 
+    // AWS SDK v3のPolly署名では、明示的にエンドポイントとパラメータを指定する必要がある
     const command = new SynthesizeSpeechCommand(pollyParams);
     
-    // getSignedUrlを確実に実行する
-    // SDK v3のPolly署名では、expiresIn以外にパラメータをURLに含める必要がある場合がある
-    const url = await getSignedUrl(pollyClient, command, { 
+    // 署名付きURLを生成
+    // getSignedUrlはデフォルトでパラメータをクエリ文字列に含めない場合があるため、手動で付与するか、
+    // 正しい実装方法（Presignerの直接利用など）を検討する。
+    // ここではSDKの標準的な動作に期待しつつ、パラメータが確実に含まれるように再試行する。
+    const signedUrl = await getSignedUrl(pollyClient, command, { 
       expiresIn: 300,
     });
-    console.log("Generated URL (first 100 chars):", url.substring(0, 100));
+
+    // もしURLにパラメータが含まれていない場合、手動で付与する（暫定対応）
+    let finalUrl = signedUrl;
+    if (!finalUrl.includes("Text=")) {
+      const params = new URLSearchParams({
+        Text: text,
+        OutputFormat: "mp3",
+        VoiceId: "Mizuki",
+        Engine: "standard"
+      });
+      finalUrl += (finalUrl.includes("?") ? "&" : "?") + params.toString();
+    }
+    console.log("Generated URL (first 100 chars):", finalUrl.substring(0, 100));
 
     return {
       statusCode: 200,
@@ -59,7 +74,7 @@ exports.getPhrase = async (event) => {
       body: JSON.stringify({
         id: selectedItem.id,
         phrase: text,
-        audioUrl: url,
+        audioUrl: finalUrl,
       }),
     };
   } catch (error) {
