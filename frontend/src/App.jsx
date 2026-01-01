@@ -21,6 +21,9 @@ function App() {
         
         // 音声を再生
         console.log("Playing audio from:", data.audioUrl);
+        if (!data.audioUrl.includes("Text=")) {
+          console.warn("Warning: Audio URL might be missing Text parameter.");
+        }
         const audio = new Audio();
         audio.src = data.audioUrl;
         audio.oncanplaythrough = () => {

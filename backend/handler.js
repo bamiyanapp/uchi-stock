@@ -38,12 +38,16 @@ exports.getPhrase = async (event) => {
       Text: text,
       OutputFormat: "mp3",
       VoiceId: "Mizuki", // 日本語女性ボイス
+      Engine: "standard" // 明示的に指定
     };
 
     const command = new SynthesizeSpeechCommand(pollyParams);
     
     // getSignedUrlを確実に実行する
-    const url = await getSignedUrl(pollyClient, command, { expiresIn: 300 });
+    // SDK v3のPolly署名では、expiresIn以外にパラメータをURLに含める必要がある場合がある
+    const url = await getSignedUrl(pollyClient, command, { 
+      expiresIn: 300,
+    });
     console.log("Generated URL (first 100 chars):", url.substring(0, 100));
 
     return {
