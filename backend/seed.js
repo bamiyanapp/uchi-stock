@@ -42,13 +42,16 @@ async function seed() {
 
     // 5. 新しいデータを投入する
     for (const record of records) {
+      const levelRaw = record.level.trim();
+      const level = levelRaw === "-" ? "-" : parseInt(levelRaw, 10);
+      
       await docClient.send(
         new PutCommand({
           TableName: TABLE_NAME,
           Item: {
             id: crypto.randomUUID(), // UUIDを生成してIDとする
             category: record.category.trim(),
-            level: parseInt(record.level.trim(), 10),
+            level: level,
             kana: record.kana.trim(),
             phrase: record.phrase.trim(),
           },

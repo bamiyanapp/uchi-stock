@@ -53,6 +53,45 @@ h1 {
   flex-wrap: wrap;
 }
 
+button {
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s, opacity 0.2s;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  font-weight: bold;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.main-button {
+  padding: 15px 30px;
+  font-size: 1.2rem;
+  background-color: #e44d26;
+  color: white;
+  border: none;
+  border-radius: 30px;
+}
+
+.main-button:hover:not(:disabled) {
+  background-color: #d33d16;
+  transform: scale(1.05);
+}
+
+.sub-button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  background-color: #ffffff;
+  color: #333333;
+  border: 2px solid #333333;
+  border-radius: 30px;
+}
+
+.sub-button:hover:not(:disabled) {
+  background-color: #eeeeee;
+}
+
 .category-selection {
   margin-top: 40px;
   padding: 20px;
@@ -95,19 +134,24 @@ h1 {
   margin-bottom: 20px;
 }
 
+.footer-nav {
+  margin-top: 40px;
+  margin-bottom: 40px;
+  border-top: 1px dashed #ccc;
+  padding-top: 20px;
+}
+
 .back-button {
-  position: absolute;
-  left: 0;
-  padding: 8px 15px;
-  font-size: 0.9rem;
-  background-color: #eee;
-  border: 1px solid #ccc;
-  border-radius: 20px;
-  cursor: pointer;
+  padding: 10px 25px;
+  font-size: 1rem;
+  background-color: #f0f0f0;
+  color: #444444;
+  border: 1px solid #999999;
+  border-radius: 25px;
 }
 
 .back-button:hover {
-  background-color: #ddd;
+  background-color: #e0e0e0;
 }
 
 .yomifuda-container {

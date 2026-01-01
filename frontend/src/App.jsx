@@ -134,7 +134,6 @@ function App() {
   return (
     <div className="App">
       <div className="header-nav">
-        <button onClick={resetGame} className="back-button">← 種類を選び直す</button>
         <h1>{selectedCategory}</h1>
       </div>
       
@@ -148,9 +147,11 @@ function App() {
               <div className="yomifuda-phrase">
                 {currentPhrase.phrase}
               </div>
-              <div className="yomifuda-level">
-                ピンチレベル: {currentPhrase.level}
-              </div>
+              {currentPhrase.level !== "-" && (
+                <div className="yomifuda-level">
+                  レベル: {currentPhrase.level}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -173,7 +174,8 @@ function App() {
           <ul>
             {readPhrases.map((p, index) => (
               <li key={`${p.id}-${readPhrases.length - index}`}>
-                <span className="history-level">Lv.{p.level}</span>: {p.phrase}
+                {p.level !== "-" && <span className="history-level">Lv.{p.level}</span>}
+                {p.phrase}
               </li>
             ))}
           </ul>
@@ -183,6 +185,10 @@ function App() {
       <p className="read-the-docs">
         リロードすると履歴はリセットされます。
       </p>
+
+      <div className="footer-nav">
+        <button onClick={resetGame} className="back-button">カルタの種類を選び直す</button>
+      </div>
     </div>
   );
 }
