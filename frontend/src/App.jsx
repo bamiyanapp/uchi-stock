@@ -12,10 +12,15 @@ function App() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
+        console.log("Fetching categories...");
         const response = await fetch("https://zr6f3qp6vg.execute-api.ap-northeast-1.amazonaws.com/dev/get-categories");
+        console.log("Response status:", response.status);
         const data = await response.json();
+        console.log("Data received:", data);
         if (response.ok) {
           setCategories(data.categories || []);
+        } else {
+          console.error("Fetch categories failed:", data.message);
         }
       } catch (error) {
         console.error("Error fetching categories:", error);
