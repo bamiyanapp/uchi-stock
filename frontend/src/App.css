@@ -4,6 +4,7 @@
   padding: 1rem;
   text-align: center;
   overflow-x: hidden;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
 }
 
 h1 {
@@ -74,7 +75,6 @@ h1 {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  font-family: "Sawarabi Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
   box-sizing: border-box;
 }
 
