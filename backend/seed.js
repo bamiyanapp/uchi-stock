@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { parse } = require("csv-parse/sync");
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, PutCommand, ScanCommand, DeleteCommand } = require("@aws-sdk/lib-dynamodb");
@@ -45,7 +46,7 @@ async function seed() {
         new PutCommand({
           TableName: TABLE_NAME,
           Item: {
-            id: record.kana.trim(), // IDとして「かな」を使用
+            id: crypto.randomUUID(), // UUIDを生成してIDとする
             level: parseInt(record.level.trim(), 10),
             kana: record.kana.trim(),
             phrase: record.phrase.trim(),
