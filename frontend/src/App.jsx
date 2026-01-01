@@ -17,15 +17,12 @@ function App() {
 
       if (response.ok) {
         setPhrase(data.phrase);
-        setAudioUrl(data.audioUrl);
+        setAudioUrl(data.audioData);
         
         // 音声を再生
-        console.log("Playing audio from:", data.audioUrl);
-        if (!data.audioUrl.includes("Text=")) {
-          console.warn("Warning: Audio URL might be missing Text parameter.");
-        }
+        console.log("Playing audio (Base64 data)");
         const audio = new Audio();
-        audio.src = data.audioUrl;
+        audio.src = data.audioData;
         audio.oncanplaythrough = () => {
           audio.play().catch(e => {
             console.error("Playback failed:", e);
