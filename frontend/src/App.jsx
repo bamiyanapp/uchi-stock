@@ -10,7 +10,7 @@ function App() {
     setLoading(true);
     try {
       // API GatewayのURLをここに設定する（デプロイ後に書き換えが必要）
-      const apiUrl = "https://YOUR_API_ID.execute-api.ap-northeast-1.amazonaws.com/dev/get-phrase";
+      const apiUrl = "https://zr6f3qp6vg.execute-api.ap-northeast-1.amazonaws.com/dev/get-phrase";
       
       const response = await fetch(apiUrl);
       const data = await response.json();
