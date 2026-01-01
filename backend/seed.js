@@ -44,10 +44,11 @@ async function seed() {
     for (const record of records) {
       const levelRaw = record.level ? record.level.trim() : "-";
       let level;
-      if (levelRaw === "-" || isNaN(parseInt(levelRaw, 10))) {
-        level = "-";
-      } else {
+      // 数値としてパースできる場合は数値型にする。できない場合は文字列のまま保持する。
+      if (levelRaw !== "-" && !isNaN(parseInt(levelRaw, 10)) && /^\d+$/.test(levelRaw)) {
         level = parseInt(levelRaw, 10);
+      } else {
+        level = levelRaw;
       }
       
       await docClient.send(
