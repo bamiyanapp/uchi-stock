@@ -482,7 +482,7 @@ function App() {
             <div className="mx-auto" style={{ maxWidth: "600px" }}>
               <div className="d-flex justify-content-center mb-4">
                 <div className="yomifuda shadow-lg" onClick={repeatPhrase} role="button">
-                  <div className="yomifuda-kana"><span>{detailPhrase.kana || detailPhrase.phrase[0]}</span></div>
+                  <div className="yomifuda-kana"><span>{detailPhrase.kana || (detailPhrase.phrase && detailPhrase.phrase[0])}</span></div>
                   <div className="yomifuda-phrase">{detailPhrase.phrase}</div>
                   {detailPhrase.level !== "-" && <div className="yomifuda-level fw-bold">レベル: {detailPhrase.level}</div>}
                 </div>
@@ -541,7 +541,7 @@ function App() {
             {currentPhrase && (
               <div className="d-flex justify-content-center mb-4">
                 <div className="yomifuda shadow-lg" onClick={repeatPhrase} role="button" aria-label="もう一度読み上げる">
-                  <div className="yomifuda-kana"><span>{currentPhrase.kana || currentPhrase.phrase[0]}</span></div>
+                  <div className="yomifuda-kana"><span>{currentPhrase.kana || (currentPhrase.phrase && currentPhrase.phrase[0])}</span></div>
                   <div className="yomifuda-phrase">{currentPhrase.phrase}</div>
                   {currentPhrase.level !== "-" && <div className="yomifuda-level fw-bold">レベル: {currentPhrase.level}</div>}
                 </div>
