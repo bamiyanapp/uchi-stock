@@ -38,6 +38,13 @@ functions:
           path: get-categories
           method: get
           cors: true
+  getCongratulationAudio:
+    handler: handler.getCongratulationAudio
+    events:
+      - http:
+          path: get-congratulation-audio
+          method: get
+          cors: true
 
 resources:
   Resources:

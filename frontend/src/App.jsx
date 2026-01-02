@@ -100,11 +100,16 @@ function App() {
         [selectedCategory]: newHistory
       }));
 
+      // 札の音声を再生
+      await playAudio(data.audioData);
+
+      // 全て読み終わったかチェック
       if (data.totalInCategory && newHistory.length >= data.totalInCategory) {
         setIsAllRead(true);
+        // お祝い音声の読み上げ（1.5秒の間を置く）
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        await playCongratulationAudio();
       }
-      
-      await playAudio(data.audioData);
 
     } catch (error) {
       console.error("Error fetching phrase:", error);
@@ -121,6 +126,18 @@ function App() {
       } catch (error) {
         alert("再生成に失敗しました。");
       }
+    }
+  };
+
+  const playCongratulationAudio = async () => {
+    try {
+      const response = await fetch("https://zr6f3qp6vg.execute-api.ap-northeast-1.amazonaws.com/dev/get-congratulation-audio");
+      const data = await response.json();
+      if (response.ok) {
+        await playAudio(data.audioData);
+      }
+    } catch (error) {
+      console.error("Error playing congratulation audio:", error);
     }
   };
 

@@ -13,60 +13,69 @@ const TABLE_NAME = "karuta-phrases";
 
 async function seed() {
   try {
-    // 1. 既存のデータを全件取得する
-    console.log("Cleaning up old data...");
-    const scanResult = await docClient.send(new ScanCommand({ TableName: TABLE_NAME }));
-    const oldItems = scanResult.Items || [];
-
-    // 2. 既存のデータをすべて削除する
-    for (const item of oldItems) {
-      await docClient.send(
-        new DeleteCommand({
-          TableName: TABLE_NAME,
-          Key: { id: item.id },
-        })
-      );
-    }
-    console.log(`Deleted ${oldItems.length} old records.`);
-
-    // 3. CSVファイルを読み込む
+    // 1. CSVファイルを読み込んでパース
     const fileContent = fs.readFileSync(CSV_FILE_PATH, "utf-8");
-
-    // 4. CSVをパースする
     const records = parse(fileContent, {
       columns: true,
       skip_empty_lines: true,
     });
+    console.log(`Read ${records.length} records from CSV.`);
 
-    console.log(`Read ${records.length} new records from CSV.`);
-
-    // 5. 新しいデータを投入する
+    // 2. CSVデータから現在の有効なIDリストを作成
+    const newItemsMap = new Map();
     for (const record of records) {
+      const category = record.category ? record.category.trim() : "大ピンチ図鑑";
+      const phrase = record.phrase ? record.phrase.trim() : "";
+      const id = crypto.createHash("md5").update(`${category}:${phrase}`).digest("hex");
+      
       const levelRaw = record.level ? record.level.trim() : "-";
       let level;
-      // 数値としてパースできる場合は数値型にする。できない場合は文字列のまま保持する。
       if (levelRaw !== "-" && !isNaN(parseInt(levelRaw, 10)) && /^\d+$/.test(levelRaw)) {
         level = parseInt(levelRaw, 10);
       } else {
         level = levelRaw;
       }
-      
-      await docClient.send(
-        new PutCommand({
-          TableName: TABLE_NAME,
-          Item: {
-            id: crypto.randomUUID(), // UUIDを生成してIDとする
-            category: record.category ? record.category.trim() : "大ピンチ図鑑",
-            level: level,
-            kana: record.kana ? record.kana.trim() : "-",
-            phrase: record.phrase ? record.phrase.trim() : "",
-          },
-        })
-      );
-      console.log(`Seeded: [${record.category}][Lv${record.level}] ${record.kana} - ${record.phrase}`);
+
+      newItemsMap.set(id, {
+        id,
+        category,
+        level,
+        kana: record.kana ? record.kana.trim() : "-",
+        phrase,
+      });
     }
 
-    console.log("Seeding completed successfully (Full Replace).");
+    // 3. DBの既存データを取得
+    console.log("Checking existing data in DB...");
+    const scanResult = await docClient.send(new ScanCommand({ TableName: TABLE_NAME }));
+    const oldItems = scanResult.Items || [];
+    const oldIds = new Set(oldItems.map(item => item.id));
+
+    // 4. 不要なデータを削除（CSVに存在しないIDのみ）
+    let deleteCount = 0;
+    for (const oldId of oldIds) {
+      if (!newItemsMap.has(oldId)) {
+        await docClient.send(new DeleteCommand({
+          TableName: TABLE_NAME,
+          Key: { id: oldId },
+        }));
+        deleteCount++;
+      }
+    }
+    if (deleteCount > 0) console.log(`Deleted ${deleteCount} obsolete records.`);
+
+    // 5. 新しいデータを投入・更新（Upsert方式）
+    let upsertCount = 0;
+    for (const item of newItemsMap.values()) {
+      await docClient.send(new PutCommand({
+        TableName: TABLE_NAME,
+        Item: item,
+      }));
+      upsertCount++;
+    }
+    console.log(`Upserted ${upsertCount} records.`);
+
+    console.log("Seeding completed successfully (Incremental Sync).");
   } catch (error) {
     console.error("Seeding failed:", error);
   }

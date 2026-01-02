@@ -6,6 +6,44 @@ const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
 const pollyClient = new PollyClient({ region: "ap-northeast-1" });
 
+exports.getCongratulationAudio = async (event) => {
+  try {
+    const speechText = "おめでとう、全て読み終わりました";
+    
+    const pollyParams = {
+      Text: `<speak><prosody rate="90%">${speechText}</prosody></speak>`,
+      TextType: "ssml",
+      OutputFormat: "mp3",
+      VoiceId: "Mizuki",
+      Engine: "standard"
+    };
+
+    const command = new SynthesizeSpeechCommand(pollyParams);
+    const pollyResponse = await pollyClient.send(command);
+
+    const audioBuffer = await streamToBuffer(pollyResponse.AudioStream);
+    const base64Audio = audioBuffer.toString("base64");
+
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
+      body: JSON.stringify({
+        audioData: `data:audio/mp3;base64,${base64Audio}`,
+      }),
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      statusCode: 500,
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
+    };
+  }
+};
+
 exports.getPhrase = async (event) => {
   try {
     const category = event.queryStringParameters ? event.queryStringParameters.category : null;
