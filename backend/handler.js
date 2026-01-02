@@ -7,6 +7,18 @@ const docClient = DynamoDBDocumentClient.from(dynamoClient);
 const pollyClient = new PollyClient({ region: "ap-northeast-1" });
 const crypto = require("crypto");
 
+function normalizeSpeechRate(rate) {
+  if (!rate) return "90%";
+  const rateStr = String(rate);
+  if (/^\d/.test(rateStr)) {
+    const num = parseInt(rateStr, 10);
+    if (!isNaN(num)) {
+      return `${num}%`;
+    }
+  }
+  return rateStr;
+}
+
 exports.postComment = async (event) => {
   try {
     const body = JSON.parse(event.body);
@@ -79,7 +91,8 @@ exports.getComments = async (event) => {
 exports.getCongratulationAudio = async (event) => {
   try {
     const params = event.queryStringParameters || {};
-    const speechRate = params.speechRate || "90%";
+    const rawSpeechRate = params.speechRate || "90%";
+    const speechRate = normalizeSpeechRate(rawSpeechRate);
     const lang = params.lang || "ja";
 
     let speechText = "おめでとう、全て読み終わりました";
@@ -129,7 +142,8 @@ exports.getPhrase = async (event) => {
     const params = event.queryStringParameters || {};
     const category = params.category || null;
     const repeatCount = parseInt(params.repeatCount || "2", 10);
-    const speechRate = params.speechRate || "90%";
+    const rawSpeechRate = params.speechRate || "90%";
+    const speechRate = normalizeSpeechRate(rawSpeechRate);
     const lang = params.lang || "ja";
     const targetId = params.id || null;
     const pollyCacheTableName = process.env.POLLY_CACHE_TABLE_NAME; // キャッシュテーブル名を取得
