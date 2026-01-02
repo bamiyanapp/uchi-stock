@@ -462,7 +462,13 @@ function App() {
                 </div>
               </div>
               <div className="mb-5">
-                <button onClick={repeatPhrase} className="btn btn-primary btn-lg px-5 rounded-pill shadow">読み上げる</button>
+                <button 
+                  onClick={repeatPhrase} 
+                  className="btn btn-lg px-5 py-3 fw-bold rounded-pill shadow"
+                  style={{ backgroundColor: "#e44d26", color: "white" }}
+                >
+                  読み上げる
+                </button>
               </div>
 
               <section className="comment-form-container text-start p-4 bg-light rounded-4 shadow-sm border">
