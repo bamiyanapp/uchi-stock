@@ -141,6 +141,13 @@ function App() {
     setCurrentPhrase(null);
   };
 
+  const handleCategorySelect = (cat) => {
+    const isConfirmed = window.confirm(`「${cat}」をお手元に持っていますか？`);
+    if (isConfirmed) {
+      setSelectedCategory(cat);
+    }
+  };
+
   // カテゴリ選択画面
   if (!selectedCategory) {
     return (
@@ -158,7 +165,7 @@ function App() {
               categories.map(cat => (
                 <button 
                   key={cat} 
-                  onClick={() => setSelectedCategory(cat)} 
+                  onClick={() => handleCategorySelect(cat)} 
                   className="btn btn-lg px-4 py-3 fw-bold rounded-pill shadow-sm"
                   style={{ backgroundColor: "#e44d26", color: "white" }}
                 >
