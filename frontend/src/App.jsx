@@ -413,14 +413,14 @@ function App() {
   if (!selectedCategory) {
     return (
       <div className="container py-5 mx-auto">
-        <header className="text-center mb-5">
-          <img src="favicon.png" alt="かるたのアイコン" className="mb-4" style={{ width: "120px", height: "auto" }} />
-          <h1 className="display-4 fw-bold">かるた読み上げアプリ</h1>
-        </header>
+      <header className="text-center mb-5">
+        <img src="favicon.png" alt="かるたのアイコン" className="mb-4" style={{ width: "120px", height: "auto" }} />
+        <h1 className="display-4 fw-bold">かるた読み上げアプリ</h1>
+      </header>
         
-        <main className="category-selection-container p-4 mx-auto mb-5" style={{ maxWidth: "600px" }}>
-          <h2 className="h4 text-center mb-4 text-dark">かるたの種類を選んでね</h2>
-          <div className="d-flex flex-wrap gap-3 justify-content-center">
+      <main className="category-selection-container p-4 mx-auto mb-5" style={{ maxWidth: "600px" }}>
+        <h2 className="h4 text-center mb-4 text-dark">かるたの種類を選んでね</h2>
+        <div className="d-flex flex-wrap gap-3 justify-content-center">
             {categories.length === 0 ? (
               <div className="text-success fw-bold p-3">読み込み中...</div>
             ) : (
@@ -498,9 +498,9 @@ function App() {
                 </button>
               </div>
 
-              <section className="comment-form-container text-start p-4 bg-light rounded-4 shadow-sm border">
-                <h2 className="h5 fw-bold mb-3 text-dark">かるたの誤りを指摘する</h2>
-                <form onSubmit={postComment}>
+            <section className="comment-form-container text-start p-4 bg-light rounded-4 shadow-sm border">
+              <h2 className="h5 fw-bold mb-3 text-dark">かるたの誤りを指摘する</h2>
+              <form onSubmit={postComment}>
                   <div className="mb-3">
                     <textarea 
                       className="form-control rounded-3" 
@@ -603,9 +603,9 @@ function App() {
             </div>
           </div>
         </section>
-        <p className="text-muted small mb-4">リロードすると履歴はリセットされます。</p>
-        <button onClick={resetGame} className="btn btn-outline-secondary px-4 rounded-pill">カルタの種類を選び直す</button>
-      </footer>
+      <p className="text-muted small mb-4">リロードすると履歴はリセットされます。</p>
+      <button onClick={resetGame} className="btn btn-outline-secondary px-4 rounded-pill">かるたの種類を選び直す</button>
+    </footer>
     </div>
   );
 }

@@ -8,7 +8,7 @@
   max-width: 800px; /* PCで見やすい幅に制限 */
 }
 
-/* カルタ固有のデザイン（Bootstrapで表現しにくい部分） */
+/* かるた固有のデザイン（Bootstrapで表現しにくい部分） */
 
 .yomifuda {
   position: relative;
