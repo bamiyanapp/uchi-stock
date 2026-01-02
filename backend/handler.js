@@ -49,85 +49,63 @@ exports.getPhrase = async (event) => {
     const params = event.queryStringParameters || {};
     const category = params.category || null;
     const repeatCount = parseInt(params.repeatCount || "2", 10);
+    const targetId = params.id || null;
 
     // 1. DynamoDBから取得
     const scanParams = {
       TableName: process.env.TABLE_NAME,
     };
     
-    // 全件取得してからメモリ上でフィルタリングする（確実性の向上とデバッグのため）
     const scanResult = await docClient.send(new ScanCommand(scanParams));
     let items = scanResult.Items || [];
 
-    console.log(`Total items in DB: ${items.length}`);
-    if (items.length > 0) {
-      console.log(`First item category sample: '${items[0].category}'`);
-    }
-    console.log(`Requested category: '${category}'`);
+    let selectedItem = null;
 
-    if (category) {
-      const filteredItems = items.filter(item => item.category === category);
-      console.log(`Filtered items count: ${filteredItems.length}`);
-      
-      // もしフィルタリングで0件になったが、全件にはデータがある場合、カテゴリ名の不一致を疑う
-      if (filteredItems.length === 0 && items.length > 0) {
-        console.warn("Category mismatch detected. Attempting loose matching...");
+    if (targetId) {
+      // ID指定がある場合
+      selectedItem = items.find(item => item.id === targetId);
+    } else {
+      // ID指定がない場合は従来通りカテゴリからランダム選択（後方互換性のため）
+      if (category) {
         items = items.filter(item => (item.category || "").trim() === category.trim());
-      } else {
-        items = filteredItems;
+      }
+      
+      if (items.length > 0) {
+        const randomIndex = Math.floor(Math.random() * items.length);
+        selectedItem = items[randomIndex];
       }
     }
 
-    if (!items || items.length === 0) {
+    if (!selectedItem) {
       return {
         statusCode: 404,
         headers: { "Access-Control-Allow-Origin": "*" },
-        body: JSON.stringify({ message: "No phrases found" }),
+        body: JSON.stringify({ message: "Phrase not found" }),
       };
     }
 
-    // 2. ランダムに1つ選択
-    const randomIndex = Math.floor(Math.random() * items.length);
-    const selectedItem = items[randomIndex];
     const level = selectedItem.level;
     const phrase = selectedItem.phrase;
 
-    // レベルが "-" でない、かつ有効な値であれば読み上げる
-    // 文字列（上級、初級など）も読み上げ対象とする
     const hasLevel = level !== "-" && level !== null && level !== undefined && String(level).trim() !== "";
     const phraseWithLevel = hasLevel ? `レベル、${level}。${phrase}` : phrase;
 
-    // 繰り返し、スピードを少し落とすための SSML
     let innerContent = phraseWithLevel;
     if (repeatCount >= 2) {
-      innerContent = `
-        ${phraseWithLevel}
-        <break time="1500ms"/>
-        ${phraseWithLevel}
-      `;
+      innerContent = `${phraseWithLevel}<break time="1500ms"/>${phraseWithLevel}`;
     }
 
-    const ssmlText = `
-      <speak>
-        <prosody rate="90%">
-          ${innerContent}
-        </prosody>
-      </speak>
-    `.trim();
+    const ssmlText = `<speak><prosody rate="90%">${innerContent}</prosody></speak>`;
 
-    // 3. Pollyで音声を生成し、バイナリを直接取得する
-    const pollyParams = {
+    const command = new SynthesizeSpeechCommand({
       Text: ssmlText,
-      TextType: "ssml", // SSMLを使用
+      TextType: "ssml",
       OutputFormat: "mp3",
       VoiceId: "Mizuki",
       Engine: "standard"
-    };
-
-    const command = new SynthesizeSpeechCommand(pollyParams);
+    });
     const pollyResponse = await pollyClient.send(command);
 
-    // StreamをBufferに変換し、Base64文字列にする
     const audioBuffer = await streamToBuffer(pollyResponse.AudioStream);
     const base64Audio = audioBuffer.toString("base64");
 
@@ -143,7 +121,6 @@ exports.getPhrase = async (event) => {
         phrase: phrase,
         level: level,
         kana: selectedItem.kana,
-        totalInCategory: items.length, // このカテゴリの総数（フィルタリング後）
         audioData: `data:audio/mp3;base64,${base64Audio}`,
       }),
     };
@@ -157,6 +134,35 @@ exports.getPhrase = async (event) => {
   }
 };
 
+exports.getPhrasesList = async (event) => {
+  try {
+    const category = event.queryStringParameters ? event.queryStringParameters.category : null;
+    const scanParams = {
+      TableName: process.env.TABLE_NAME,
+      ProjectionExpression: "id, category",
+    };
+    const scanResult = await docClient.send(new ScanCommand(scanParams));
+    let items = scanResult.Items || [];
+    
+    if (category) {
+      items = items.filter(item => (item.category || "").trim() === category.trim());
+    }
+
+    return {
+      statusCode: 200,
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ phrases: items }),
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      statusCode: 500,
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ message: "Internal Server Error" }),
+    };
+  }
+};
+
 exports.getCategories = async (event) => {
   try {
     const scanParams = {
@@ -166,13 +172,8 @@ exports.getCategories = async (event) => {
     const scanResult = await docClient.send(new ScanCommand(scanParams));
     const items = scanResult.Items || [];
     
-    // 重複を排除してカテゴリ名のリストを作成
     let categories = [...new Set(items.map(item => item.category || "大ピンチ図鑑"))];
-    
-    // 空文字やnullを除外
     categories = categories.filter(cat => !!cat);
-    
-    // それでも空ならデフォルトを返す
     if (categories.length === 0) {
       categories = ["大ピンチ図鑑"];
     }
@@ -195,7 +196,6 @@ exports.getCategories = async (event) => {
   }
 };
 
-// ヘルパー関数: Readable Stream を Buffer に変換する
 async function streamToBuffer(stream) {
   return new Promise((resolve, reject) => {
     const chunks = [];

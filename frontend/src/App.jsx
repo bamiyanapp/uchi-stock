@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import "./App.css";
 
 function App() {
@@ -7,6 +7,8 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     return params.get("category");
   });
+  
+  const [allPhrasesForCategory, setAllPhrasesForCategory] = useState([]); // 現在のカテゴリの全IDリスト
   const [currentPhrase, setCurrentPhrase] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isAllRead, setIsAllRead] = useState(false);
@@ -15,12 +17,14 @@ function App() {
   });
   const [historyByCategory, setHistoryByCategory] = useState({});
   
-  // 確認モーダル用の状態
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingCategory, setPendingCategory] = useState(null);
 
-  const currentHistory = selectedCategory ? (historyByCategory[selectedCategory] || []) : [];
+  const currentHistory = useMemo(() => {
+    return selectedCategory ? (historyByCategory[selectedCategory] || []) : [];
+  }, [selectedCategory, historyByCategory]);
 
+  // カテゴリ一覧を取得
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -43,6 +47,27 @@ function App() {
     fetchCategories();
   }, [selectedCategory]);
 
+  // カテゴリが選択されたら、そのカテゴリの全札IDリストを取得する
+  useEffect(() => {
+    if (!selectedCategory) {
+      setAllPhrasesForCategory([]);
+      return;
+    }
+
+    const fetchPhrasesList = async () => {
+      try {
+        const response = await fetch(`https://zr6f3qp6vg.execute-api.ap-northeast-1.amazonaws.com/dev/get-phrases-list?category=${encodeURIComponent(selectedCategory)}`);
+        const data = await response.json();
+        if (response.ok) {
+          setAllPhrasesForCategory(data.phrases || []);
+        }
+      } catch (error) {
+        console.error("Error fetching phrases list:", error);
+      }
+    };
+    fetchPhrasesList();
+  }, [selectedCategory]);
+
   const playAudio = useCallback((audioData) => {
     return new Promise((resolve, reject) => {
       const audio = new Audio();
@@ -63,37 +88,34 @@ function App() {
   }, []);
 
   const playKaruta = async () => {
-    if (!selectedCategory) return;
+    if (!selectedCategory || allPhrasesForCategory.length === 0) return;
     
     setLoading(true);
     await new Promise(resolve => setTimeout(resolve, 500));
     
     try {
-      const apiUrl = `https://zr6f3qp6vg.execute-api.ap-northeast-1.amazonaws.com/dev/get-phrase?category=${encodeURIComponent(selectedCategory)}&repeatCount=${repeatCount}`;
-      
-      let data;
-      let isDuplicate = true;
-      let retryCount = 0;
-      const maxRetries = 10;
+      // 既読のIDを除外して、未読のIDリストを作成
+      const readIds = currentHistory.map(p => p.id);
+      const unreadPhrases = allPhrasesForCategory.filter(p => !readIds.includes(p.id));
 
-      while (isDuplicate && retryCount < maxRetries) {
-        const response = await fetch(apiUrl);
-        data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.message || "Fetch failed");
-        }
-
-        if (!currentHistory.find(p => p.id === data.id)) {
-          isDuplicate = false;
-        } else {
-          retryCount++;
-        }
+      if (unreadPhrases.length === 0) {
+        setIsAllRead(true);
+        await playCongratulationAudio();
+        setLoading(false);
+        return;
       }
 
-      if (isDuplicate) {
-        alert("新しい札が見つかりませんでした。すべての札を読み上げた可能性があります。");
-        return;
+      // 未読リストからランダムに1つ選択
+      const randomIndex = Math.floor(Math.random() * unreadPhrases.length);
+      const targetPhrase = unreadPhrases[randomIndex];
+
+      // 詳細データを取得
+      const apiUrl = `https://zr6f3qp6vg.execute-api.ap-northeast-1.amazonaws.com/dev/get-phrase?id=${targetPhrase.id}&repeatCount=${repeatCount}`;
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || "Fetch failed");
       }
 
       setCurrentPhrase(data);
@@ -103,13 +125,11 @@ function App() {
         [selectedCategory]: newHistory
       }));
 
-      // 札の音声を再生
       await playAudio(data.audioData);
 
       // 全て読み終わったかチェック
-      if (data.totalInCategory && newHistory.length >= data.totalInCategory) {
+      if (newHistory.length >= allPhrasesForCategory.length) {
         setIsAllRead(true);
-        // お祝い音声の読み上げ（1.5秒の間を置く）
         await new Promise(resolve => setTimeout(resolve, 1500));
         await playCongratulationAudio();
       }
@@ -191,26 +211,22 @@ function App() {
     setIsAllRead(false);
   };
 
-  // モーダルを表示
   const handleCategoryClick = (cat) => {
     setPendingCategory(cat);
     setShowConfirmModal(true);
   };
 
-  // 「はい」を選択
   const confirmCategory = () => {
     setSelectedCategory(pendingCategory);
     setShowConfirmModal(false);
     setPendingCategory(null);
   };
 
-  // 「いいえ」を選択
   const cancelCategory = () => {
     setShowConfirmModal(false);
     setPendingCategory(null);
   };
 
-  // カテゴリ選択画面
   if (!selectedCategory) {
     return (
       <div className="container py-5 mx-auto">
@@ -259,7 +275,6 @@ function App() {
           </div>
         </main>
 
-        {/* 確認モーダル（擬似的なモーダル実装） */}
         {showConfirmModal && (
           <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
             <div className="modal-dialog modal-dialog-centered">
@@ -283,7 +298,6 @@ function App() {
     );
   }
 
-  // カルタプレイ画面
   return (
     <div className="container py-4 mx-auto">
       <header className="text-center mb-4">

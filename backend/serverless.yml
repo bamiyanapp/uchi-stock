@@ -45,6 +45,13 @@ functions:
           path: get-congratulation-audio
           method: get
           cors: true
+  getPhrasesList:
+    handler: handler.getPhrasesList
+    events:
+      - http:
+          path: get-phrases-list
+          method: get
+          cors: true
 
 resources:
   Resources:
