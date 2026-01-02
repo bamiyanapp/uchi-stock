@@ -145,6 +145,17 @@ function App() {
     });
   }, []);
 
+  // 読み上げ開始の合図（和太鼓の音など）を再生
+  const playIntroSound = useCallback(async () => {
+    try {
+      await playAudio("wadodon.mp3");
+      // 音が終わった後に少しだけ（300ms）余韻を置く
+      await new Promise(resolve => setTimeout(resolve, 300));
+    } catch (error) {
+      console.error("Intro sound failed:", error);
+    }
+  }, [playAudio]);
+
   const playKaruta = async () => {
     if (!selectedCategory || allPhrasesForCategory.length === 0) return;
     
@@ -180,6 +191,8 @@ function App() {
         [selectedCategory]: newHistory
       }));
 
+      // 開始音を再生してから札を読み上げる
+      await playIntroSound();
       await playAudio(data.audioData);
 
       if (newHistory.length >= allPhrasesForCategory.length) {
@@ -200,6 +213,7 @@ function App() {
     const target = detailPhrase || currentPhrase;
     if (target && target.audioData) {
       try {
+        await playIntroSound();
         await playAudio(target.audioData);
       } catch (error) {
         alert("再生成に失敗しました。");
