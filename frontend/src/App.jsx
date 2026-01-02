@@ -16,7 +16,7 @@ function App() {
     return parseInt(localStorage.getItem("repeatCount") || "2", 10);
   });
   const [speechRate, setSpeechRate] = useState(() => {
-    return localStorage.getItem("speechRate") || "90%";
+    return localStorage.getItem("speechRate") || "80%";
   });
   const [historyByCategory, setHistoryByCategory] = useState({});
   
@@ -239,7 +239,7 @@ function App() {
       <div className="container py-5 mx-auto">
         <header className="text-center mb-5">
           <img 
-            src="/favicon.png" 
+            src="favicon.png" 
             alt="カルタのアイコン" 
             className="mb-4 shadow-sm rounded-circle" 
             style={{ width: "120px", height: "120px", objectFit: "cover" }}
@@ -376,20 +376,20 @@ function App() {
             <span className="fw-bold text-dark small">読み上げスピード:</span>
             <div className="btn-group btn-group-sm" role="group">
               <button 
-                onClick={() => setSpeechRate("80%")} 
-                className={`btn ${speechRate === "80%" ? 'btn-dark' : 'btn-outline-dark'}`}
+                onClick={() => setSpeechRate("70%")} 
+                className={`btn ${speechRate === "70%" ? 'btn-dark' : 'btn-outline-dark'}`}
               >
                 ゆっくり
               </button>
               <button 
-                onClick={() => setSpeechRate("100%")} 
-                className={`btn ${speechRate === "100%" ? 'btn-dark' : 'btn-outline-dark'}`}
+                onClick={() => setSpeechRate("80%")} 
+                className={`btn ${speechRate === "80%" ? 'btn-dark' : 'btn-outline-dark'}`}
               >
                 ふつう
               </button>
               <button 
-                onClick={() => setSpeechRate("120%")} 
-                className={`btn ${speechRate === "120%" ? 'btn-dark' : 'btn-outline-dark'}`}
+                onClick={() => setSpeechRate("100%")} 
+                className={`btn ${speechRate === "100%" ? 'btn-dark' : 'btn-outline-dark'}`}
               >
                 はやい
               </button>
