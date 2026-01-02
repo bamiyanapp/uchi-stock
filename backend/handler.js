@@ -46,7 +46,9 @@ exports.getCongratulationAudio = async (event) => {
 
 exports.getPhrase = async (event) => {
   try {
-    const category = event.queryStringParameters ? event.queryStringParameters.category : null;
+    const params = event.queryStringParameters || {};
+    const category = params.category || null;
+    const repeatCount = parseInt(params.repeatCount || "2", 10);
 
     // 1. DynamoDBから取得
     const scanParams = {
@@ -95,13 +97,20 @@ exports.getPhrase = async (event) => {
     const hasLevel = level !== "-" && level !== null && level !== undefined && String(level).trim() !== "";
     const phraseWithLevel = hasLevel ? `レベル、${level}。${phrase}` : phrase;
 
-    // 2回繰り返し、スピードを少し落とすための SSML
+    // 繰り返し、スピードを少し落とすための SSML
+    let innerContent = phraseWithLevel;
+    if (repeatCount >= 2) {
+      innerContent = `
+        ${phraseWithLevel}
+        <break time="1500ms"/>
+        ${phraseWithLevel}
+      `;
+    }
+
     const ssmlText = `
       <speak>
         <prosody rate="90%">
-          ${phraseWithLevel}
-          <break time="1500ms"/>
-          ${phraseWithLevel}
+          ${innerContent}
         </prosody>
       </speak>
     `.trim();

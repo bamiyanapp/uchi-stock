@@ -10,6 +10,9 @@ function App() {
   const [currentPhrase, setCurrentPhrase] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isAllRead, setIsAllRead] = useState(false);
+  const [repeatCount, setRepeatCount] = useState(() => {
+    return parseInt(localStorage.getItem("repeatCount") || "2", 10);
+  });
   const [historyByCategory, setHistoryByCategory] = useState({});
   
   // 確認モーダル用の状態
@@ -66,7 +69,7 @@ function App() {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     try {
-      const apiUrl = `https://zr6f3qp6vg.execute-api.ap-northeast-1.amazonaws.com/dev/get-phrase?category=${encodeURIComponent(selectedCategory)}`;
+      const apiUrl = `https://zr6f3qp6vg.execute-api.ap-northeast-1.amazonaws.com/dev/get-phrase?category=${encodeURIComponent(selectedCategory)}&repeatCount=${repeatCount}`;
       
       let data;
       let isDuplicate = true;
@@ -169,6 +172,10 @@ function App() {
     }
   }, [selectedCategory]);
 
+  useEffect(() => {
+    localStorage.setItem("repeatCount", repeatCount.toString());
+  }, [repeatCount]);
+
   const resetGame = () => {
     setSelectedCategory(null);
     setCurrentPhrase(null);
@@ -210,6 +217,27 @@ function App() {
         <header className="text-center mb-5">
           <h1 className="display-4 fw-bold">カルタ読み上げアプリ</h1>
         </header>
+
+        <section className="settings-container mb-5 p-4 mx-auto shadow-sm rounded-4 bg-light border" style={{ maxWidth: "600px" }}>
+          <h2 className="h5 fw-bold mb-3">設定</h2>
+          <div className="d-flex align-items-center justify-content-center gap-4">
+            <span className="fw-bold text-dark">読み上げ回数:</span>
+            <div className="btn-group" role="group">
+              <button 
+                onClick={() => setRepeatCount(1)} 
+                className={`btn ${repeatCount === 1 ? 'btn-dark' : 'btn-outline-dark'}`}
+              >
+                1回
+              </button>
+              <button 
+                onClick={() => setRepeatCount(2)} 
+                className={`btn ${repeatCount === 2 ? 'btn-dark' : 'btn-outline-dark'}`}
+              >
+                2回
+              </button>
+            </div>
+          </div>
+        </section>
         
         <main className="category-selection-container p-4 mx-auto" style={{ maxWidth: "600px" }}>
           <h2 className="h4 text-center mb-4 text-dark">カルタの種類を選んでね</h2>
