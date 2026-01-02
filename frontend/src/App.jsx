@@ -419,7 +419,7 @@ function App() {
 
         <div className="text-center">
           <button onClick={() => setView("comments")} className="btn btn-link text-decoration-none text-muted">
-            指摘された内容の一覧を確認する →
+            指摘された内容を確認する →
           </button>
         </div>
 
