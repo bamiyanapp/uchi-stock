@@ -10,6 +10,7 @@ const ddbMock = mockClient(DynamoDBDocumentClient);
 const pollyMock = mockClient(PollyClient);
 
 vi.spyOn(crypto, 'randomUUID').mockReturnValue('mock-uuid');
+vi.spyOn(console, 'error').mockImplementation(() => {});
 
 
 describe('getCategories', () => {
