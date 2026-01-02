@@ -304,7 +304,7 @@ function App() {
 
   useEffect(() => {
     if (view === "comments") {
-      document.title = "指摘一覧 | カルタ読み上げアプリ";
+      document.title = "指摘一覧 | かるた読み上げアプリ";
     } else if (detailPhraseId && detailPhrase) {
       document.title = `${detailPhrase.phrase} | ${selectedCategory}`;
     } else if (selectedCategory) {
