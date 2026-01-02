@@ -11,6 +11,10 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [isAllRead, setIsAllRead] = useState(false);
   const [historyByCategory, setHistoryByCategory] = useState({});
+  
+  // 確認モーダル用の状態
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingCategory, setPendingCategory] = useState(null);
 
   const currentHistory = selectedCategory ? (historyByCategory[selectedCategory] || []) : [];
 
@@ -163,13 +167,26 @@ function App() {
     setIsAllRead(false);
   };
 
-  const handleCategorySelect = (cat) => {
-    const isConfirmed = window.confirm(`「${cat}」をお手元に持っていますか？`);
-    if (isConfirmed) {
-      setSelectedCategory(cat);
-    }
+  // モーダルを表示
+  const handleCategoryClick = (cat) => {
+    setPendingCategory(cat);
+    setShowConfirmModal(true);
   };
 
+  // 「はい」を選択
+  const confirmCategory = () => {
+    setSelectedCategory(pendingCategory);
+    setShowConfirmModal(false);
+    setPendingCategory(null);
+  };
+
+  // 「いいえ」を選択
+  const cancelCategory = () => {
+    setShowConfirmModal(false);
+    setPendingCategory(null);
+  };
+
+  // カテゴリ選択画面
   if (!selectedCategory) {
     return (
       <div className="container py-5 mx-auto">
@@ -186,7 +203,7 @@ function App() {
               categories.map(cat => (
                 <button 
                   key={cat} 
-                  onClick={() => handleCategorySelect(cat)} 
+                  onClick={() => handleCategoryClick(cat)} 
                   className="btn btn-lg px-4 py-3 fw-bold rounded-pill shadow-sm"
                   style={{ backgroundColor: "#e44d26", color: "white" }}
                 >
@@ -196,10 +213,32 @@ function App() {
             )}
           </div>
         </main>
+
+        {/* 確認モーダル（擬似的なモーダル実装） */}
+        {showConfirmModal && (
+          <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content rounded-4 border-0 shadow">
+                <div className="modal-body p-5 text-center">
+                  <h3 className="h4 mb-4 fw-bold">「{pendingCategory}」をお手元に持っていますか？</h3>
+                  <div className="d-flex gap-3 justify-content-center">
+                    <button onClick={confirmCategory} className="btn btn-primary btn-lg px-5 rounded-pill shadow-sm">
+                      はい
+                    </button>
+                    <button onClick={cancelCategory} className="btn btn-outline-secondary btn-lg px-5 rounded-pill">
+                      いいえ
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
+  // カルタプレイ画面
   return (
     <div className="container py-4 mx-auto">
       <header className="text-center mb-4">
