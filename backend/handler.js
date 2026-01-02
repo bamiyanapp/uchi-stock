@@ -97,10 +97,12 @@ exports.getCongratulationAudio = async (event) => {
 
     let speechText = "おめでとう、全て読み終わりました";
     let voiceId = "Mizuki";
+    let engine = "standard";
 
     if (lang === "en") {
       speechText = "Congratulations! You have finished all the cards.";
       voiceId = "Ruth"; // 英語(US)の女性の声
+      engine = "neural";
     }
 
     const pollyParams = {
@@ -108,7 +110,7 @@ exports.getCongratulationAudio = async (event) => {
       TextType: "ssml",
       OutputFormat: "mp3",
       VoiceId: voiceId,
-      Engine: "standard"
+      Engine: engine
     };
 
     const command = new SynthesizeSpeechCommand(pollyParams);
@@ -209,11 +211,13 @@ exports.getPhrase = async (event) => {
     const level = selectedItem.level;
     let phrase = selectedItem.phrase;
     let voiceId = "Mizuki";
+    let engine = "standard";
     let levelPrefix = "レベル";
 
     if (lang === "en") {
       phrase = selectedItem.phrase_en || selectedItem.phrase;
       voiceId = "Ruth";
+      engine = "neural";
       levelPrefix = "Level";
     }
 
@@ -232,7 +236,7 @@ exports.getPhrase = async (event) => {
       TextType: "ssml",
       OutputFormat: "mp3",
       VoiceId: voiceId,
-      Engine: "standard"
+      Engine: engine
     });
     const pollyResponse = await pollyClient.send(command);
 
