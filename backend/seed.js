@@ -24,7 +24,7 @@ async function seed() {
     // 2. CSVデータから現在の有効なIDリストを作成
     const newItemsMap = new Map();
     for (const record of records) {
-      const category = record.category ? record.category.trim() : "大ピンチ図鑑";
+      const category = record.category ? record.category.trim() : "大ピンチずかん";
       const phrase = record.phrase ? record.phrase.trim() : "";
       const id = crypto.createHash("md5").update(`${category}:${phrase}`).digest("hex");
       

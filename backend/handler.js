@@ -326,10 +326,10 @@ exports.getCategories = async (event) => {
     const scanResult = await docClient.send(new ScanCommand(scanParams));
     const items = scanResult.Items || [];
     
-    let categories = [...new Set(items.map(item => item.category || "大ピンチ図鑑"))];
+    let categories = [...new Set(items.map(item => item.category || "大ピンチずかん"))];
     categories = categories.filter(cat => !!cat);
     if (categories.length === 0) {
-      categories = ["大ピンチ図鑑"];
+      categories = ["大ピンチずかん"];
     }
 
     return {

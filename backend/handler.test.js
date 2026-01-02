@@ -36,6 +36,6 @@ describe('getCategories', () => {
     const body = JSON.parse(response.body);
 
     expect(response.statusCode).toBe(200);
-    expect(body.categories).toEqual(['大ピンチ図鑑']);
+    expect(body.categories).toEqual(['大ピンチずかん']);
   });
 });
