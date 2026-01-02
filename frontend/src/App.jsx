@@ -9,6 +9,7 @@ function App() {
   });
   const [currentPhrase, setCurrentPhrase] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isAllRead, setIsAllRead] = useState(false);
   const [historyByCategory, setHistoryByCategory] = useState({});
 
   const currentHistory = selectedCategory ? (historyByCategory[selectedCategory] || []) : [];
@@ -22,10 +23,8 @@ function App() {
           const availableCategories = data.categories || [];
           setCategories(availableCategories);
 
-          // URLから取得したカテゴリが存在するかチェック
           if (selectedCategory && availableCategories.length > 0) {
             if (!availableCategories.includes(selectedCategory)) {
-              console.warn(`Category "${selectedCategory}" not found. Redirecting to home.`);
               setSelectedCategory(null);
             }
           }
@@ -91,10 +90,15 @@ function App() {
       }
 
       setCurrentPhrase(data);
+      const newHistory = [data, ...currentHistory];
       setHistoryByCategory(prev => ({
         ...prev,
-        [selectedCategory]: [data, ...(prev[selectedCategory] || [])]
+        [selectedCategory]: newHistory
       }));
+
+      if (data.totalInCategory && newHistory.length >= data.totalInCategory) {
+        setIsAllRead(true);
+      }
       
       await playAudio(data.audioData);
 
@@ -136,7 +140,6 @@ function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // ページタイトルを更新
   useEffect(() => {
     if (selectedCategory) {
       document.title = selectedCategory;
@@ -148,6 +151,16 @@ function App() {
   const resetGame = () => {
     setSelectedCategory(null);
     setCurrentPhrase(null);
+    setIsAllRead(false);
+  };
+
+  const restartCategory = () => {
+    setHistoryByCategory(prev => ({
+      ...prev,
+      [selectedCategory]: []
+    }));
+    setCurrentPhrase(null);
+    setIsAllRead(false);
   };
 
   const handleCategorySelect = (cat) => {
@@ -157,7 +170,6 @@ function App() {
     }
   };
 
-  // カテゴリ選択画面
   if (!selectedCategory) {
     return (
       <div className="container py-5 mx-auto">
@@ -188,7 +200,6 @@ function App() {
     );
   }
 
-  // カルタプレイ画面
   return (
     <div className="container py-4 mx-auto">
       <header className="text-center mb-4">
@@ -196,44 +207,56 @@ function App() {
       </header>
       
       <main className="text-center">
-        {currentPhrase && (
-          <div className="d-flex justify-content-center mb-4">
-            <div className="yomifuda shadow-lg">
-              <div className="yomifuda-kana">
-                <span>{currentPhrase.kana || currentPhrase.phrase[0]}</span>
-              </div>
-              <div className="yomifuda-phrase">
-                {currentPhrase.phrase}
-              </div>
-              {currentPhrase.level !== "-" && (
-                <div className="yomifuda-level fw-bold">
-                  レベル: {currentPhrase.level}
-                </div>
-              )}
-            </div>
+        {isAllRead ? (
+          <div className="alert alert-success py-5 mb-5 shadow-sm rounded-4 border-0">
+            <h2 className="display-5 fw-bold mb-3">🎉 おめでとう！ 🎉</h2>
+            <p className="lead mb-4">すべての札を読み上げました！</p>
+            <button onClick={restartCategory} className="btn btn-primary btn-lg px-5 rounded-pill shadow">
+              もう一度最初から遊ぶ
+            </button>
           </div>
-        )}
+        ) : (
+          <>
+            {currentPhrase && (
+              <div className="d-flex justify-content-center mb-4">
+                <div className="yomifuda shadow-lg">
+                  <div className="yomifuda-kana">
+                    <span>{currentPhrase.kana || currentPhrase.phrase[0]}</span>
+                  </div>
+                  <div className="yomifuda-phrase">
+                    {currentPhrase.phrase}
+                  </div>
+                  {currentPhrase.level !== "-" && (
+                    <div className="yomifuda-level fw-bold">
+                      レベル: {currentPhrase.level}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
-        <div className="d-flex flex-wrap gap-3 justify-content-center mb-5">
-          <button 
-            onClick={playKaruta} 
-            disabled={loading} 
-            className="btn btn-lg px-4 py-3 fw-bold rounded-pill shadow"
-            style={{ backgroundColor: "#e44d26", color: "white" }}
-          >
-            {loading ? (
-              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-            ) : null}
-            {loading ? "読み込み中..." : "次の札を読み上げる"}
-          </button>
-          <button 
-            onClick={repeatPhrase} 
-            disabled={loading || !currentPhrase} 
-            className="btn btn-lg px-4 py-3 fw-bold rounded-pill border-3 border-dark bg-white text-dark shadow-sm"
-          >
-            もう一度読み上げる
-          </button>
-        </div>
+            <div className="d-flex flex-wrap gap-3 justify-content-center mb-5">
+              <button 
+                onClick={playKaruta} 
+                disabled={loading} 
+                className="btn btn-lg px-4 py-3 fw-bold rounded-pill shadow"
+                style={{ backgroundColor: "#e44d26", color: "white" }}
+              >
+                {loading ? (
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                ) : null}
+                {loading ? "読み込み中..." : "次の札を読み上げる"}
+              </button>
+              <button 
+                onClick={repeatPhrase} 
+                disabled={loading || !currentPhrase} 
+                className="btn btn-lg px-4 py-3 fw-bold rounded-pill border-3 border-dark bg-white text-dark shadow-sm"
+              >
+                もう一度読み上げる
+              </button>
+            </div>
+          </>
+        )}
       </main>
 
       <section className="history mx-auto" style={{ maxWidth: "600px" }}>

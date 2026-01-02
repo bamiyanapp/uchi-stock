@@ -84,6 +84,7 @@ exports.getPhrase = async (event) => {
         phrase: phrase,
         level: level,
         kana: selectedItem.kana,
+        totalInCategory: items.length, // このカテゴリの総数（フィルタリング後）
         audioData: `data:audio/mp3;base64,${base64Audio}`,
       }),
     };
