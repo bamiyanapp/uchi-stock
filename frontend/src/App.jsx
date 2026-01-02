@@ -256,10 +256,15 @@ function App() {
           </div>
         ) : (
           <>
-            {currentPhrase && (
-              <div className="d-flex justify-content-center mb-4">
-                <div className="yomifuda shadow-lg">
-                  <div className="yomifuda-kana">
+        {currentPhrase && (
+          <div className="d-flex justify-content-center mb-4">
+            <div 
+              className="yomifuda shadow-lg" 
+              onClick={repeatPhrase}
+              role="button"
+              aria-label="もう一度読み上げる"
+            >
+              <div className="yomifuda-kana">
                     <span>{currentPhrase.kana || currentPhrase.phrase[0]}</span>
                   </div>
                   <div className="yomifuda-phrase">
