@@ -2,6 +2,8 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from './App';
 
+window.alert = vi.fn();
+
 // Mock fetch
 window.fetch = vi.fn();
 
@@ -55,13 +57,7 @@ describe('App', () => {
     await act(async () => {
       render(<App />);
     });
-
-    // Mock comments fetch before clicking
-    // fetch.mockImplementationOnce replaces the next fetch call.
-    // However, App.jsx might make other fetches (like categories again?).
-    // We should be more specific or robust.
     
-    // Override the mock to handle any upcoming requests correctly
     fetch.mockImplementation(async (url) => {
       if (url.includes('get-categories')) {
         return {
@@ -83,13 +79,11 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(screen.getByText('指摘された内容一覧')).toBeInTheDocument();
-      // Wait for comments fetch to complete and update state
       expect(screen.getByText(/TestPhrase/)).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 
   it('starts game when category is selected', async () => {
-    // Categories fetch
     fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ categories: ['Cat1'] }),
@@ -106,7 +100,6 @@ describe('App', () => {
 
     const categoryButton = screen.getByRole('button', { name: 'Cat1' });
 
-    // Setup mocks for interactions (Phrases List & Phrase Detail)
     fetch.mockImplementation(async (url) => {
       if (url.includes('get-phrases-list')) {
         return {
@@ -131,7 +124,6 @@ describe('App', () => {
 
     fireEvent.click(categoryButton);
 
-    // Confirmation modal "Yes"
     await waitFor(() => screen.getByText(/をお手元に持っていますか？/));
     fireEvent.click(screen.getByText('はい'));
 
