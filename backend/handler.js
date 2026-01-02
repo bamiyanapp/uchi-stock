@@ -264,6 +264,7 @@ exports.getPhrase = async (event) => {
       id: selectedItem.id,
       category: selectedItem.category,
       phrase: selectedItem.phrase, // 常に日本語 (originalPhrase)
+      phrase_en: selectedItem.phrase_en, // 追加
       level: selectedItem.level,
       kana: selectedItem.kana,
       audioData: audioData,
