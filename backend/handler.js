@@ -9,9 +9,11 @@ const pollyClient = new PollyClient({ region: "ap-northeast-1" });
 exports.getCongratulationAudio = async (event) => {
   try {
     const speechText = "おめでとう、全て読み終わりました";
-    
+    const params = event.queryStringParameters || {};
+    const speechRate = params.speechRate || "90%";
+
     const pollyParams = {
-      Text: `<speak><prosody rate="90%">${speechText}</prosody></speak>`,
+      Text: `<speak><prosody rate="${speechRate}">${speechText}</prosody></speak>`,
       TextType: "ssml",
       OutputFormat: "mp3",
       VoiceId: "Mizuki",
@@ -49,6 +51,7 @@ exports.getPhrase = async (event) => {
     const params = event.queryStringParameters || {};
     const category = params.category || null;
     const repeatCount = parseInt(params.repeatCount || "2", 10);
+    const speechRate = params.speechRate || "90%";
     const targetId = params.id || null;
 
     // 1. DynamoDBから取得
@@ -95,7 +98,7 @@ exports.getPhrase = async (event) => {
       innerContent = `${phraseWithLevel}<break time="1500ms"/>${phraseWithLevel}`;
     }
 
-    const ssmlText = `<speak><prosody rate="90%">${innerContent}</prosody></speak>`;
+    const ssmlText = `<speak><prosody rate="${speechRate}">${innerContent}</prosody></speak>`;
 
     const command = new SynthesizeSpeechCommand({
       Text: ssmlText,

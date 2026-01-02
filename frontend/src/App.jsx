@@ -15,6 +15,9 @@ function App() {
   const [repeatCount, setRepeatCount] = useState(() => {
     return parseInt(localStorage.getItem("repeatCount") || "2", 10);
   });
+  const [speechRate, setSpeechRate] = useState(() => {
+    return localStorage.getItem("speechRate") || "90%";
+  });
   const [historyByCategory, setHistoryByCategory] = useState({});
   
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -110,7 +113,7 @@ function App() {
       const targetPhrase = unreadPhrases[randomIndex];
 
       // 詳細データを取得
-      const apiUrl = `https://zr6f3qp6vg.execute-api.ap-northeast-1.amazonaws.com/dev/get-phrase?id=${targetPhrase.id}&repeatCount=${repeatCount}`;
+      const apiUrl = `https://zr6f3qp6vg.execute-api.ap-northeast-1.amazonaws.com/dev/get-phrase?id=${targetPhrase.id}&repeatCount=${repeatCount}&speechRate=${encodeURIComponent(speechRate)}`;
       const response = await fetch(apiUrl);
       const data = await response.json();
       
@@ -154,7 +157,7 @@ function App() {
 
   const playCongratulationAudio = async () => {
     try {
-      const response = await fetch("https://zr6f3qp6vg.execute-api.ap-northeast-1.amazonaws.com/dev/get-congratulation-audio");
+      const response = await fetch(`https://zr6f3qp6vg.execute-api.ap-northeast-1.amazonaws.com/dev/get-congratulation-audio?speechRate=${encodeURIComponent(speechRate)}`);
       const data = await response.json();
       if (response.ok) {
         await playAudio(data.audioData);
@@ -196,6 +199,10 @@ function App() {
     localStorage.setItem("repeatCount", repeatCount.toString());
   }, [repeatCount]);
 
+  useEffect(() => {
+    localStorage.setItem("speechRate", speechRate);
+  }, [speechRate]);
+
   const resetGame = () => {
     setSelectedCategory(null);
     setCurrentPhrase(null);
@@ -231,29 +238,14 @@ function App() {
     return (
       <div className="container py-5 mx-auto">
         <header className="text-center mb-5">
+          <img 
+            src="/favicon.png" 
+            alt="カルタのアイコン" 
+            className="mb-4 shadow-sm rounded-circle" 
+            style={{ width: "120px", height: "120px", objectFit: "cover" }}
+          />
           <h1 className="display-4 fw-bold">カルタ読み上げアプリ</h1>
         </header>
-
-        <section className="settings-container mb-5 p-4 mx-auto shadow-sm rounded-4 bg-light border" style={{ maxWidth: "600px" }}>
-          <h2 className="h5 fw-bold mb-3">設定</h2>
-          <div className="d-flex align-items-center justify-content-center gap-4">
-            <span className="fw-bold text-dark">読み上げ回数:</span>
-            <div className="btn-group" role="group">
-              <button 
-                onClick={() => setRepeatCount(1)} 
-                className={`btn ${repeatCount === 1 ? 'btn-dark' : 'btn-outline-dark'}`}
-              >
-                1回
-              </button>
-              <button 
-                onClick={() => setRepeatCount(2)} 
-                className={`btn ${repeatCount === 2 ? 'btn-dark' : 'btn-outline-dark'}`}
-              >
-                2回
-              </button>
-            </div>
-          </div>
-        </section>
         
         <main className="category-selection-container p-4 mx-auto" style={{ maxWidth: "600px" }}>
           <h2 className="h4 text-center mb-4 text-dark">カルタの種類を選んでね</h2>
@@ -379,6 +371,49 @@ function App() {
       </section>
 
       <footer className="text-center mt-5 pt-4 border-top">
+        <section className="settings-container mb-4 p-3 mx-auto shadow-sm rounded-4 bg-light border" style={{ maxWidth: "500px" }}>
+          <div className="mb-3 d-flex align-items-center justify-content-center gap-3 border-bottom pb-2">
+            <span className="fw-bold text-dark small">読み上げスピード:</span>
+            <div className="btn-group btn-group-sm" role="group">
+              <button 
+                onClick={() => setSpeechRate("80%")} 
+                className={`btn ${speechRate === "80%" ? 'btn-dark' : 'btn-outline-dark'}`}
+              >
+                ゆっくり
+              </button>
+              <button 
+                onClick={() => setSpeechRate("100%")} 
+                className={`btn ${speechRate === "100%" ? 'btn-dark' : 'btn-outline-dark'}`}
+              >
+                ふつう
+              </button>
+              <button 
+                onClick={() => setSpeechRate("120%")} 
+                className={`btn ${speechRate === "120%" ? 'btn-dark' : 'btn-outline-dark'}`}
+              >
+                はやい
+              </button>
+            </div>
+          </div>
+          <div className="d-flex align-items-center justify-content-center gap-3">
+            <span className="fw-bold text-dark small">読み上げ回数:</span>
+            <div className="btn-group btn-group-sm" role="group">
+              <button 
+                onClick={() => setRepeatCount(1)} 
+                className={`btn ${repeatCount === 1 ? 'btn-dark' : 'btn-outline-dark'}`}
+              >
+                1回
+              </button>
+              <button 
+                onClick={() => setRepeatCount(2)} 
+                className={`btn ${repeatCount === 2 ? 'btn-dark' : 'btn-outline-dark'}`}
+              >
+                2回
+              </button>
+            </div>
+          </div>
+        </section>
+
         <p className="text-muted small mb-4">
           リロードすると履歴はリセットされます。
         </p>
