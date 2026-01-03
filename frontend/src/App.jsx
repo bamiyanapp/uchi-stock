@@ -635,7 +635,13 @@ function App() {
                 {renderPhrase(displayedPhrase)}
               </div>
             ) : (
-              selectedCategory && <div className="yomifuda-container mb-4 d-flex justify-content-center align-items-center text-muted">読み込み中...</div>
+              selectedCategory && (
+                <div className="yomifuda-container mb-4 d-flex flex-column justify-content-center align-items-center text-muted">
+                  <div className="fs-1 mb-2">🎴</div>
+                  <div className="fw-bold">準備完了</div>
+                  <small className="mt-2">「次の札を読み上げる」ボタンを押して開始してください</small>
+                </div>
+              )
             )}
             <div className="d-flex flex-wrap gap-3 justify-content-center mb-5">
               <button onClick={playKaruta} disabled={loading} className="btn btn-lg px-4 py-3 fw-bold rounded-pill shadow btn-karuta">
