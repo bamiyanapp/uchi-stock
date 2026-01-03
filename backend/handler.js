@@ -1,5 +1,5 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, QueryCommand } = require("@aws-sdk/lib-dynamodb");
 const { PollyClient, SynthesizeSpeechCommand } = require("@aws-sdk/client-polly");
 
 const dynamoClient = new DynamoDBClient({});
@@ -22,9 +22,9 @@ function normalizeSpeechRate(rate) {
 exports.recordTime = async (event) => {
   try {
     const body = JSON.parse(event.body);
-    const { id, time } = body;
+    const { id, category, time } = body; // categoryを追加
 
-    if (!id || typeof time !== 'number') {
+    if (!id || !category || typeof time !== 'number') {
       return {
         statusCode: 400,
         headers: { "Access-Control-Allow-Origin": "*" },
@@ -34,7 +34,7 @@ exports.recordTime = async (event) => {
 
     const { Item } = await docClient.send(new GetCommand({
       TableName: process.env.TABLE_NAME,
-      Key: { id },
+      Key: { category, id },
     }));
 
     if (!Item) {
@@ -53,7 +53,7 @@ exports.recordTime = async (event) => {
 
     await docClient.send(new UpdateCommand({
       TableName: process.env.TABLE_NAME,
-      Key: { id },
+      Key: { category, id },
       UpdateExpression: "set readCount = :rc, averageTime = :at",
       ExpressionAttributeValues: {
         ":rc": newReadCount,
@@ -205,29 +205,39 @@ exports.getPhrase = async (event) => {
     let targetId = params.id || null;
     const pollyCacheTableName = process.env.POLLY_CACHE_TABLE_NAME;
 
-    const scanParams = {
-      TableName: process.env.TABLE_NAME,
-      ProjectionExpression: "id, category, phrase, #lvl, kana, phrase_en, readCount, averageTime",
-      ExpressionAttributeNames: {
-        "#lvl": "level",
-      },
-    };
-    
-    const scanResult = await docClient.send(new ScanCommand(scanParams));
-    let items = scanResult.Items || [];
-
     let selectedItem = null;
 
-    if (targetId) {
-      selectedItem = items.find(item => item.id === targetId);
+    if (targetId && category) {
+      // IDとカテゴリ両方ある場合はGetItem
+      const getResult = await docClient.send(new GetCommand({
+        TableName: process.env.TABLE_NAME,
+        Key: { category, id: targetId },
+      }));
+      selectedItem = getResult.Item;
     } else {
-      if (category) {
-        items = items.filter(item => (item.category || "").trim() === category.trim());
-      }
+      // それ以外は従来通りScan（またはQueryに最適化可能だが一旦Scan）
+      const scanParams = {
+        TableName: process.env.TABLE_NAME,
+        ProjectionExpression: "id, category, phrase, #lvl, kana, phrase_en, readCount, averageTime",
+        ExpressionAttributeNames: {
+          "#lvl": "level",
+        },
+      };
       
-      if (items.length > 0) {
-        const randomIndex = Math.floor(Math.random() * items.length);
-        selectedItem = items[randomIndex];
+      const scanResult = await docClient.send(new ScanCommand(scanParams));
+      let items = scanResult.Items || [];
+
+      if (targetId) {
+        selectedItem = items.find(item => item.id === targetId);
+      } else {
+        if (category) {
+          items = items.filter(item => (item.category || "").trim() === category.trim());
+        }
+        
+        if (items.length > 0) {
+          const randomIndex = Math.floor(Math.random() * items.length);
+          selectedItem = items[randomIndex];
+        }
       }
     }
 
@@ -340,15 +350,26 @@ exports.getPhrase = async (event) => {
 exports.getPhrasesList = async (event) => {
   try {
     const category = event.queryStringParameters ? event.queryStringParameters.category : null;
-    const scanParams = {
-      TableName: process.env.TABLE_NAME,
-      ProjectionExpression: "id, category, readCount, averageTime",
-    };
-    const scanResult = await docClient.send(new ScanCommand(scanParams));
-    let items = scanResult.Items || [];
-    
+    let items = [];
+
     if (category) {
-      items = items.filter(item => (item.category || "").trim() === category.trim());
+      const queryParams = {
+        TableName: process.env.TABLE_NAME,
+        KeyConditionExpression: "category = :cat",
+        ExpressionAttributeValues: {
+          ":cat": category,
+        },
+        ProjectionExpression: "id, category, readCount, averageTime",
+      };
+      const queryResult = await docClient.send(new QueryCommand(queryParams));
+      items = queryResult.Items || [];
+    } else {
+      const scanParams = {
+        TableName: process.env.TABLE_NAME,
+        ProjectionExpression: "id, category, readCount, averageTime",
+      };
+      const scanResult = await docClient.send(new ScanCommand(scanParams));
+      items = scanResult.Items || [];
     }
 
     return {

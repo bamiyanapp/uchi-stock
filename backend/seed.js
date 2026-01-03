@@ -55,11 +55,11 @@ async function seed() {
 
     // 4. 不要なデータを削除（CSVに存在しないIDのみ）
     let deleteCount = 0;
-    for (const oldId of oldIds) {
-      if (!newItemsMap.has(oldId)) {
+    for (const oldItem of oldItems) {
+      if (!newItemsMap.has(oldItem.id)) {
         await docClient.send(new DeleteCommand({
           TableName: TABLE_NAME,
-          Key: { id: oldId },
+          Key: { category: oldItem.category, id: oldItem.id },
         }));
         deleteCount++;
       }

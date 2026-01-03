@@ -90,11 +90,15 @@ resources:
       Properties:
         TableName: ${self:custom.tableName}
         AttributeDefinitions:
+          - AttributeName: category
+            AttributeType: S
           - AttributeName: id
             AttributeType: S
         KeySchema:
-          - AttributeName: id
+          - AttributeName: category
             KeyType: HASH
+          - AttributeName: id
+            KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
     CommentsTable:
       Type: AWS::DynamoDB::Table
