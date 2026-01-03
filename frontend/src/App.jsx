@@ -183,26 +183,20 @@ function App() {
       await playIntroSound();
       
       if (phraseData) {
-        if (!displayedPhrase) {
-          // 最初の1枚目の場合
-          if (flipTimeoutRef.current) clearTimeout(flipTimeoutRef.current);
-          flipTimeoutRef.current = setTimeout(() => {
-            setDisplayedPhrase(phraseData);
-            flipTimeoutRef.current = null;
-          }, 3000);
-        } else if (displayedPhrase.id !== phraseData.id) {
+        if (!displayedPhrase || displayedPhrase.id !== phraseData.id) {
+          // 1枚目、または2枚目以降でIDが異なる場合
           // 2枚目以降でIDが異なる場合（めくりアニメーション）
           if (flipTimeoutRef.current) clearTimeout(flipTimeoutRef.current);
           
+        flipTimeoutRef.current = setTimeout(() => {
+          setIsFlipping(true);
           flipTimeoutRef.current = setTimeout(() => {
-            setIsFlipping(true);
-            flipTimeoutRef.current = setTimeout(() => {
-              setDisplayedPhrase(phraseData);
-              setIsFlipping(false);
-              flipTimeoutRef.current = null;
-            }, 600);
-          }, 3000);
-        }
+            setDisplayedPhrase(phraseData);
+            setIsFlipping(false);
+            flipTimeoutRef.current = null;
+          }, 600);
+        }, 3000);
+      }
       }
       
       await playAudio(audioData);
