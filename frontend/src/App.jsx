@@ -185,11 +185,15 @@ function App() {
       await playIntroSound();
       
       if (phraseData && displayedPhrase?.id !== phraseData.id) {
+        // もし以前のアニメーションが残っていたらクリア
+        if (flipTimeoutRef.current) clearTimeout(flipTimeoutRef.current);
+        
         flipTimeoutRef.current = setTimeout(() => {
           setIsFlipping(true);
           flipTimeoutRef.current = setTimeout(() => {
             setDisplayedPhrase(phraseData);
             setIsFlipping(false);
+            flipTimeoutRef.current = null;
           }, 600);
         }, 3000);
       }
