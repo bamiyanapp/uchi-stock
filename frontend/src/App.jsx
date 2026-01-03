@@ -547,19 +547,18 @@ function App() {
           ) : (
             <div className="mx-auto" style={{ maxWidth: "600px" }}>
               <div className="d-flex justify-content-center mb-4">
-                <div className="yomifuda shadow-lg" onClick={repeatPhrase} role="button">
-                  <div className="yomifuda-kana"><span>{detailPhrase.kana || (detailPhrase.phrase && detailPhrase.phrase[0])}</span></div>
-                  <div className="yomifuda-phrase">{detailPhrase.phrase}</div>
-                  {detailPhrase.phrase_en && <div className="yomifuda-phrase-en">{detailPhrase.phrase_en}</div>}
-                  {detailPhrase.level !== "-" && <div className="yomifuda-level fw-bold">レベル: {detailPhrase.level}</div>}
+                <div className="yomifuda-container mb-4" onClick={repeatPhrase} role="button">
+                  <div className="yomifuda shadow-lg">
+                    <div className="yomifuda-kana"><span>{detailPhrase.kana || (detailPhrase.phrase && detailPhrase.phrase[0])}</span></div>
+                    <div className="yomifuda-phrase">{detailPhrase.phrase}</div>
+                    {detailPhrase.level !== "-" && <div className="yomifuda-level fw-bold">レベル: {detailPhrase.level}</div>}
+                  </div>
                 </div>
               </div>
-              {detailPhrase.readCount > 0 && (
-                <div className="mb-4 text-muted">
-                  <p>読み上げ回数: {detailPhrase.readCount}回</p>
-                  <p>平均時間: {detailPhrase.averageTime.toFixed(2)}秒</p>
-                </div>
-              )}
+              <div className="mb-4 text-muted">
+                <p>読み上げ回数: {detailPhrase.readCount || 0}回</p>
+                <p>平均時間: {(detailPhrase.averageTime || 0).toFixed(2)}秒</p>
+              </div>
               <div className="mb-5">
                 <button 
                   onClick={repeatPhrase} 
