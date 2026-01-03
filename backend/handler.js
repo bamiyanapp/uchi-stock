@@ -1,5 +1,5 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand } = require("@aws-sdk/lib-dynamodb"); // GetCommand, PutCommandを追加
+const { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 const { PollyClient, SynthesizeSpeechCommand } = require("@aws-sdk/client-polly");
 
 const dynamoClient = new DynamoDBClient({});
@@ -17,6 +17,63 @@ function normalizeSpeechRate(rate) {
     }
   }
   return rateStr;
+}
+
+exports.recordTime = async (event) => {
+  try {
+    const body = JSON.parse(event.body);
+    const { id, time } = body;
+
+    if (!id || typeof time !== 'number') {
+      return {
+        statusCode: 400,
+        headers: { "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({ message: "Invalid input" }),
+      };
+    }
+
+    const { Item } = await docClient.send(new GetCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: { id },
+    }));
+
+    if (!Item) {
+      return {
+        statusCode: 404,
+        headers: { "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({ message: "Phrase not found" }),
+      };
+    }
+
+    const oldReadCount = Item.readCount || 0;
+    const oldAverageTime = Item.averageTime || 0;
+    
+    const newReadCount = oldReadCount + 1;
+    const newAverageTime = ((oldAverageTime * oldReadCount) + time) / newReadCount;
+
+    await docClient.send(new UpdateCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: { id },
+      UpdateExpression: "set readCount = :rc, averageTime = :at",
+      ExpressionAttributeValues: {
+        ":rc": newReadCount,
+        ":at": newAverageTime,
+      },
+    }));
+
+    return {
+      statusCode: 200,
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ message: "Time recorded successfully" }),
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      statusCode: 500,
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ message: "Internal Server Error" }),
+    };
+  }
 }
 
 exports.postComment = async (event) => {
@@ -41,7 +98,6 @@ exports.postComment = async (event) => {
       createdAt: new Date().toISOString(),
     };
 
-    // `PutCommand` のインポートは既に行われているため、ここでは不要
     await docClient.send(new PutCommand({
       TableName: process.env.COMMENTS_TABLE_NAME,
       Item: item,
@@ -70,7 +126,6 @@ exports.getComments = async (event) => {
     const scanResult = await docClient.send(new ScanCommand(scanParams));
     const items = scanResult.Items || [];
 
-    // 作成日時順にソート（降順）
     items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     return {
@@ -101,7 +156,7 @@ exports.getCongratulationAudio = async (event) => {
 
     if (lang === "en") {
       speechText = "Congratulations! You have finished all the cards.";
-      voiceId = "Ruth"; // 英語(US)の女性の声
+      voiceId = "Ruth";
       engine = "neural";
     }
 
@@ -148,12 +203,11 @@ exports.getPhrase = async (event) => {
     const speechRate = normalizeSpeechRate(rawSpeechRate);
     const lang = params.lang || "ja";
     let targetId = params.id || null;
-    const pollyCacheTableName = process.env.POLLY_CACHE_TABLE_NAME; // キャッシュテーブル名を取得
+    const pollyCacheTableName = process.env.POLLY_CACHE_TABLE_NAME;
 
-    // 1. DynamoDBから取得 (ID指定でもScanしているのは既存ロジック踏襲)
     const scanParams = {
       TableName: process.env.TABLE_NAME,
-      ProjectionExpression: "id, category, phrase, #lvl, kana, phrase_en", // phrase_enを追加
+      ProjectionExpression: "id, category, phrase, #lvl, kana, phrase_en",
       ExpressionAttributeNames: {
         "#lvl": "level",
       },
@@ -165,10 +219,8 @@ exports.getPhrase = async (event) => {
     let selectedItem = null;
 
     if (targetId) {
-      // ID指定がある場合
       selectedItem = items.find(item => item.id === targetId);
     } else {
-      // ID指定がない場合は従来通りカテゴリからランダム選択（後方互換性のため）
       if (category) {
         items = items.filter(item => (item.category || "").trim() === category.trim());
       }
@@ -187,13 +239,10 @@ exports.getPhrase = async (event) => {
       };
     }
 
-    // ランダム選択の場合、IDを確定させる
     targetId = selectedItem.id;
 
-    // 2. キャッシュチェック
     let audioData = null;
     
-    // キャッシュキーを生成
     const cacheId = crypto.createHash("sha256").update(
       `${targetId}-${repeatCount}-${speechRate}-${lang}`
     ).digest("hex");
@@ -209,7 +258,6 @@ exports.getPhrase = async (event) => {
       }
     }
 
-    // 3. キャッシュになければ Polly で生成
     if (!audioData) {
       const level = selectedItem.level;
       let speechPhrase = selectedItem.phrase;
@@ -247,14 +295,13 @@ exports.getPhrase = async (event) => {
       const base64Audio = audioBuffer.toString("base64");
       audioData = `data:audio/mp3;base64,${base64Audio}`;
 
-      // キャッシュに保存
       if (pollyCacheTableName) {
         await docClient.send(new PutCommand({
           TableName: pollyCacheTableName,
           Item: {
             id: cacheId,
-            audioData: audioData, // 生成した音声データを保存
-            createdAt: new Date().toISOString(), // キャッシュの作成日時
+            audioData: audioData,
+            createdAt: new Date().toISOString(),
           },
         }));
       }
@@ -263,8 +310,8 @@ exports.getPhrase = async (event) => {
     const responseBody = {
       id: selectedItem.id,
       category: selectedItem.category,
-      phrase: selectedItem.phrase, // 常に日本語 (originalPhrase)
-      phrase_en: selectedItem.phrase_en, // 追加
+      phrase: selectedItem.phrase,
+      phrase_en: selectedItem.phrase_en,
       level: selectedItem.level,
       kana: selectedItem.kana,
       audioData: audioData,

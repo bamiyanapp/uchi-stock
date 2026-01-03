@@ -41,7 +41,9 @@ async function seed() {
         level,
         kana: record.kana ? record.kana.trim() : "-",
         phrase,
-        phrase_en: record.phrase_en ? record.phrase_en.trim() : ""
+        phrase_en: record.phrase_en ? record.phrase_en.trim() : "",
+        readCount: parseInt(record.readCount, 10) || 0,
+        averageTime: parseFloat(record.averageTime) || 0
       });
     }
 

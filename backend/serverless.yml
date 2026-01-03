@@ -17,6 +17,7 @@ provider:
             - dynamodb:Query
             - dynamodb:GetItem
             - dynamodb:PutItem
+            - dynamodb:UpdateItem
           Resource: 
             - !GetAtt KarutaTable.Arn
             - !GetAtt CommentsTable.Arn
@@ -73,6 +74,13 @@ functions:
       - http:
           path: get-comments
           method: get
+          cors: true
+  recordTime:
+    handler: handler.recordTime
+    events:
+      - http:
+          path: record-time
+          method: post
           cors: true
 
 resources:

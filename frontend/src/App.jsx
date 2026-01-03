@@ -50,6 +50,7 @@ function App() {
   const [postingComment, setPostingComment] = useState(false);
 
   const flipTimeoutRef = useRef(null);
+  const startTimeRef = useRef(null);
 
   const currentHistory = useMemo(() => {
     return selectedCategory ? (historyByCategory[selectedCategory] || []) : [];
@@ -162,6 +163,7 @@ function App() {
       }
   
       setIsReading(true);
+      startTimeRef.current = Date.now();
       const { phraseData, audioData } = audioQueue[0];
   
       if (phraseData) {
@@ -205,6 +207,19 @@ function App() {
   }, [audioQueue, isReading, playAudio, playIntroSound, selectedCategory, historyByCategory, displayedPhrase]);
 
   const playKaruta = async () => {
+    if (startTimeRef.current && displayedPhrase) {
+      const elapsedTime = (Date.now() - startTimeRef.current) / 1000;
+      fetch(`${API_BASE_URL}/record-time`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: displayedPhrase.id,
+          time: elapsedTime,
+        }),
+      });
+      startTimeRef.current = null;
+    }
+
     if (!selectedCategory || allPhrasesForCategory.length === 0) return;
     
     setLoading(true);
