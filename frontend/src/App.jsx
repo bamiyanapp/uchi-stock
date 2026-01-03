@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import "./App.css";
+import karutaImage from "./assets/karuta_inubou.png";
 
 const API_BASE_URL = "https://akmnirkx3m.execute-api.ap-northeast-1.amazonaws.com/dev";
 
@@ -637,7 +638,7 @@ function App() {
             ) : (
               selectedCategory && (
                 <div className="yomifuda-container mb-4 d-flex flex-column justify-content-center align-items-center text-muted">
-                  <div className="fs-1 mb-2">🎴</div>
+                  <img src={karutaImage} alt="準備完了" className="mb-3" style={{ width: "120px", opacity: 0.8 }} />
                   <div className="fw-bold">準備完了</div>
                   <small className="mt-2">「次の札を読み上げる」ボタンを押して開始してください<br/>
                   読み上げのオプションは下部から設定してください</small>
