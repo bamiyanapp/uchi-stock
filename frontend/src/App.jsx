@@ -171,12 +171,16 @@ function App() {
       if (phraseData) {
         setCurrentPhrase(phraseData);
         
-        if (!historyByCategory[selectedCategory]?.find(p => p.id === phraseData.id)) {
-          setHistoryByCategory(prev => ({
+        setHistoryByCategory(prev => {
+          const currentList = prev[selectedCategory] || [];
+          if (currentList.find(p => p.id === phraseData.id)) {
+            return prev;
+          }
+          return {
             ...prev,
-            [selectedCategory]: [phraseData, ...(prev[selectedCategory] || [])]
-          }));
-        }
+            [selectedCategory]: [phraseData, ...currentList]
+          };
+        });
       }
   
       await playIntroSound();
