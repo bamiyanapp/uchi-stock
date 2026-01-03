@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import "./App.css";
 
-const API_BASE_URL = "https://zr6f3qp6vg.execute-api.ap-northeast-1.amazonaws.com/dev";
+const API_BASE_URL = "https://w9b74k1y0b.execute-api.ap-northeast-1.amazonaws.com/dev";
 
 function App() {
   const [categories, setCategories] = useState([]);
@@ -401,7 +401,7 @@ function App() {
     setDetailPhraseId(null);
     setDisplayedPhrase(null);
     setIsAllRead(false);
-    setView("game");
+    setFadeState("hidden"); // リセット時も非表示
   };
 
   const restartCategory = () => {
@@ -412,6 +412,7 @@ function App() {
     setCurrentPhrase(null);
     setDisplayedPhrase(null);
     setIsAllRead(false);
+    setFadeState("hidden"); // リスタート時も非表示
   };
 
   const handleCategoryClick = (cat) => {
@@ -625,10 +626,12 @@ function App() {
           </div>
         ) : (
           <>     
-            {displayedPhrase && (
+            {displayedPhrase ? (
               <div className={`yomifuda-container mb-4 phrase-fade-${fadeState}`} onClick={repeatPhrase} role="button" aria-label="もう一度読み上げる">
                 {renderPhrase(displayedPhrase)}
               </div>
+            ) : (
+              selectedCategory && <div className="yomifuda-container mb-4 d-flex justify-content-center align-items-center text-muted">読み込み中...</div>
             )}
             <div className="d-flex flex-wrap gap-3 justify-content-center mb-5">
               <button onClick={playKaruta} disabled={loading} className="btn btn-lg px-4 py-3 fw-bold rounded-pill shadow btn-karuta">
