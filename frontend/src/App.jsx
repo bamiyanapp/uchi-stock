@@ -631,7 +631,7 @@ function App() {
         ) : (
           <>     
             {displayedPhrase ? (
-              <div className={`yomifuda-container mb-4 phrase-fade-${fadeState}`} onClick={repeatPhrase} role="button" aria-label="もう一度読み上げる">
+              <div className={`yomifuda-container mb-4 phrase-fade-${fadeState}`} onClick={repeatPhrase} role="button" aria-label="もう一度">
                 {renderPhrase(displayedPhrase)}
               </div>
             ) : (
@@ -639,16 +639,17 @@ function App() {
                 <div className="yomifuda-container mb-4 d-flex flex-column justify-content-center align-items-center text-muted">
                   <div className="fs-1 mb-2">🎴</div>
                   <div className="fw-bold">準備完了</div>
-                  <small className="mt-2">「次の札を読み上げる」ボタンを押して開始してください</small>
+                  <small className="mt-2">「次の札を読み上げる」ボタンを押して開始してください<br/>
+                  読み上げのオプションは下部から設定してください</small>
                 </div>
               )
             )}
             <div className="d-flex flex-wrap gap-3 justify-content-center mb-5">
               <button onClick={playKaruta} disabled={loading} className="btn btn-lg px-4 py-3 fw-bold rounded-pill shadow btn-karuta">
                 {loading && <span className="spinner-border spinner-border-sm me-2"></span>}
-                {loading ? "読み込み中..." : "次の札を読み上げる"}
+                {loading ? "読み込み中..." : "次の札"}
               </button>
-              <button onClick={repeatPhrase} disabled={isReading || !currentPhrase} className="btn btn-lg px-4 py-3 fw-bold rounded-pill border-3 border-dark bg-white text-dark shadow-sm">もう一度読み上げる</button>
+              <button onClick={repeatPhrase} disabled={isReading || !currentPhrase} className="btn btn-lg px-4 py-3 fw-bold rounded-pill border-3 border-dark bg-white text-dark shadow-sm">もう一度</button>
             </div>
           </>
         )}
@@ -681,7 +682,7 @@ function App() {
             </div>
           </div>
           <div className="mb-3 d-flex align-items-center justify-content-center gap-3 border-bottom pb-2">
-            <span className="fw-bold text-dark small">読み上げ順:</span>
+            <span className="fw-bold text-dark small">順番:</span>
             <div className="btn-group btn-group-sm" role="group">
               <button onClick={() => setSortOrder("random")} className={`btn ${sortOrder === "random" ? 'btn-dark' : 'btn-outline-dark'}`}>ランダム</button>
               <button onClick={() => setSortOrder("easy")} className={`btn ${sortOrder === "easy" ? 'btn-dark' : 'btn-outline-dark'}`}>簡単</button>
@@ -689,7 +690,7 @@ function App() {
             </div>
           </div>
           <div className="mb-3 d-flex align-items-center justify-content-center gap-3 border-bottom pb-2">
-            <span className="fw-bold text-dark small">読み上げスピード:</span>
+            <span className="fw-bold text-dark small">スピード:</span>
             <div className="btn-group btn-group-sm" role="group">
               <button onClick={() => setSpeechRate("70%")} className={`btn ${speechRate === "70%" ? 'btn-dark' : 'btn-outline-dark'}`}>ゆっくり</button>
               <button onClick={() => setSpeechRate("80%")} className={`btn ${speechRate === "80%" ? 'btn-dark' : 'btn-outline-dark'}`}>ふつう</button>
@@ -697,7 +698,7 @@ function App() {
             </div>
           </div>
           <div className="d-flex align-items-center justify-content-center gap-3">
-            <span className="fw-bold text-dark small">読み上げ回数:</span>
+            <span className="fw-bold text-dark small">回数:</span>
             <div className="btn-group btn-group-sm" role="group">
               <button onClick={() => setRepeatCount(1)} className={`btn ${repeatCount === 1 ? 'btn-dark' : 'btn-outline-dark'}`}>1回</button>
               <button onClick={() => setRepeatCount(2)} className={`btn ${repeatCount === 2 ? 'btn-dark' : 'btn-outline-dark'}`}>2回</button>

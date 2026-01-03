@@ -107,7 +107,7 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Cat1' })).toBeInTheDocument();
-      expect(screen.getByText('次の札を読み上げる')).toBeInTheDocument();
+      expect(screen.getByText('次の札')).toBeInTheDocument();
     });
   });
 
