@@ -1,6 +1,5 @@
 const fs = require("fs");
 const path = require("path");
-const crypto = require("crypto");
 const { parse } = require("csv-parse/sync");
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, PutCommand, ScanCommand, DeleteCommand } = require("@aws-sdk/lib-dynamodb");
@@ -26,7 +25,7 @@ async function seed() {
     for (const record of records) {
       const category = record.category ? record.category.trim() : "大ピンチずかん";
       const phrase = record.phrase ? record.phrase.trim() : "";
-      const id = crypto.createHash("md5").update(`${category}:${phrase}`).digest("hex");
+      const id = record.id;
       
       const levelRaw = record.level ? record.level.trim() : "-";
       let level;
