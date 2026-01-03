@@ -3,7 +3,7 @@ id,category,level,kana,phrase,phrase_en,readCount,averageTime
 2,テスト用,100,い,犬も歩けば　棒に当たる,"If you go out, you may run into trouble.",0,0
 3,大ピンチずかん,77,え,エスカレーターが　ぎゃくだった,The escalator was going the opposite way.,0,0
 4,大ピンチずかん,20,あ,アイスが　とけてきた,The ice cream started melting.,0,0
-5,大ピンチずかん,4,へ,へんな　ひゃくを　した,Made a strange face.,0,0
+5,大ピンチずかん,4,へ,へんな　ひやけを　した,Made a strange face.,0,0
 6,大ピンチずかん,30,た,たんじょうびケーキが　たおれて　イチゴが　ころがった,The birthday cake fell over and the strawberries rolled away.,0,0
 7,大ピンチずかん,23,ご,ごはんつぶを　ふんだ,Stepped on a grain of rice.,0,0
 8,大ピンチずかん,21,お,おふろの　ごみが　すくえない,Can't scoop the debris out of the bathtub.,0,0
@@ -32,7 +32,7 @@ id,category,level,kana,phrase,phrase_en,readCount,averageTime
 31,大ピンチずかん,52,む,むかしのおにぎりがでてきた,An old rice ball appeared.,0,0
 32,大ピンチずかん,54,れ,れいとうこがあかない,The freezer won't open.,0,0
 33,大ピンチずかん,48,ふ,ふくのピラピラがきになる,The loose thread on my clothes is bothering me.,0,0
-34,大ピンチずかん,43,し,しゅくだいノートとじゆうちょうをまちがえた,Confused the homework notebook with the sketchbook.,0,0
+34,大ピンチずかん,43,し,しゅくだいノートと　じゆうちょうをまちがえた,Confused the homework notebook with the sketchbook.,0,0
 35,大ピンチずかん,38,ふ,ふたがしまらない,The lid won't close.,0,0
 36,大ピンチずかん,32,め,めんつゆがすごくあまった,A lot of noodle dipping sauce was left over.,0,0
 37,大ピンチずかん,53,な,ながしのみずがスプーンではねた,The water in the sink splashed off the spoon.,0,0
@@ -46,7 +46,7 @@ id,category,level,kana,phrase,phrase_en,readCount,averageTime
 45,大ピンチずかん,50,お,おゆがない,There is no hot water.,0,0
 46,大ピンチずかん,45,ど,ドアをあけられてさむい,Someone opened the door and it's cold.,0,0
 47,大ピンチずかん,40,せ,せんせいのメガネがとんだ,The teacher's glasses flew off.,0,0
-48,大ピンチずかん,36,ほ,ほねをとっていたらぐちゃぐちゃになった,It became a mess while I was trying to remove the bones.,0,0
+48,大ピンチずかん,36,ほ,ほねをとっていたら　ぐちゃぐちゃになった,It became a mess while I was trying to remove the bones.,0,0
 49,大ピンチずかん,29,ぎ,ぎゅうにゅうがこぼれた,The milk spilled.,0,0
 50,大ピンチずかん,96,か,かさがうらがえった,The umbrella turned inside out.,0,0
 51,大ピンチずかん,97,じ,じてんしゃがドミノだおし,The bicycles fell over like dominoes.,0,0
@@ -54,17 +54,17 @@ id,category,level,kana,phrase,phrase_en,readCount,averageTime
 53,大ピンチずかん,99,ね,ネコがついてくる,A cat is following me.,0,0
 54,大ピンチずかん,100,ど,どしゃぶりなのにかさがない,It's pouring rain but I don't have an umbrella.,0,0
 55,大ピンチずかん,58,れ,れいとうこがしまらない,The freezer won't close.,0,0
-56,大ピンチずかん,59,さ,さようならのおじぎでランドセルのなかみがぜんぶでた,Everything fell out of my backpack when I bowed to say goodbye.,0,0
+56,大ピンチずかん,59,さ,さようならのおじぎで　ランドセルのなかみがぜんぶでた,Everything fell out of my backpack when I bowed to say goodbye.,0,0
 57,大ピンチずかん,84,ま,まいご,I'm lost.,0,0
 58,大ピンチずかん,82,か,かいものがながい,Shopping is taking a long time.,0,0
 59,大ピンチずかん,81,じ,じてんしゃにハチがとまっている,A bee is sitting on the bicycle.,0,0
-60,大ピンチずかん,60,せ,せんせいにおかあさんといってしまった,I accidentally called my teacher 'Mom'.,0,0
+60,大ピンチずかん,60,せ,せんせいに　おかあさんといってしまった,I accidentally called my teacher 'Mom'.,0,0
 61,大ピンチずかん,61,ぎ,ギターのなかにおかしがおちた,A snack fell inside the guitar.,0,0
 62,大ピンチずかん,62,ず,ズボンのゴムがきれた,The elastic in my pants snapped.,0,0
-63,大ピンチずかん,63,さ,さなぎからかえったカブトムシがよなかにだっそうしてとびまわっている,The beetle that emerged from its pupa escaped at night and is flying around.,0,0
-64,大ピンチずかん,57,け,けしゴムにさしたえんぴつのしんがけしたときにつく,The pencil lead stuck in the eraser leaves marks when I erase.,0,0
+63,大ピンチずかん,63,さ,さなぎからかえったカブトムシが　よなかにだっそうして　とびまわっている,The beetle that emerged from its pupa escaped at night and is flying around.,0,0
+64,大ピンチずかん,57,け,けしゴムにさした　えんぴつのしんが　けしたときにつく,The pencil lead stuck in the eraser leaves marks when I erase.,0,0
 65,大ピンチずかん,89,お,おきられない,Can't wake up.,0,0
-66,大ピンチずかん,91,ち,電柱にじてんしゃでつっこんだ,Crashed my bicycle into a utility pole.,0,0
+66,大ピンチずかん,91,で,でんちゅうに　じてんしゃで　つっこんだ,Crashed my bicycle into a utility pole.,0,0
 67,大ピンチずかん,93,と,トイレがつまった,The toilet is clogged.,0,0
 68,大ピンチずかん,94,お,おかあさんがイライラしている,Mom is getting irritated.,0,0
 69,大ピンチずかん,95,お,プレゼントをわすれた,Forgot the present.,0,0
@@ -82,7 +82,7 @@ id,category,level,kana,phrase,phrase_en,readCount,averageTime
 81,大ピンチずかん,69,じ,じぶんのいえでトイレがつまった,The toilet at my own house is clogged.,0,0
 82,大ピンチずかん,8,あ,あたまにつけたわゴムがとれない,Can't remove the rubber band I put on my head.,0,0
 83,大ピンチずかん,12,や,ビニールぶくろがめくれない,Can't open the plastic bag.,0,0
-84,大ピンチずかん,15,し,しょくばんをがんばってスライスしているうちにぺしゃんこになっていた,The bread got squashed while I was trying hard to slice it.,0,0
+84,大ピンチずかん,15,し,しょくばんを　がんばってスライスしているうちに　ぺしゃんこになっていた,The bread got squashed while I was trying hard to slice it.,0,0
 85,大ピンチずかん,7,ぺ,ペンがしみてつくえについた,The pen leaked onto the desk.,0,0
 86,大ピンチずかん,80,や,やっぱりさむかった,It was cold after all.,0,0
 87,大ピンチずかん,74,と,トイレのかみがない,There is no toilet paper.,0,0
@@ -92,13 +92,13 @@ id,category,level,kana,phrase,phrase_en,readCount,averageTime
 91,大ピンチずかん,65,は,ハエがじぶんにばかりとまる,Flies only land on me.,0,0
 92,大ピンチずかん,83,い,イヌがすごくなめてくる,The dog is licking me a lot.,0,0
 93,大ピンチずかん,75,し,しらないひとのてをにぎっていた,Was holding a stranger's hand.,0,0
-94,大ピンチずかん,85,し,シロツメクサのかんむりをよくみるとアブラムシだらけだった,"When I looked closely at the clover crown, it was full of aphids.",0,0
+94,大ピンチずかん,85,し,シロツメクサの　かんむりをよくみると　アブラムシだらけだった,"When I looked closely at the clover crown, it was full of aphids.",0,0
 95,大ピンチずかん,79,ば,バッグにアリがあつまってきた,Ants gathered on the bag.,0,0
-96,大ピンチずかん,78,し,しんしつのてんじょうのもくめがひとのかおにみえてきた,The wood grain on the bedroom ceiling started to look like a person's face.,0,0
+96,大ピンチずかん,78,し,しんしつの　てんじょうのもくめが　ひとのかおにみえてきた,The wood grain on the bedroom ceiling started to look like a person's face.,0,0
 97,大ピンチずかん,41,や,やすみじかんに　おいた　すいとうが　そのまま,The water bottle I left during recess is still there.,0,0
 98,大ピンチずかん,42,ご,ごはんが　たりない,Not enough food.,0,0
 99,大ピンチずかん,43,は,はなしを　きいてなかった,Wasn't listening.,0,0
-100,大ピンチずかん,2,が,ガムを　のんだ　のんだガムに　まだあじが　たくさんのこっていた,Swallowed the gum; it still had a lot of flavor left.,0,0
+100,大ピンチずかん,2,の,のんだガムに　まだあじが　たくさんのこっていた,Swallowed the gum; it still had a lot of flavor left.,0,0
 101,大ピンチずかん,0,む,むかしの　おにぎりが　でてきた,An old rice ball appeared.,0,0
 102,国旗王,上級,し,人口密度が高い,High population density.,0,0
 103,国旗王,上級,ひ,一人当たりGDPが高い,High GDP per capita.,0,0
