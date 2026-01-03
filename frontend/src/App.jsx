@@ -26,7 +26,7 @@ function App() {
   const [allPhrasesForCategory, setAllPhrasesForCategory] = useState([]); 
   const [currentPhrase, setCurrentPhrase] = useState(null);
   const [displayedPhrase, setDisplayedPhrase] = useState(null);
-  const [fadeState, setFadeState] = useState("visible"); // "visible", "fading", "hidden"
+  const [fadeState, setFadeState] = useState("hidden"); // 初期状態をhiddenに変更
   const [audioQueue, setAudioQueue] = useState([]);
   const [isReading, setIsReading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -125,8 +125,8 @@ function App() {
 
   // 指摘一覧の取得
   useEffect(() => {
-    if (view === "comments") {
-      const fetchComments = async () => {
+    const fetchComments = async () => {
+      if (view === "comments") {
         try {
           const response = await fetch(`${API_BASE_URL}/get-comments`);
           const data = await response.json();
@@ -136,9 +136,9 @@ function App() {
         } catch (error) {
           console.error("Error fetching comments:", error);
         }
-      };
-      fetchComments();
-    }
+      }
+    };
+    fetchComments();
   }, [view]);
 
   const playAudio = useCallback((audioData) => {
@@ -214,7 +214,7 @@ function App() {
     return () => {
       if (flipTimeoutRef.current) clearTimeout(flipTimeoutRef.current);
     }
-  }, [audioQueue, isReading, playAudio, playIntroSound, selectedCategory, historyByCategory, displayedPhrase]);
+  }, [audioQueue, isReading, playAudio, playIntroSound, selectedCategory, historyByCategory]);
 
   const playKaruta = async () => {
     if (startTimeRef.current && displayedPhrase) {
@@ -477,7 +477,8 @@ function App() {
           )}
         </main>
       </div>
-    );n  }
+    );
+  }
 
   // カテゴリ選択画面
   if (!selectedCategory) {
@@ -623,7 +624,7 @@ function App() {
             <button onClick={restartCategory} className="btn btn-primary btn-lg px-5 rounded-pill shadow">もう一度最初から遊ぶ</button>
           </div>
         ) : (
-          <>
+          <>     
             {displayedPhrase && (
               <div className={`yomifuda-container mb-4 phrase-fade-${fadeState}`} onClick={repeatPhrase} role="button" aria-label="もう一度読み上げる">
                 {renderPhrase(displayedPhrase)}
