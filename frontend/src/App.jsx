@@ -25,6 +25,8 @@ function App() {
 
   const [allPhrasesForCategory, setAllPhrasesForCategory] = useState([]); 
   const [currentPhrase, setCurrentPhrase] = useState(null);
+  const [audioQueue, setAudioQueue] = useState([]);
+  const [isReading, setIsReading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isAllRead, setIsAllRead] = useState(false);
   const [repeatCount, setRepeatCount] = useState(() => {
@@ -133,39 +135,55 @@ function App() {
 
   const playAudio = useCallback((audioData) => {
     return new Promise((resolve, reject) => {
-      const audio = new Audio();
-      audio.src = audioData;
-      audio.oncanplaythrough = () => {
-        audio.play().catch(e => {
-          console.error("Playback failed:", e);
-          reject(e);
-        });
-      };
+      const audio = new Audio(audioData);
       audio.onended = () => resolve();
-      audio.onerror = () => {
-        console.error("Audio loading error:", audio.error);
-        reject(audio.error);
-      };
-      audio.load();
+      audio.onerror = (e) => reject(e);
+      audio.play().catch(e => reject(e));
     });
   }, []);
 
-  // 読み上げ開始の合図（和太鼓の音など）を再生
   const playIntroSound = useCallback(async () => {
     try {
       await playAudio("wadodon.mp3");
-      // 音が終わった後に少しだけ（300ms）余韻を置く
       await new Promise(resolve => setTimeout(resolve, 300));
     } catch (error) {
       console.error("Intro sound failed:", error);
     }
   }, [playAudio]);
+  
+  useEffect(() => {
+    const playNextInQueue = async () => {
+      if (isReading || audioQueue.length === 0) {
+        return;
+      }
+  
+      setIsReading(true);
+      const { phraseData, audioData } = audioQueue[0];
+  
+      if (phraseData) {
+        setCurrentPhrase(phraseData);
+        if (!historyByCategory[selectedCategory]?.find(p => p.id === phraseData.id)) {
+          setHistoryByCategory(prev => ({
+            ...prev,
+            [selectedCategory]: [phraseData, ...(prev[selectedCategory] || [])]
+          }));
+        }
+      }
+  
+      await playIntroSound();
+      await playAudio(audioData);
+      
+      setAudioQueue(prev => prev.slice(1));
+      setIsReading(false);
+    };
+  
+    playNextInQueue();
+  }, [audioQueue, isReading, playAudio, playIntroSound, selectedCategory, historyByCategory]);
 
   const playKaruta = async () => {
     if (!selectedCategory || allPhrasesForCategory.length === 0) return;
     
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
     
     try {
       const readIds = currentHistory.map(p => p.id);
@@ -174,7 +192,6 @@ function App() {
       if (unreadPhrases.length === 0) {
         setIsAllRead(true);
         await playCongratulationAudio();
-        setLoading(false);
         return;
       }
 
@@ -188,18 +205,10 @@ function App() {
       if (!response.ok) {
         throw new Error(data.message || "Fetch failed");
       }
+      
+      setAudioQueue(prev => [...prev, { phraseData: data, audioData: data.audioData }]);
 
-      setCurrentPhrase(data);
       const newHistory = [data, ...currentHistory];
-      setHistoryByCategory(prev => ({
-        ...prev,
-        [selectedCategory]: newHistory
-      }));
-
-      // 開始音を再生してから札を読み上げる
-      await playIntroSound();
-      await playAudio(data.audioData);
-
       if (newHistory.length >= allPhrasesForCategory.length) {
         setIsAllRead(true);
         await new Promise(resolve => setTimeout(resolve, 1500));
@@ -217,12 +226,7 @@ function App() {
   const repeatPhrase = async () => {
     const target = detailPhrase || currentPhrase;
     if (target && target.audioData) {
-      try {
-        await playIntroSound();
-        await playAudio(target.audioData);
-      } catch {
-        alert("再生成に失敗しました。");
-      }
+        setAudioQueue(prev => [...prev, { phraseData: null, audioData: target.audioData }]);
     }
   };
 
@@ -553,7 +557,7 @@ function App() {
                 {loading && <span className="spinner-border spinner-border-sm me-2"></span>}
                 {loading ? "読み込み中..." : "次の札を読み上げる"}
               </button>
-              <button onClick={repeatPhrase} disabled={loading || !currentPhrase} className="btn btn-lg px-4 py-3 fw-bold rounded-pill border-3 border-dark bg-white text-dark shadow-sm">もう一度読み上げる</button>
+              <button onClick={repeatPhrase} disabled={isReading || !currentPhrase} className="btn btn-lg px-4 py-3 fw-bold rounded-pill border-3 border-dark bg-white text-dark shadow-sm">もう一度読み上げる</button>
             </div>
           </>
         )}
