@@ -224,6 +224,7 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: displayedPhrase.id,
+          category: displayedPhrase.category, // categoryも送信
           time: elapsedTime,
         }),
       });
@@ -476,8 +477,7 @@ function App() {
           )}
         </main>
       </div>
-    );
-  }
+    );n  }
 
   // カテゴリ選択画面
   if (!selectedCategory) {
@@ -554,6 +554,7 @@ function App() {
                   <div className="yomifuda shadow-lg">
                     <div className="yomifuda-kana"><span>{detailPhrase.kana || (detailPhrase.phrase && detailPhrase.phrase[0])}</span></div>
                     <div className="yomifuda-phrase">{detailPhrase.phrase}</div>
+                    {detailPhrase.phrase_en && <div className="yomifuda-phrase-en">{detailPhrase.phrase_en}</div>}
                     {detailPhrase.level !== "-" && <div className="yomifuda-level fw-bold">レベル: {detailPhrase.level}</div>}
                   </div>
                 </div>
