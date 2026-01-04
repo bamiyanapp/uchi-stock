@@ -226,6 +226,15 @@ function App() {
   const playKaruta = async () => {
     if (startTimeRef.current && displayedPhrase) {
       const elapsedTime = (Date.now() - startTimeRef.current) / 1000;
+      
+      // 難易度計算: 経過時間 / その時の残り枚数
+      // 残り枚数 = 全枚数 - (読み上げ済み枚数 - 1)
+      // currentHistoryにはdisplayedPhraseが含まれているため、-1する
+      const totalCount = allPhrasesForCategory.length || 1;
+      const historyCount = currentHistory.length || 1;
+      const remainingCount = Math.max(1, totalCount - (historyCount - 1));
+      const difficulty = elapsedTime / remainingCount;
+
       fetch(`${API_BASE_URL}/record-time`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -233,6 +242,7 @@ function App() {
           id: displayedPhrase.id,
           category: displayedPhrase.category, // categoryも送信
           time: elapsedTime,
+          difficulty: difficulty,
         }),
       });
       startTimeRef.current = null;
@@ -603,6 +613,7 @@ function App() {
               <div className="mb-4 text-muted">
                 <p>読み上げ回数: {detailPhrase.readCount || 0}回</p>
                 <p>平均時間: {(detailPhrase.averageTime || 0).toFixed(2)}秒</p>
+                <p>難易度レベル: {(detailPhrase.averageDifficulty || 0).toFixed(2)}</p>
               </div>
               <div className="mb-5">
                 <button 

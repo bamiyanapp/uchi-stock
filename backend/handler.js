@@ -22,7 +22,7 @@ function normalizeSpeechRate(rate) {
 exports.recordTime = async (event) => {
   try {
     const body = JSON.parse(event.body);
-    const { id, category, time } = body; // categoryを追加
+    const { id, category, time, difficulty } = body; // category, difficultyを追加
 
     if (!id || !category || typeof time !== 'number') {
       return {
@@ -47,18 +47,28 @@ exports.recordTime = async (event) => {
 
     const oldReadCount = Item.readCount || 0;
     const oldAverageTime = Item.averageTime || 0;
+    const oldAverageDifficulty = Item.averageDifficulty || 0;
     
     const newReadCount = oldReadCount + 1;
     const newAverageTime = ((oldAverageTime * oldReadCount) + time) / newReadCount;
 
+    let updateExpression = "set readCount = :rc, averageTime = :at";
+    let expressionAttributeValues = {
+      ":rc": newReadCount,
+      ":at": newAverageTime,
+    };
+
+    if (typeof difficulty === 'number') {
+      const newAverageDifficulty = ((oldAverageDifficulty * oldReadCount) + difficulty) / newReadCount;
+      updateExpression += ", averageDifficulty = :ad";
+      expressionAttributeValues[":ad"] = newAverageDifficulty;
+    }
+
     await docClient.send(new UpdateCommand({
       TableName: process.env.TABLE_NAME,
       Key: { category, id },
-      UpdateExpression: "set readCount = :rc, averageTime = :at",
-      ExpressionAttributeValues: {
-        ":rc": newReadCount,
-        ":at": newAverageTime,
-      },
+      UpdateExpression: updateExpression,
+      ExpressionAttributeValues: expressionAttributeValues,
     }));
 
     return {
@@ -218,7 +228,7 @@ exports.getPhrase = async (event) => {
       // それ以外は従来通りScan（またはQueryに最適化可能だが一旦Scan）
       const scanParams = {
         TableName: process.env.TABLE_NAME,
-        ProjectionExpression: "id, category, phrase, #lvl, kana, phrase_en, readCount, averageTime",
+        ProjectionExpression: "id, category, phrase, #lvl, kana, phrase_en, readCount, averageTime, averageDifficulty",
         ExpressionAttributeNames: {
           "#lvl": "level",
         },
@@ -327,6 +337,7 @@ exports.getPhrase = async (event) => {
       audioData: audioData,
       readCount: selectedItem.readCount || 0,
       averageTime: selectedItem.averageTime || 0,
+      averageDifficulty: selectedItem.averageDifficulty || 0,
     };
 
     return {
@@ -359,14 +370,14 @@ exports.getPhrasesList = async (event) => {
         ExpressionAttributeValues: {
           ":cat": category,
         },
-        ProjectionExpression: "id, category, readCount, averageTime",
+        ProjectionExpression: "id, category, readCount, averageTime, averageDifficulty",
       };
       const queryResult = await docClient.send(new QueryCommand(queryParams));
       items = queryResult.Items || [];
     } else {
       const scanParams = {
         TableName: process.env.TABLE_NAME,
-        ProjectionExpression: "id, category, readCount, averageTime",
+        ProjectionExpression: "id, category, readCount, averageTime, averageDifficulty",
       };
       const scanResult = await docClient.send(new ScanCommand(scanParams));
       items = scanResult.Items || [];
