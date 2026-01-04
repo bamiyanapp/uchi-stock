@@ -298,6 +298,7 @@ function App() {
       
       // 音声再生が終わっても、アニメーション（札表示）が完了するまで待つ
       await animationPromise;
+      // After repeating a phrase, there is no phrase data, so we need to clear the display.
       if (!phraseData) {
         setDisplayedPhrase(null);
       }
