@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/bamiyanapp/karuta/compare/v1.2.0...v1.3.0) (2026-01-04)
+
+
+### Features
+
+* use averageDifficulty for sorting easy/hard order ([b3b5f9d](https://github.com/bamiyanapp/karuta/commit/b3b5f9df53f063f2583c627bd32f061a24b2c12f))
+
 # [1.2.0](https://github.com/bamiyanapp/karuta/compare/v1.1.1...v1.2.0) (2026-01-04)
 
 
