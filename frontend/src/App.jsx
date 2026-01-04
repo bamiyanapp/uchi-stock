@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import "./App.css";
 import karutaImage from "./assets/karuta_inubou.png";
+import changelogData from "./changelog.json";
 
 const API_BASE_URL = "https://akmnirkx3m.execute-api.ap-northeast-1.amazonaws.com/dev";
 
@@ -350,8 +351,8 @@ function App() {
       params.delete("id");
     }
 
-    if (view === "comments") {
-      params.set("view", "comments");
+    if (view === "comments" || view === "changelog") {
+      params.set("view", view);
     } else {
       params.delete("view");
     }
@@ -375,6 +376,8 @@ function App() {
   useEffect(() => {
     if (view === "comments") {
       document.title = "指摘一覧 | カルタ読み上げアプリ";
+    } else if (view === "changelog") {
+      document.title = "更新履歴 | カルタ読み上げアプリ";
     } else if (detailPhraseId && detailPhrase) {
       document.title = `${detailPhrase.phrase} | ${selectedCategory}`;
     } else if (selectedCategory) {
@@ -486,6 +489,42 @@ function App() {
     );
   }
 
+  // 更新履歴画面
+  if (view === "changelog") {
+    return (
+      <div className="container py-4 mx-auto">
+        <header className="text-center mb-5 border-bottom pb-3">
+            <div className="d-flex justify-content-between align-items-center">
+            <button onClick={() => setView("game")} className="btn btn-sm btn-outline-secondary rounded-pill">← 戻る</button>
+            <h1 className="h2 fw-bold m-0 text-dark">更新履歴</h1>
+            <div style={{ width: "60px" }}></div>
+            </div>
+        </header>
+        <main className="mx-auto" style={{ maxWidth: "800px" }}>
+            {changelogData.length === 0 ? (
+                <p className="text-muted text-center py-5">履歴はありません。</p>
+            ) : (
+                <div className="d-flex flex-column gap-4">
+                    {changelogData.map((entry, index) => (
+                        <div key={index} className="card border-0 shadow-sm rounded-4 bg-white">
+                            <div className="card-header bg-transparent border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
+                                <h2 className="h5 fw-bold m-0">v{entry.version}</h2>
+                                <small className="text-muted">{entry.date}</small>
+                            </div>
+                            <div className="card-body p-4">
+                                <pre className="m-0" style={{ whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
+                                    {entry.body}
+                                </pre>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </main>
+      </div>
+    );
+  }
+
   // カテゴリ選択画面
   if (!selectedCategory) {
     return (
@@ -518,9 +557,9 @@ function App() {
           <button onClick={() => setView("comments")} className="btn btn-link text-decoration-none text-muted">
             指摘された内容を確認する →
           </button>
-          <a href="https://github.com/bamiyanapp/karuta/releases" target="_blank" rel="noopener noreferrer" className="btn btn-link text-decoration-none text-muted small">
-            更新履歴を見る (GitHub)
-          </a>
+          <button onClick={() => setView("changelog")} className="btn btn-link text-decoration-none text-muted small">
+            更新履歴を見る
+          </button>
         </div>
 
         {showConfirmModal && (
