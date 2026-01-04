@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/bamiyanapp/karuta/compare/v1.1.0...v1.1.1) (2026-01-04)
+
+
+### Bug Fixes
+
+* render changelog as markdown using react-markdown ([13a7f74](https://github.com/bamiyanapp/karuta/commit/13a7f74e6b6f1135e1a19aa8f51eb72ccd1b27bf))
+
 # 1.0.0 (2026-01-04)
 
 
