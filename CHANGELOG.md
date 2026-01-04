@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/bamiyanapp/karuta/compare/v1.9.0...v1.9.1) (2026-01-04)
+
+
+### Bug Fixes
+
+* ensure phrase transition even if audio is short ([c04ede8](https://github.com/bamiyanapp/karuta/commit/c04ede8d801fa4e6b38c6d3253d7ca9468df5544))
+
 # [1.9.0](https://github.com/bamiyanapp/karuta/compare/v1.8.0...v1.9.0) (2026-01-04)
 
 
