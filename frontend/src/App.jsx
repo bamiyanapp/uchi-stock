@@ -287,9 +287,10 @@ function App() {
       };
       
       // 音声再生とアニメーションを並行実行し、両方の完了を待つ
+      // 音声再生エラーでもアニメーション（札表示）は続行させる
       await Promise.all([
-        playAudio(audioData),
-        animationTask()
+        playAudio(audioData).catch(e => console.error("Audio playback failed:", e)),
+        animationTask().catch(e => console.error("Animation failed:", e))
       ]);
       
       if (isCancelled) return;
