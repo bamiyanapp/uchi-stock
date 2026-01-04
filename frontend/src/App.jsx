@@ -318,8 +318,11 @@ function App() {
       }
 
       if (targetPhrase.id && targetPhrase.category && isFinite(elapsedTime) && !isNaN(elapsedTime)) {
+        // 平均タイムより速いか判定（平均が0より大きく、かつ今回のタイムが平均より小さい場合）
+        const isFast = targetPhrase.averageTime > 0 && elapsedTime < targetPhrase.averageTime;
+
         // 結果を表示用に保存
-        setLastResult({ time: elapsedTime, difficulty });
+        setLastResult({ time: elapsedTime, difficulty, isFast });
         
         fetch(`${API_BASE_URL}/record-time`, {
           method: "POST",
@@ -837,7 +840,14 @@ function App() {
                  <div className="yomifuda shadow-lg">
                     <div className="d-flex flex-column justify-content-center align-items-center h-100">
                       <div className="text-muted mb-2">所要時間</div>
-                      <div className="display-4 fw-bold text-dark mb-4">{lastResult.time.toFixed(2)}<span className="fs-4">秒</span></div>
+                      <div className="display-4 fw-bold text-dark mb-2">{lastResult.time.toFixed(2)}<span className="fs-4">秒</span></div>
+                      
+                      {lastResult.isFast && (
+                        <div className="badge bg-warning text-dark fs-6 mb-4 px-3 py-2 rounded-pill shadow-sm">
+                          🎉 平均より速い！
+                        </div>
+                      )}
+                      
                       <div className="text-muted mb-2">難易度</div>
                       <div className="h3 fw-bold text-danger">{lastResult.difficulty.toFixed(2)}</div>
                     </div>
