@@ -1,4 +1,5 @@
 name: Deploy (with Tests)
+run-name: Deploy ${{ github.event.head_commit.message }}
 
 on:
   push:
