@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/bamiyanapp/karuta/compare/v1.10.0...v1.11.0) (2026-01-04)
+
+
+### Features
+
+* フェードで札と結果を切り替える ([21b0f12](https://github.com/bamiyanapp/karuta/commit/21b0f12e3c6b27003e1d14696234b46362ada1a8))
+
 # [1.10.0](https://github.com/bamiyanapp/karuta/compare/v1.9.3...v1.10.0) (2026-01-04)
 
 

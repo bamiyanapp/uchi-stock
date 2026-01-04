@@ -1,7 +1,12 @@
 [
   {
-    "version": "1.10.0",
+    "version": "1.11.0",
     "date": "2026-01-04",
+    "body": "### Features\n\n* フェードで札と結果を切り替える ([21b0f12](https://github.com/bamiyanapp/karuta/commit/21b0f12e3c6b27003e1d14696234b46362ada1a8))"
+  },
+  {
+    "version": "1.10.0",
+    "date": "2026/01/04 11:27",
     "body": "### Bug Fixes\n\n* card not displaying on read ([169d5c5](https://github.com/bamiyanapp/karuta/commit/169d5c50f12d9a9a41a1f67ac30113a13a50280f))\n* ensure next card is displayed correctly ([58c1f9f](https://github.com/bamiyanapp/karuta/commit/58c1f9f29486284bae32af9920a4f7e38e67678b))\n* trigger semantic-release ([f019679](https://github.com/bamiyanapp/karuta/commit/f01967921f8d020f15118769a18b22bb5cbab389))\n\n\n### Features\n\n* Merge main with bug fixes into v1.8.0 ([ef26ce7](https://github.com/bamiyanapp/karuta/commit/ef26ce7e8d7fa792b8a67a6c91a11c46921fe648))\n* Merge main with bug fixes into v1.9.3 ([1b72b99](https://github.com/bamiyanapp/karuta/commit/1b72b990452637504401a52b7acce8f0482ae383))"
   },
   {
