@@ -54,7 +54,8 @@ async function seed() {
         phrase: record.phrase ? record.phrase.trim() : "",
         phrase_en: record.phrase_en ? record.phrase_en.trim() : "",
         readCount: existingItem ? existingItem.readCount : 0,
-        averageTime: existingItem ? existingItem.averageTime : 0
+        averageTime: existingItem ? existingItem.averageTime : 0,
+        averageDifficulty: existingItem ? (existingItem.averageDifficulty || 0) : 0
       });
     }
 
