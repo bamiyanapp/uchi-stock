@@ -296,6 +296,9 @@ function App() {
       
       // 音声再生が終わっても、アニメーション（札表示）が完了するまで待つ
       await animationPromise;
+      if (!phraseData) {
+        setDisplayedPhrase(null);
+      }
       
       setAudioQueue(prev => prev.slice(1));
       setIsReading(false);
