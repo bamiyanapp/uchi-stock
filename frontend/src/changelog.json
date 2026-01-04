@@ -1,7 +1,12 @@
 [
   {
-    "version": "1.7.1",
+    "version": "1.7.2",
     "date": "2026-01-04",
+    "body": "### Bug Fixes\n\n* record time correctly when skipping card animation ([9e52986](https://github.com/bamiyanapp/karuta/commit/9e5298606359e55f7992e8354b5923043e502cb5))"
+  },
+  {
+    "version": "1.7.1",
+    "date": "2026/01/04 01:41",
     "body": "### Bug Fixes\n\n* 読み上げ回数がカウントアップしない問題を修正 ([871ad6c](https://github.com/bamiyanapp/karuta/commit/871ad6c4246babf06732cf2afcfc7cb45f69fc1a))"
   },
   {

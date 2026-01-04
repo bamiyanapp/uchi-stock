@@ -1,3 +1,10 @@
+## [1.7.2](https://github.com/bamiyanapp/karuta/compare/v1.7.1...v1.7.2) (2026-01-04)
+
+
+### Bug Fixes
+
+* record time correctly when skipping card animation ([9e52986](https://github.com/bamiyanapp/karuta/commit/9e5298606359e55f7992e8354b5923043e502cb5))
+
 ## [1.7.1](https://github.com/bamiyanapp/karuta/compare/v1.7.0...v1.7.1) (2026-01-04)
 
 
