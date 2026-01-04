@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 import "./App.css";
 import karutaImage from "./assets/karuta_inubou.png";
 import changelogData from "./changelog.json";
@@ -273,13 +274,6 @@ function App() {
       
       setAudioQueue(prev => [...prev, { phraseData: data, audioData: data.audioData }]);
 
-      const newHistory = [data, ...currentHistory];
-      if (newHistory.length >= allPhrasesForCategory.length) {
-        setIsAllRead(true);
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        await playCongratulationAudio();
-      }
-
     } catch (error) {
       console.error("Error fetching phrase:", error);
       alert("通信エラーが発生しました: " + error.message);
@@ -512,9 +506,7 @@ function App() {
                                 <small className="text-muted">{entry.date}</small>
                             </div>
                             <div className="card-body p-4">
-                                <pre className="m-0" style={{ whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
-                                    {entry.body}
-                                </pre>
+                                <ReactMarkdown>{entry.body}</ReactMarkdown>
                             </div>
                         </div>
                     ))}
