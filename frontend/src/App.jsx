@@ -28,6 +28,7 @@ function App() {
 
   const [allPhrasesForCategory, setAllPhrasesForCategory] = useState([]); 
   const [allPhrases, setAllPhrases] = useState([]); // 全札一覧用
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' }); // ソート設定
   const [currentPhrase, setCurrentPhrase] = useState(null);
   const [displayedPhrase, setDisplayedPhrase] = useState(null);
   const [fadeState, setFadeState] = useState("hidden"); // 初期状態をhiddenに変更
@@ -62,6 +63,58 @@ function App() {
   const currentHistory = useMemo(() => {
     return selectedCategory ? (historyByCategory[selectedCategory] || []) : [];
   }, [selectedCategory, historyByCategory]);
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedPhrases = useMemo(() => {
+    let sortableItems = [...allPhrases];
+    if (sortConfig.key !== null) {
+      sortableItems.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+        
+        if (sortConfig.key === 'level') {
+            if (aValue === '-' && bValue !== '-') return 1;
+            if (aValue !== '-' && bValue === '-') return -1;
+            if (aValue === '-' && bValue === '-') return 0;
+            const aNum = parseInt(aValue, 10);
+            const bNum = parseInt(bValue, 10);
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+                aValue = aNum;
+                bValue = bNum;
+            }
+        } else if (sortConfig.key === 'readCount' || sortConfig.key === 'averageDifficulty') {
+            aValue = aValue || 0;
+            bValue = bValue || 0;
+        } else if (typeof aValue === 'string') {
+            aValue = aValue.toLowerCase();
+            bValue = bValue.toLowerCase();
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [allPhrases, sortConfig]);
+
+  const renderSortArrow = (key) => {
+      if (sortConfig.key === key) {
+          return sortConfig.direction === 'asc' ? ' ▲' : ' ▼';
+      }
+      return <span style={{ opacity: 0.3 }}> ⇅</span>;
+  };
 
   // カテゴリ一覧を取得
   useEffect(() => {
@@ -559,16 +612,26 @@ function App() {
               <table className="table table-hover mb-0">
                 <thead className="table-light">
                   <tr>
-                    <th scope="col" className="ps-4">カテゴリ</th>
-                    <th scope="col">読み札</th>
-                    <th scope="col">Lv</th>
-                    <th scope="col">回数</th>
-                    <th scope="col">難易度</th>
+                    <th scope="col" className="ps-4" style={{ cursor: "pointer" }} onClick={() => handleSort('category')}>
+                      カテゴリ{renderSortArrow('category')}
+                    </th>
+                    <th scope="col" style={{ cursor: "pointer" }} onClick={() => handleSort('phrase')}>
+                      読み札{renderSortArrow('phrase')}
+                    </th>
+                    <th scope="col" style={{ cursor: "pointer" }} onClick={() => handleSort('level')}>
+                      Lv{renderSortArrow('level')}
+                    </th>
+                    <th scope="col" style={{ cursor: "pointer" }} onClick={() => handleSort('readCount')}>
+                      回数{renderSortArrow('readCount')}
+                    </th>
+                    <th scope="col" style={{ cursor: "pointer" }} onClick={() => handleSort('averageDifficulty')}>
+                      難易度{renderSortArrow('averageDifficulty')}
+                    </th>
                     <th scope="col" className="text-end pe-4">詳細</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {allPhrases.map((p) => (
+                  {sortedPhrases.map((p) => (
                     <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => openDetail(p.id, p.category)}>
                       <td className="ps-4 text-muted small">{p.category}</td>
                       <td className="fw-bold">{p.phrase}</td>
