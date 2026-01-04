@@ -27,6 +27,7 @@ function App() {
   const [allComments, setAllComments] = useState([]);
 
   const [allPhrasesForCategory, setAllPhrasesForCategory] = useState([]); 
+  const [allPhrases, setAllPhrases] = useState([]); // 全札一覧用
   const [currentPhrase, setCurrentPhrase] = useState(null);
   const [displayedPhrase, setDisplayedPhrase] = useState(null);
   const [fadeState, setFadeState] = useState("hidden"); // 初期状態をhiddenに変更
@@ -142,6 +143,24 @@ function App() {
       }
     };
     fetchComments();
+  }, [view]);
+
+  // 全札一覧の取得
+  useEffect(() => {
+    if (view === "all-phrases") {
+      const fetchAllPhrases = async () => {
+        try {
+          const response = await fetch(`${API_BASE_URL}/get-phrases-list`);
+          const data = await response.json();
+          if (response.ok) {
+            setAllPhrases(data.phrases || []);
+          }
+        } catch (error) {
+          console.error("Error fetching all phrases:", error);
+        }
+      };
+      fetchAllPhrases();
+    }
   }, [view]);
 
   const playAudio = useCallback((audioData) => {
@@ -355,7 +374,7 @@ function App() {
       params.delete("id");
     }
 
-    if (view === "comments" || view === "changelog") {
+    if (view === "comments" || view === "changelog" || view === "all-phrases") {
       params.set("view", view);
     } else {
       params.delete("view");
@@ -444,14 +463,61 @@ function App() {
     setPendingCategory(null);
   };
 
-  const openDetail = (id) => {
+  const openDetail = (id, category) => {
     setDetailPhraseId(id);
+    if (category) setSelectedCategory(category); // 必要に応じてセット（一覧から遷移時など）
     window.scrollTo(0, 0);
   };
 
   const closeDetail = () => {
     setDetailPhraseId(null);
   };
+
+  // 全札一覧画面
+  if (view === "all-phrases") {
+    return (
+      <div className="container py-4 mx-auto">
+        <header className="text-center mb-5 border-bottom pb-3">
+          <div className="d-flex justify-content-between align-items-center">
+            <button onClick={() => setView("game")} className="btn btn-sm btn-outline-secondary rounded-pill">← 戻る</button>
+            <h1 className="h2 fw-bold m-0 text-dark">全札一覧</h1>
+            <div style={{ width: "60px" }}></div>
+          </div>
+        </header>
+
+        <main className="mx-auto" style={{ maxWidth: "1000px" }}>
+          {allPhrases.length === 0 ? (
+            <p className="text-muted text-center py-5">読み込み中...</p>
+          ) : (
+            <div className="table-responsive shadow-sm rounded-4 bg-white">
+              <table className="table table-hover mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th scope="col" className="ps-4">カテゴリ</th>
+                    <th scope="col">読み札</th>
+                    <th scope="col">Lv</th>
+                    <th scope="col">難易度</th>
+                    <th scope="col" className="text-end pe-4">詳細</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allPhrases.map((p) => (
+                    <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => openDetail(p.id, p.category)}>
+                      <td className="ps-4 text-muted small">{p.category}</td>
+                      <td className="fw-bold">{p.phrase}</td>
+                      <td>{p.level !== "-" ? p.level : ""}</td>
+                      <td>{(p.averageDifficulty || 0).toFixed(2)}</td>
+                      <td className="text-end pe-4 text-primary">→</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
 
   // 指摘一覧画面
   if (view === "comments") {
@@ -556,8 +622,11 @@ function App() {
         </main>
 
         <div className="text-center d-flex flex-column gap-2">
-          <button onClick={() => setView("comments")} className="btn btn-link text-decoration-none text-muted">
-            指摘された内容を確認する →
+          <button onClick={() => setView("all-phrases")} className="btn btn-link text-decoration-none text-muted">
+            全札一覧を見る →
+          </button>
+          <button onClick={() => setView("comments")} className="btn btn-link text-decoration-none text-muted small">
+            指摘された内容を確認する
           </button>
           <button onClick={() => setView("changelog")} className="btn btn-link text-decoration-none text-muted small">
             更新履歴を見る
@@ -590,7 +659,7 @@ function App() {
         <header className="text-center mb-4 border-bottom pb-3">
           <div className="d-flex justify-content-between align-items-center">
             <button onClick={closeDetail} className="btn btn-sm btn-outline-secondary rounded-pill">← 戻る</button>
-            <h1 className="h4 m-0 fw-bold notranslate">{selectedCategory} の詳細</h1>
+            <h1 className="h4 m-0 fw-bold notranslate">{detailPhrase ? detailPhrase.category : selectedCategory} の詳細</h1>
             <div style={{ width: "60px" }}></div>
           </div>
         </header>

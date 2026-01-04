@@ -370,14 +370,20 @@ exports.getPhrasesList = async (event) => {
         ExpressionAttributeValues: {
           ":cat": category,
         },
-        ProjectionExpression: "id, category, readCount, averageTime, averageDifficulty",
+        ProjectionExpression: "id, category, phrase, #lvl, kana, readCount, averageTime, averageDifficulty",
+        ExpressionAttributeNames: {
+          "#lvl": "level",
+        },
       };
       const queryResult = await docClient.send(new QueryCommand(queryParams));
       items = queryResult.Items || [];
     } else {
       const scanParams = {
         TableName: process.env.TABLE_NAME,
-        ProjectionExpression: "id, category, readCount, averageTime, averageDifficulty",
+        ProjectionExpression: "id, category, phrase, #lvl, kana, readCount, averageTime, averageDifficulty",
+        ExpressionAttributeNames: {
+          "#lvl": "level",
+        },
       };
       const scanResult = await docClient.send(new ScanCommand(scanParams));
       items = scanResult.Items || [];
