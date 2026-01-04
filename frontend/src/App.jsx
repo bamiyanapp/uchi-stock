@@ -58,7 +58,6 @@ function App() {
   const [commentText, setCommentText] = useState("");
   const [postingComment, setPostingComment] = useState(false);
 
-  const flipTimeoutRef = useRef(null);
   const startTimeRef = useRef(null);
 
   const currentHistory = useMemo(() => {
