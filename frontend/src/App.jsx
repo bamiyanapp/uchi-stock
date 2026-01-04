@@ -260,6 +260,9 @@ function App() {
   
       await playIntroSound();
       
+      // 読み上げ開始タイミングで計測開始
+      startTimeRef.current = Date.now();
+
       if (phraseData) {
         // 以前のアニメーションが残っていたらクリア
         if (flipTimeoutRef.current) {
@@ -276,7 +279,6 @@ function App() {
             // 札を切り替えてフェードイン
             setDisplayedPhrase(phraseData);
             setFadeState("visible");
-            startTimeRef.current = Date.now(); // 札が表示されたタイミングから計測開始
             flipTimeoutRef.current = null;
           }, 500); // フェードアウトの時間
         }, 3000); // 待機時間
@@ -296,12 +298,14 @@ function App() {
   }, [audioQueue, isReading, playAudio, playIntroSound, selectedCategory, historyByCategory]);
 
   const playKaruta = async () => {
-    if (startTimeRef.current && displayedPhrase) {
+    const targetPhrase = currentPhrase || displayedPhrase;
+    
+    if (startTimeRef.current && targetPhrase) {
       const elapsedTime = (Date.now() - startTimeRef.current) / 1000;
       
       // 難易度計算: 経過時間 / その時の残り枚数
       // 残り枚数 = 全枚数 - (読み上げ済み枚数 - 1)
-      // currentHistoryにはdisplayedPhraseが含まれているため、-1する
+      // currentHistoryにはtargetPhraseが含まれているため、-1する
       const totalCount = allPhrasesForCategory.length || 1;
       const historyCount = currentHistory.length || 1;
       const remainingCount = Math.max(1, totalCount - (historyCount - 1));
@@ -311,13 +315,13 @@ function App() {
         difficulty = 0;
       }
 
-      if (displayedPhrase.id && displayedPhrase.category && isFinite(elapsedTime) && !isNaN(elapsedTime)) {
+      if (targetPhrase.id && targetPhrase.category && isFinite(elapsedTime) && !isNaN(elapsedTime)) {
         fetch(`${API_BASE_URL}/record-time`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            id: displayedPhrase.id,
-            category: displayedPhrase.category, // categoryも送信
+            id: targetPhrase.id,
+            category: targetPhrase.category, // categoryも送信
             time: elapsedTime,
             difficulty: difficulty,
           }),
