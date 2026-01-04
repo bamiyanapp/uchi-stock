@@ -1,3 +1,10 @@
+## [1.7.3](https://github.com/bamiyanapp/karuta/compare/v1.7.2...v1.7.3) (2026-01-04)
+
+
+### Bug Fixes
+
+* ensure next card is displayed correctly ([58c1f9f](https://github.com/bamiyanapp/karuta/commit/58c1f9f29486284bae32af9920a4f7e38e67678b))
+
 ## [1.7.2](https://github.com/bamiyanapp/karuta/compare/v1.7.1...v1.7.2) (2026-01-04)
 
 
