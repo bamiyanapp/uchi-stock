@@ -1,7 +1,12 @@
 [
   {
-    "version": "1.7.2",
+    "version": "1.8.0",
     "date": "2026-01-04",
+    "body": "### Features\n\n* show result (time and difficulty) after pressing next button ([6bd8d21](https://github.com/bamiyanapp/karuta/commit/6bd8d21eb7f41a035592791d64ebb7b10f73746e))"
+  },
+  {
+    "version": "1.7.2",
+    "date": "2026/01/04 08:40",
     "body": "### Bug Fixes\n\n* record time correctly when skipping card animation ([9e52986](https://github.com/bamiyanapp/karuta/commit/9e5298606359e55f7992e8354b5923043e502cb5))"
   },
   {

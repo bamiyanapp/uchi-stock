@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/bamiyanapp/karuta/compare/v1.7.2...v1.8.0) (2026-01-04)
+
+
+### Features
+
+* show result (time and difficulty) after pressing next button ([6bd8d21](https://github.com/bamiyanapp/karuta/commit/6bd8d21eb7f41a035592791d64ebb7b10f73746e))
+
 ## [1.7.2](https://github.com/bamiyanapp/karuta/compare/v1.7.1...v1.7.2) (2026-01-04)
 
 
