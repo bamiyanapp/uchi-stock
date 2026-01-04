@@ -1,7 +1,12 @@
 [
   {
-    "version": "1.6.0",
+    "version": "1.7.0",
     "date": "2026-01-04",
+    "body": "### Features\n\n* add averageTime to all-phrases list and increase list width ([99b62e2](https://github.com/bamiyanapp/karuta/commit/99b62e226c936ad56d98344697c5511e23207fc6))"
+  },
+  {
+    "version": "1.6.0",
+    "date": "2026/01/04 01:22",
     "body": "### Features\n\n* implement sort functionality for all-phrases list ([30ff588](https://github.com/bamiyanapp/karuta/commit/30ff588b97b17da6e703f178879bcd083f0919da))"
   },
   {

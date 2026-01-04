@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/bamiyanapp/karuta/compare/v1.6.0...v1.7.0) (2026-01-04)
+
+
+### Features
+
+* add averageTime to all-phrases list and increase list width ([99b62e2](https://github.com/bamiyanapp/karuta/commit/99b62e226c936ad56d98344697c5511e23207fc6))
+
 # [1.6.0](https://github.com/bamiyanapp/karuta/compare/v1.5.0...v1.6.0) (2026-01-04)
 
 
