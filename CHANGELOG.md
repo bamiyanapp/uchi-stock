@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/bamiyanapp/karuta/compare/v1.7.0...v1.7.1) (2026-01-04)
+
+
+### Bug Fixes
+
+* 読み上げ回数がカウントアップしない問題を修正 ([871ad6c](https://github.com/bamiyanapp/karuta/commit/871ad6c4246babf06732cf2afcfc7cb45f69fc1a))
+
 # [1.7.0](https://github.com/bamiyanapp/karuta/compare/v1.6.0...v1.7.0) (2026-01-04)
 
 
