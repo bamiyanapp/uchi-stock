@@ -264,6 +264,8 @@ function App() {
       // 読み上げ開始タイミングで計測開始
       startTimeRef.current = Date.now();
 
+      let animationPromise = Promise.resolve();
+
       if (phraseData) {
         // 以前のアニメーションが残っていたらクリア
         if (flipTimeoutRef.current) {
@@ -271,9 +273,12 @@ function App() {
           flipTimeoutRef.current = null;
         }
 
+        let resolveAnimation;
+        animationPromise = new Promise(resolve => { resolveAnimation = resolve; });
+
         // 3秒待機してからフェードアニメーションを開始
         flipTimeoutRef.current = setTimeout(() => {
-          // フェードアウト開始（既に何か表示されている場合のみ意味があるが、統一のため）
+          // フェードアウト開始
           setFadeState("fading");
           
           flipTimeoutRef.current = setTimeout(() => {
@@ -282,11 +287,20 @@ function App() {
             setDisplayedPhrase(phraseData);
             setFadeState("visible");
             flipTimeoutRef.current = null;
+            if (resolveAnimation) {
+                resolveAnimation();
+            }
           }, 500); // フェードアウトの時間
         }, 3000); // 待機時間
       }
       
       await playAudio(audioData);
+      
+      // 音声再生が終わっても、アニメーション（札表示）が完了するまで待つ
+      await animationPromise;
+      if (!phraseData) {
+        setDisplayedPhrase(null);
+      }
       
       setAudioQueue(prev => prev.slice(1));
       setIsReading(false);

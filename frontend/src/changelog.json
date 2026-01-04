@@ -1,5 +1,10 @@
 [
   {
+    "version": "1.8.1",
+    "date": "2026-01-04",
+    "body": "### Bug Fixes\n\n* card not displaying on read ([169d5c5](https://github.com/bamiyanapp/karuta/commit/169d5c50f12d9a9a41a1f67ac30113a13a50280f))\n* ensure next card is displayed correctly ([58c1f9f](https://github.com/bamiyanapp/karuta/commit/58c1f9f29486284bae32af9920a4f7e38e67678b))"
+  },
+  {
     "version": "1.8.0",
     "date": "2026-01-04",
     "body": "### Features\n\n* show result (time and difficulty) after pressing next button ([6bd8d21](https://github.com/bamiyanapp/karuta/commit/6bd8d21eb7f41a035592791d64ebb7b10f73746e))"
