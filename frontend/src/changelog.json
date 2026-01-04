@@ -1,7 +1,12 @@
 [
   {
-    "version": "1.8.0",
+    "version": "1.9.0",
     "date": "2026-01-04",
+    "body": "### Features\n\n* praise when time is faster than average ([d9abd2b](https://github.com/bamiyanapp/karuta/commit/d9abd2bad5585e1c22cb71bafd0662a684dc133d))"
+  },
+  {
+    "version": "1.8.0",
+    "date": "2026/01/04 08:51",
     "body": "### Features\n\n* show result (time and difficulty) after pressing next button ([6bd8d21](https://github.com/bamiyanapp/karuta/commit/6bd8d21eb7f41a035592791d64ebb7b10f73746e))"
   },
   {

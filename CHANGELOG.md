@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/bamiyanapp/karuta/compare/v1.8.0...v1.9.0) (2026-01-04)
+
+
+### Features
+
+* praise when time is faster than average ([d9abd2b](https://github.com/bamiyanapp/karuta/commit/d9abd2bad5585e1c22cb71bafd0662a684dc133d))
+
 # [1.8.0](https://github.com/bamiyanapp/karuta/compare/v1.7.2...v1.8.0) (2026-01-04)
 
 
