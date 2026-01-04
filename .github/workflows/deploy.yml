@@ -4,12 +4,33 @@ on:
   push:
     branches:
       - main
+  pull_request:
 
 permissions:
   contents: write
 
 jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+      - name: Install dependencies
+        run: npm ci
+      - name: Validate current commit (last commit)
+        if: github.event_name == 'push'
+        run: npx commitlint --from HEAD~1 --to HEAD --verbose
+      - name: Validate PR commits
+        if: github.event_name == 'pull_request'
+        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+
   frontend-test:
+    needs: commitlint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -34,6 +55,7 @@ jobs:
         run: npm run build
 
   backend-test:
+    needs: commitlint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -52,6 +74,7 @@ jobs:
         run: npx vitest run --coverage
 
   build-and-deploy-frontend:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: frontend-test
     runs-on: ubuntu-latest
     steps:
@@ -81,6 +104,7 @@ jobs:
           echo "Pages URL: ${{ steps.deployment.outputs.page_url }}"
 
   deploy-backend:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: backend-test
     runs-on: ubuntu-latest
     steps:
