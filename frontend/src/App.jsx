@@ -545,7 +545,7 @@ function App() {
       <div className="container py-4 mx-auto">
         <header className="text-center mb-5 border-bottom pb-3">
           <div className="d-flex justify-content-between align-items-center">
-            <button onClick={() => setView("game")} className="btn btn-sm btn-outline-secondary rounded-pill">← 戻る</button>
+            <button onClick={() => { setView("game"); setSelectedCategory(null); }} className="btn btn-sm btn-outline-secondary rounded-pill">← 戻る</button>
             <h1 className="h2 fw-bold m-0 text-dark">全札一覧</h1>
             <div style={{ width: "60px" }}></div>
           </div>
