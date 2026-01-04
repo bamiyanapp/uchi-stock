@@ -75,13 +75,40 @@ jobs:
         working-directory: backend
         run: npx vitest run --coverage
 
-  build-and-deploy-frontend:
+  release:
+    needs: [frontend-test, backend-test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: frontend-test
+    name: Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+      - name: Install dependencies
+        run: npm ci
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+  build-and-deploy-frontend:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Pull latest changes
+        run: git pull origin main
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -107,11 +134,16 @@ jobs:
 
   deploy-backend:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: backend-test
+    needs: release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Pull latest changes
+        run: git pull origin main
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -133,25 +165,3 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-  release:
-    needs: [build-and-deploy-frontend, deploy-backend]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    name: Release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "lts/*"
-          cache: "npm"
-      - name: Install dependencies
-        run: npm ci
-      - name: Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release
