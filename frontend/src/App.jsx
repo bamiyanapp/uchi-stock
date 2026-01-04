@@ -236,6 +236,8 @@ function App() {
   }, [playAudio]);
   
   useEffect(() => {
+    let isCancelled = false;
+
     const playNextInQueue = async () => {
       if (isReading || audioQueue.length === 0) {
         return;
@@ -260,34 +262,39 @@ function App() {
       }
   
       await playIntroSound();
+      if (isCancelled) return;
       
       // 読み上げ開始タイミングで計測開始
       startTimeRef.current = Date.now();
 
-      if (phraseData) {
-        // 以前のアニメーションが残っていたらクリア
-        if (flipTimeoutRef.current) {
-          clearTimeout(flipTimeoutRef.current);
-          flipTimeoutRef.current = null;
-        }
+      const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+      const animationTask = async () => {
+        if (!phraseData) return;
+        
         // 3秒待機してからフェードアニメーションを開始
-        flipTimeoutRef.current = setTimeout(() => {
-          // フェードアウト開始（既に何か表示されている場合のみ意味があるが、統一のため）
-          setFadeState("fading");
-          
-          flipTimeoutRef.current = setTimeout(() => {
-            // 札を切り替えてフェードイン
-            setLastResult(null);
-            setDisplayedPhrase(phraseData);
-            setFadeState("visible");
-            flipTimeoutRef.current = null;
-          }, 500); // フェードアウトの時間
-        }, 3000); // 待機時間
-      }
+        await delay(3000);
+        if (isCancelled) return;
+        
+        setFadeState("fading");
+        
+        await delay(500);
+        if (isCancelled) return;
+        
+        // 札を切り替えてフェードイン
+        setLastResult(null);
+        setDisplayedPhrase(phraseData);
+        setFadeState("visible");
+      };
       
-      await playAudio(audioData);
+      // 音声再生とアニメーションを並行実行し、両方の完了を待つ
+      await Promise.all([
+        playAudio(audioData),
+        animationTask()
+      ]);
       
+      if (isCancelled) return;
+
       setAudioQueue(prev => prev.slice(1));
       setIsReading(false);
     };
@@ -295,7 +302,7 @@ function App() {
     playNextInQueue();
 
     return () => {
-      if (flipTimeoutRef.current) clearTimeout(flipTimeoutRef.current);
+      isCancelled = true;
     }
   }, [audioQueue, isReading, playAudio, playIntroSound, selectedCategory, historyByCategory]);
 
