@@ -305,18 +305,24 @@ function App() {
       const totalCount = allPhrasesForCategory.length || 1;
       const historyCount = currentHistory.length || 1;
       const remainingCount = Math.max(1, totalCount - (historyCount - 1));
-      const difficulty = elapsedTime / remainingCount;
+      let difficulty = elapsedTime / remainingCount;
 
-      fetch(`${API_BASE_URL}/record-time`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: displayedPhrase.id,
-          category: displayedPhrase.category, // categoryも送信
-          time: elapsedTime,
-          difficulty: difficulty,
-        }),
-      });
+      if (!isFinite(difficulty) || isNaN(difficulty)) {
+        difficulty = 0;
+      }
+
+      if (displayedPhrase.id && displayedPhrase.category && isFinite(elapsedTime) && !isNaN(elapsedTime)) {
+        fetch(`${API_BASE_URL}/record-time`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: displayedPhrase.id,
+            category: displayedPhrase.category, // categoryも送信
+            time: elapsedTime,
+            difficulty: difficulty,
+          }),
+        });
+      }
       startTimeRef.current = null;
     }
 

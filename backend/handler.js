@@ -24,7 +24,7 @@ exports.recordTime = async (event) => {
     const body = JSON.parse(event.body);
     const { id, category, time, difficulty } = body; // category, difficultyを追加
 
-    if (!id || !category || typeof time !== 'number') {
+    if (!id || !category || typeof time !== 'number' || isNaN(time) || !isFinite(time)) {
       return {
         statusCode: 400,
         headers: { "Access-Control-Allow-Origin": "*" },
@@ -50,7 +50,12 @@ exports.recordTime = async (event) => {
     const oldAverageDifficulty = Item.averageDifficulty || 0;
     
     const newReadCount = oldReadCount + 1;
-    const newAverageTime = ((oldAverageTime * oldReadCount) + time) / newReadCount;
+    let newAverageTime = ((oldAverageTime * oldReadCount) + time) / newReadCount;
+
+    // 数値の健全性チェック
+    if (isNaN(newAverageTime) || !isFinite(newAverageTime)) {
+        newAverageTime = time;
+    }
 
     let updateExpression = "set readCount = :rc, averageTime = :at";
     let expressionAttributeValues = {
@@ -58,8 +63,11 @@ exports.recordTime = async (event) => {
       ":at": newAverageTime,
     };
 
-    if (typeof difficulty === 'number') {
-      const newAverageDifficulty = ((oldAverageDifficulty * oldReadCount) + difficulty) / newReadCount;
+    if (typeof difficulty === 'number' && !isNaN(difficulty) && isFinite(difficulty)) {
+      let newAverageDifficulty = ((oldAverageDifficulty * oldReadCount) + difficulty) / newReadCount;
+      if (isNaN(newAverageDifficulty) || !isFinite(newAverageDifficulty)) {
+        newAverageDifficulty = difficulty;
+      }
       updateExpression += ", averageDifficulty = :ad";
       expressionAttributeValues[":ad"] = newAverageDifficulty;
     }
