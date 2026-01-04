@@ -328,6 +328,19 @@ function App() {
     if (startTimeRef.current && targetPhrase) {
       const elapsedTime = (Date.now() - startTimeRef.current) / 1000;
       
+      setHistoryByCategory(prev => {
+        const newHistory = { ...prev };
+        if (newHistory[selectedCategory] && newHistory[selectedCategory].length > 0) {
+          const updatedCategoryHistory = [...newHistory[selectedCategory]];
+          const lastReadPhrase = updatedCategoryHistory[0];
+          if (lastReadPhrase.id === targetPhrase.id) {
+            updatedCategoryHistory[0] = { ...lastReadPhrase, elapsedTime: elapsedTime.toFixed(2) };
+            newHistory[selectedCategory] = updatedCategoryHistory;
+          }
+        }
+        return newHistory;
+      });
+      
       const totalCount = allPhrasesForCategory.length || 1;
       const historyCount = currentHistory.length || 1;
       const remainingCount = Math.max(1, totalCount - (historyCount - 1));
@@ -903,11 +916,14 @@ function App() {
           <div className="list-group shadow-sm rounded">
             {currentHistory.map((p, index) => (
               <button key={`${p.id}-${currentHistory.length - index}`} onClick={() => openDetail(p.id)} className="list-group-item list-group-item-action d-flex align-items-center justify-content-between">
-                <div>
+                <div className="d-flex align-items-center">
                   {p.level !== "-" && <span className="badge bg-danger me-2">Lv.{p.level}</span>}
                   <span className="text-dark">{p.phrase}</span>
                 </div>
-                <span className="text-primary small">詳細・報告 →</span>
+                <div className="d-flex align-items-center">
+                  {p.elapsedTime && <span className="text-muted small me-3">{p.elapsedTime}秒</span>}
+                  <span className="text-primary small">詳細・報告 →</span>
+                </div>
               </button>
             ))}
           </div>
