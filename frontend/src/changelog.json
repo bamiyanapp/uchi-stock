@@ -1,7 +1,12 @@
 [
   {
+    "version": "1.12.1",
+    "date": "2026-01-06",
+    "body": "### Bug Fixes\n\n* clineのシステムプロンプトを追加 ([9282355](https://github.com/bamiyanapp/karuta/commit/928235585f3f24885f3cf9b6221b59d717182248))"
+  },
+  {
     "version": "1.12.0",
-    "date": "2026-01-04",
+    "date": "2026/01/04 12:00",
     "body": "### Features\n\n* display elapsed time in history ([966231c](https://github.com/bamiyanapp/karuta/commit/966231c24d3f11a502fc1c3d0ecde14f0b41c31f))"
   },
   {

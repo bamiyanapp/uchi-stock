@@ -1,3 +1,10 @@
+## [1.12.1](https://github.com/bamiyanapp/karuta/compare/v1.12.0...v1.12.1) (2026-01-06)
+
+
+### Bug Fixes
+
+* clineのシステムプロンプトを追加 ([9282355](https://github.com/bamiyanapp/karuta/commit/928235585f3f24885f3cf9b6221b59d717182248))
+
 # [1.12.0](https://github.com/bamiyanapp/karuta/compare/v1.11.0...v1.12.0) (2026-01-04)
 
 
