@@ -78,8 +78,8 @@ jobs:
         run: npx vitest run --coverage
 
   sync-release:
-    needs: [frontend-test, backend-test]
-    if: github.event_name == 'pull_request' && success()
+    needs: [commitlint, frontend-test, backend-test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && success()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -91,7 +91,12 @@ jobs:
           git fetch origin main:main 
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout release || git checkout -b release
+          if ! git rev-parse --verify release >/dev/null 2>&1; then
+            git checkout -b release origin/release
+          else
+            git checkout release
+          fi
+          git pull origin release --rebase
           git merge main --ff-only
           git push origin release
 
@@ -129,7 +134,7 @@ jobs:
               });
               console.log(`Successfully deleted branch: ${branchName}`);
             } catch (error) {
-              if (error.status === 422 || error.message.includes('Reference does not exist')) {
+              if (error.status === 422 || error.message.includes("Reference does not exist")) {
                 console.log(`Branch ${branchName} already deleted or not found.`);
               } else {
                 console.error(`Failed to delete branch ${branchName}:`, error.message);
