@@ -10,32 +10,39 @@ const HISTORY_TABLE = "uchi-stock-app-stock-history";
 
 const items = [
   {
-    name: "トイレットペーパー",
+    name: "トイレットペーパー (2日に1回消費)",
     unit: "ロール",
-    currentStock: 12,
-    consumptionPattern: "consistent", // 2日に1回1ロール
-    daysOfHistory: 14
-  },
-  {
-    name: "牛乳",
-    unit: "本",
-    currentStock: 1,
-    consumptionPattern: "fast", // 毎日1本
-    daysOfHistory: 7
-  },
-  {
-    name: "ティッシュペーパー",
-    unit: "箱",
-    currentStock: 3,
-    consumptionPattern: "slow", // 5日に1回1箱
+    currentStock: 10,
+    consumptionPattern: "consistent", // 2日に1回1ロール -> 平均0.5/日
     daysOfHistory: 20
   },
   {
-    name: "お米",
-    unit: "kg",
+    name: "牛乳 (毎日消費)",
+    unit: "本",
+    currentStock: 5,
+    consumptionPattern: "fast", // 毎日1本 -> 平均1.0/日
+    daysOfHistory: 10
+  },
+  {
+    name: "ティッシュペーパー (5日に1回消費)",
+    unit: "箱",
     currentStock: 2,
+    consumptionPattern: "slow", // 5日に1回1箱 -> 平均0.2/日
+    daysOfHistory: 30
+  },
+  {
+    name: "お米 (不定期消費)",
+    unit: "kg",
+    currentStock: 5,
     consumptionPattern: "variable", // 3〜4日に1kg
     daysOfHistory: 30
+  },
+  {
+    name: "検証用アイテム (毎日2個消費)",
+    unit: "個",
+    currentStock: 20,
+    consumptionPattern: "test-stable", // 毎日2個 -> 平均2.0/日
+    daysOfHistory: 10
   }
 ];
 
@@ -107,6 +114,9 @@ async function seed() {
           consume = true;
         } else if (itemDef.consumptionPattern === "variable" && i % (3 + Math.floor(Math.random() * 2)) === 0) {
           consume = true;
+        } else if (itemDef.consumptionPattern === "test-stable") {
+          consume = true;
+          quantity = 2;
         }
 
         if (purchase) {

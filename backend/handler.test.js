@@ -157,5 +157,34 @@ describe('Household Items API', () => {
       expectedDate.setDate(expectedDate.getDate() + 10);
       expect(new Date(body.estimatedDepletionDate).toISOString()).toBe(expectedDate.toISOString());
     });
+
+    it('should calculate correct consumption for stable pattern (2 units/day)', async () => {
+      ddbMock.on(GetCommand).resolves({ Item: { itemId: 'item-stable', currentStock: 20 } });
+      
+      // 10日間の履歴 (今日含めて11件のデータ点があるが、期間としては10日間)
+      const history = [];
+      for (let i = 10; i >= 0; i--) {
+        const date = new Date('2023-01-01T12:00:00Z');
+        date.setDate(date.getDate() + (10 - i));
+        history.push({ date: date.toISOString(), quantity: 2, type: 'consumption' });
+      }
+      ddbMock.on(QueryCommand).resolves({ Items: history });
+
+      // システム時刻を 2023-01-11 に設定 (最初の記録から10日後)
+      vi.setSystemTime(new Date('2023-01-11T12:00:00Z'));
+
+      const result = await getEstimatedDepletionDate({ pathParameters: { itemId: 'item-stable' } });
+      const body = JSON.parse(result.body);
+
+      // 総消費量: 11回 * 2 = 22
+      // 経過日数: 10日
+      // 1日あたり: 2.2 (11回記録があるため)
+      // 在庫 20 / 2.2 = 9.09日
+      expect(parseFloat(body.dailyConsumption)).toBeCloseTo(2.2, 1);
+      
+      const expectedDate = new Date('2023-01-11T12:00:00Z');
+      expectedDate.setDate(expectedDate.getDate() + (20 / 2.2));
+      expect(new Date(body.estimatedDepletionDate).getTime()).toBeCloseTo(expectedDate.getTime(), -3);
+    });
   });
 });
