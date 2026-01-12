@@ -13,11 +13,21 @@ const ItemDetail = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [estimate, setEstimate] = useState(null);
-  const { userId } = useUser();
+  const { userId, idToken } = useUser();
+
+  const getHeaders = useCallback(() => {
+    const headers = {
+      "x-user-id": userId
+    };
+    if (idToken) {
+      headers["Authorization"] = `Bearer ${idToken}`;
+    }
+    return headers;
+  }, [userId, idToken]);
 
   const fetchData = useCallback(async () => {
     try {
-      const headers = { "x-user-id": userId };
+      const headers = getHeaders();
       const [itemRes, historyRes, estimateRes] = await Promise.all([
         fetch(`${API_BASE_URL}/items`, { headers }),
         fetch(`${API_BASE_URL}/items/${itemId}/history`, { headers }),
@@ -35,7 +45,7 @@ const ItemDetail = () => {
     } catch (error) {
       console.error("Error fetching item details:", error);
     }
-  }, [itemId, userId]);
+  }, [itemId, getHeaders]);
 
   useEffect(() => {
     const initialFetch = async () => {
@@ -54,8 +64,8 @@ const ItemDetail = () => {
       const response = await fetch(`${API_BASE_URL}/items/${itemId}/${endpoint}`, {
         method: "POST",
         headers: { 
-          "Content-Type": "application/json",
-          "x-user-id": userId
+          ...getHeaders(),
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ quantity: 1 }),
       });

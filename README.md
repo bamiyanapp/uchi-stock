@@ -28,6 +28,7 @@
 | <img src="./docs/resources/aws-icons/Asset-Package_07312025.49d3aab7f9e6131e51ade8f7c6c8b961ee7d3bb1/Architecture-Service-Icons_07312025/Arch_Database/32/Arch_Amazon-DynamoDB_32.svg" width="20" height="20" /> | **DynamoDB** | フルマネージドなNoSQLデータベース。品目や在庫情報を格納。 |
 | <img src="./docs/resources/aws-icons/Asset-Package_07312025.49d3aab7f9e6131e51ade8f7c6c8b961ee7d3bb1/Architecture-Service-Icons_07312025/Arch_Compute/32/Arch_AWS-Lambda_32.svg" width="20" height="20" /> | **AWS Lambda** | サーバーレスなイベント駆動型コンピューティングサービス。 |
 | <img src="https://cdn.simpleicons.org/serverless/FD5750" width="20" height="20" /> | **Serverless Framework** | サーバーレスアプリケーションの構成・デプロイを管理するフレームワーク。 |
+| <img src="./docs/resources/aws-icons/Asset-Package_07312025.49d3aab7f9e6131e51ade8f7c6c8b961ee7d3bb1/Architecture-Service-Icons_07312025/Arch_Security-Identity-Compliance/32/Arch_Amazon-Cognito_32.svg" width="20" height="20" /> | **Amazon Cognito** | Google SSO認証を提供するID管理サービス。 |
 | <img src="./docs/resources/aws-icons/Asset-Package_07312025.49d3aab7f9e6131e51ade8f7c6c8b961ee7d3bb1/Architecture-Service-Icons_07312025/Arch_Artificial-Intelligence/32/Arch_Amazon-Polly_32.svg" width="20" height="20" /> | **Amazon Polly** | テキストをリアルな音声に変換するクラウドサービス。（現時点では利用予定なし、構成は引き継ぐ） |
 | <img src="https://cdn.simpleicons.org/githubactions/2088FF" width="20" height="20" /> | **GitHub Actions** | CI/CD（継続的インテグレーション/継続的デプロイ）を自動化。 |
 | <img src="https://cdn.simpleicons.org/vitest/6E9F18" width="20" height="20" /> | **Vitest** | Viteネイティブで高速なユニットテストフレームワーク。 |
@@ -42,15 +43,31 @@ graph TD
         I[React + Vite]
     end
 
+    subgraph "Auth"
+        C[Amazon Cognito / Google SSO]
+    end
+
     subgraph "Backend (AWS)"
         J[API Gateway] --> K[AWS Lambda];
         K --> L[DynamoDB];
     end
 
-    I --> J;
+    I -- Login --> C;
+    I -- API Request with JWT --> J;
 ```
 
 ### Screen Transitions
+
+### Authentication
+
+本アプリは Google アカウントによる SSO（シングルサインオン）認証を採用しています。
+
+- **認証プロバイダー**: Amazon Cognito + Google OAuth 2.0
+- **仕組み**:
+  1. ユーザーが Google アカウントでログイン。
+  2. Cognito が JWT（JSON Web Token）を発行。
+  3. フロントエンドは API リクエストの `Authorization` ヘッダーにこのトークンを含めて送信。
+  4. バックエンド（API Gateway / Lambda）でトークンの有効性を検証し、ユーザーID（`sub`）を特定。
 
 ### Backend API (AWS Lambda)
 

@@ -7,6 +7,7 @@ provider:
   environment:
     TABLE_NAME: ${self:custom.tableName}
     STOCK_HISTORY_TABLE_NAME: ${self:custom.stockHistoryTableName}
+    COGNITO_USER_POOL_ARN: ${self:custom.cognitoUserPoolArn}
   iam:
     role:
       statements:
@@ -26,6 +27,7 @@ custom:
   appName: uchi-stock-app
   tableName: ${self:custom.appName}-items
   stockHistoryTableName: ${self:custom.appName}-stock-history
+  cognitoUserPoolArn: ${env:COGNITO_USER_POOL_ARN, 'arn:aws:cognito-idp:ap-northeast-1:123456789012:userpool/ap-northeast-1_example'}
 
 functions:
   createItem:
