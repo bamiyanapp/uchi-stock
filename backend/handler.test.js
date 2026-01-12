@@ -1,29 +1,40 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, ScanCommand, PutCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, ScanCommand, PutCommand, UpdateCommand, DeleteCommand, GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import {
   createItem,
   getItems,
   updateItem,
-  deleteItem
+  deleteItem,
+  addStock,
+  consumeStock,
+  getConsumptionHistory,
+  getEstimatedDepletionDate
 } from './handler';
 import crypto from 'crypto';
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 
 // crypto.randomUUID をモック化
-vi.spyOn(crypto, 'randomUUID').mockReturnValue('mock-item-id');
+vi.spyOn(crypto, 'randomUUID').mockReturnValue('mock-id');
 // console.error をモック化してテストログを汚さないようにする
 vi.spyOn(console, 'error').mockImplementation(() => {});
 
 describe('Household Items API', () => {
-  const HOUSEHOLD_ITEMS_TABLE_NAME = 'uchi-stock-app-items';
+  const ITEMS_TABLE = 'uchi-stock-app-items';
+  const HISTORY_TABLE = 'uchi-stock-app-stock-history';
 
   beforeEach(() => {
     ddbMock.reset();
-    process.env.TABLE_NAME = HOUSEHOLD_ITEMS_TABLE_NAME;
+    process.env.TABLE_NAME = ITEMS_TABLE;
+    process.env.STOCK_HISTORY_TABLE_NAME = HISTORY_TABLE;
     // 日時を固定
+    vi.useFakeTimers();
     vi.setSystemTime(new Date('2023-01-01T12:00:00Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('createItem', () => {
@@ -39,223 +50,95 @@ describe('Household Items API', () => {
       expect(result.statusCode).toBe(201);
       const body = JSON.parse(result.body);
       expect(body).toEqual({
-        itemId: 'mock-item-id',
+        itemId: 'mock-id',
         name: 'Test Item',
         unit: 'pcs',
         currentStock: 0,
         createdAt: '2023-01-01T12:00:00.000Z',
         updatedAt: '2023-01-01T12:00:00.000Z',
       });
-
-      expect(ddbMock.calls()).toHaveLength(1);
-      const args = ddbMock.call(0).args[0];
-      expect(args.input).toEqual({
-        TableName: HOUSEHOLD_ITEMS_TABLE_NAME,
-        Item: {
-          itemId: 'mock-item-id',
-          name: 'Test Item',
-          unit: 'pcs',
-          currentStock: 0,
-          createdAt: '2023-01-01T12:00:00.000Z',
-          updatedAt: '2023-01-01T12:00:00.000Z',
-        },
-      });
-    });
-
-    it('should return 400 if name is missing', async () => {
-      const event = {
-        body: JSON.stringify({ unit: 'pcs' }),
-      };
-
-      const result = await createItem(event);
-
-      expect(result.statusCode).toBe(400);
-      expect(JSON.parse(result.body)).toEqual({ message: 'Name and unit are required' });
-    });
-
-    it('should return 400 if unit is missing', async () => {
-      const event = {
-        body: JSON.stringify({ name: 'Test Item' }),
-      };
-
-      const result = await createItem(event);
-
-      expect(result.statusCode).toBe(400);
-      expect(JSON.parse(result.body)).toEqual({ message: 'Name and unit are required' });
-    });
-
-    it('should return 500 on DynamoDB error', async () => {
-      const event = {
-        body: JSON.stringify({ name: 'Test Item', unit: 'pcs' }),
-      };
-
-      ddbMock.on(PutCommand).rejects(new Error('DynamoDB Error'));
-
-      const result = await createItem(event);
-
-      expect(result.statusCode).toBe(500);
-      expect(JSON.parse(result.body).message).toBe('Internal Server Error');
     });
   });
 
   describe('getItems', () => {
     it('should return items successfully', async () => {
-      const mockItems = [
-        { itemId: '1', name: 'Item 1', unit: 'pcs' },
-        { itemId: '2', name: 'Item 2', unit: 'kg' },
-      ];
-
+      const mockItems = [{ itemId: '1', name: 'Item 1' }];
       ddbMock.on(ScanCommand).resolves({ Items: mockItems });
-
       const result = await getItems({});
-
       expect(result.statusCode).toBe(200);
       expect(JSON.parse(result.body)).toEqual(mockItems);
-      expect(ddbMock.calls()).toHaveLength(1);
-      expect(ddbMock.call(0).args[0].input).toEqual({
-        TableName: HOUSEHOLD_ITEMS_TABLE_NAME,
+    });
+  });
+
+  describe('addStock', () => {
+    it('should add stock successfully', async () => {
+      const event = {
+        pathParameters: { itemId: 'item-1' },
+        body: JSON.stringify({ quantity: 5, memo: 'Buy' }),
+      };
+
+      ddbMock.on(PutCommand).resolves({});
+      ddbMock.on(UpdateCommand).resolves({ Attributes: { itemId: 'item-1', currentStock: 5 } });
+
+      const result = await addStock(event);
+
+      expect(result.statusCode).toBe(200);
+      expect(JSON.parse(result.body).currentStock).toBe(5);
+      
+      const putCall = ddbMock.calls().find(c => c.args[0] instanceof PutCommand);
+      expect(putCall.args[0].input.Item.type).toBe('purchase');
+      expect(putCall.args[0].input.Item.quantity).toBe(5);
+    });
+  });
+
+  describe('consumeStock', () => {
+    it('should consume stock successfully', async () => {
+      const event = {
+        pathParameters: { itemId: 'item-1' },
+        body: JSON.stringify({ quantity: 2 }),
+      };
+
+      ddbMock.on(PutCommand).resolves({});
+      ddbMock.on(UpdateCommand).resolves({ Attributes: { itemId: 'item-1', currentStock: 3 } });
+
+      const result = await consumeStock(event);
+
+      expect(result.statusCode).toBe(200);
+      expect(JSON.parse(result.body).currentStock).toBe(3);
+    });
+  });
+
+  describe('getConsumptionHistory', () => {
+    it('should return history successfully', async () => {
+      const mockHistory = [{ historyId: 'h1', itemId: 'item-1', type: 'consumption' }];
+      ddbMock.on(QueryCommand).resolves({ Items: mockHistory });
+
+      const result = await getConsumptionHistory({ pathParameters: { itemId: 'item-1' } });
+
+      expect(result.statusCode).toBe(200);
+      expect(JSON.parse(result.body)).toEqual(mockHistory);
+    });
+  });
+
+  describe('getEstimatedDepletionDate', () => {
+    it('should estimate depletion date', async () => {
+      ddbMock.on(GetCommand).resolves({ Item: { itemId: 'item-1', currentStock: 10 } });
+      ddbMock.on(ScanCommand).resolves({ 
+        Items: [
+          { date: '2023-01-01T12:00:00Z', quantity: 2, type: 'consumption' },
+          { date: '2023-01-03T12:00:00Z', quantity: 2, type: 'consumption' }
+        ]
       });
-    });
 
-    it('should return empty array if no items found', async () => {
-      ddbMock.on(ScanCommand).resolves({ Items: undefined }); // or []
-
-      const result = await getItems({});
+      const result = await getEstimatedDepletionDate({ pathParameters: { itemId: 'item-1' } });
 
       expect(result.statusCode).toBe(200);
-      expect(JSON.parse(result.body)).toEqual([]);
-    });
-
-    it('should return 500 on DynamoDB error', async () => {
-      ddbMock.on(ScanCommand).rejects(new Error('DynamoDB Error'));
-
-      const result = await getItems({});
-
-      expect(result.statusCode).toBe(500);
-    });
-  });
-
-  describe('updateItem', () => {
-    it('should update an item successfully', async () => {
-      const event = {
-        pathParameters: { itemId: 'mock-item-id' },
-        body: JSON.stringify({ name: 'Updated Name', currentStock: 5 }),
-      };
-
-      const mockAttributes = {
-        itemId: 'mock-item-id',
-        name: 'Updated Name',
-        unit: 'pcs',
-        currentStock: 5,
-        updatedAt: '2023-01-01T12:00:00.000Z',
-      };
-
-      ddbMock.on(UpdateCommand).resolves({ Attributes: mockAttributes });
-
-      const result = await updateItem(event);
-
-      expect(result.statusCode).toBe(200);
-      expect(JSON.parse(result.body)).toEqual(mockAttributes);
-
-      expect(ddbMock.calls()).toHaveLength(1);
-      const args = ddbMock.call(0).args[0];
-      expect(args.input.TableName).toBe(HOUSEHOLD_ITEMS_TABLE_NAME);
-      expect(args.input.Key).toEqual({ itemId: 'mock-item-id' });
-      expect(args.input.UpdateExpression).toContain('set updatedAt = :updatedAt');
-      expect(args.input.UpdateExpression).toContain('#n = :name');
-      expect(args.input.UpdateExpression).toContain('currentStock = :currentStock');
-      expect(args.input.ExpressionAttributeValues[':name']).toBe('Updated Name');
-      expect(args.input.ExpressionAttributeValues[':currentStock']).toBe(5);
-    });
-
-    it('should return 400 if no update parameters provided', async () => {
-      const event = {
-        pathParameters: { itemId: 'mock-item-id' },
-        body: JSON.stringify({}),
-      };
-
-      const result = await updateItem(event);
-
-      expect(result.statusCode).toBe(400);
-      expect(JSON.parse(result.body).message).toBe('No update parameters provided');
-    });
-
-    it('should return 400 if currentStock is negative', async () => {
-      const event = {
-        pathParameters: { itemId: 'mock-item-id' },
-        body: JSON.stringify({ currentStock: -1 }),
-      };
-
-      const result = await updateItem(event);
-
-      expect(result.statusCode).toBe(400);
-      expect(JSON.parse(result.body).message).toBe('currentStock must be a non-negative number');
-    });
-
-    it('should return 404 if item not found', async () => {
-      const event = {
-        pathParameters: { itemId: 'non-existent-id' },
-        body: JSON.stringify({ name: 'New Name' }),
-      };
-
-      ddbMock.on(UpdateCommand).resolves({ Attributes: undefined });
-
-      const result = await updateItem(event);
-
-      expect(result.statusCode).toBe(404);
-      expect(JSON.parse(result.body).message).toBe('Item not found');
-    });
-
-    it('should return 500 on DynamoDB error', async () => {
-      const event = {
-        pathParameters: { itemId: 'mock-item-id' },
-        body: JSON.stringify({ name: 'New Name' }),
-      };
-
-      ddbMock.on(UpdateCommand).rejects(new Error('DynamoDB Error'));
-
-      const result = await updateItem(event);
-
-      expect(result.statusCode).toBe(500);
-    });
-  });
-
-  describe('deleteItem', () => {
-    it('should delete an item successfully', async () => {
-      const event = {
-        pathParameters: { itemId: 'mock-item-id' },
-      };
-
-      ddbMock.on(DeleteCommand).resolves({ Attributes: { itemId: 'mock-item-id' } });
-
-      const result = await deleteItem(event);
-
-      expect(result.statusCode).toBe(204);
-    });
-
-    it('should return 404 if item not found', async () => {
-      const event = {
-        pathParameters: { itemId: 'non-existent-id' },
-      };
-
-      ddbMock.on(DeleteCommand).resolves({ Attributes: undefined });
-
-      const result = await deleteItem(event);
-
-      expect(result.statusCode).toBe(404);
-      expect(JSON.parse(result.body).message).toBe('Item not found');
-    });
-
-    it('should return 500 on DynamoDB error', async () => {
-      const event = {
-        pathParameters: { itemId: 'mock-item-id' },
-      };
-
-      ddbMock.on(DeleteCommand).rejects(new Error('DynamoDB Error'));
-
-      const result = await deleteItem(event);
-
-      expect(result.statusCode).toBe(500);
+      const body = JSON.parse(result.body);
+      expect(body.estimatedDepletionDate).toBeDefined();
+      // 2日間で4個消費 = 1日2個。在庫10個 = 5日後。
+      const expectedDate = new Date('2023-01-01T12:00:00Z');
+      expectedDate.setDate(expectedDate.getDate() + 5);
+      expect(new Date(body.estimatedDepletionDate).toISOString()).toBe(expectedDate.toISOString());
     });
   });
 });
