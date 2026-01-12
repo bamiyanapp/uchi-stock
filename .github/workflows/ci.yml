@@ -96,6 +96,18 @@ jobs:
             const branchName = context.payload.pull_request.head.ref;
             console.log(`Attempting to merge PR #${prNumber}`);
             try {
+              // ベースブランチが更新されている場合に備えて最新化を試みる
+              try {
+                await github.rest.pulls.updateBranch({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: prNumber,
+                });
+                console.log(`Updated branch for PR #${prNumber}`);
+              } catch (updateError) {
+                console.log(`Note: Could not update branch (maybe already up to date): ${updateError.message}`);
+              }
+
               await github.rest.pulls.merge({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -104,6 +116,9 @@ jobs:
               });
               console.log(`Successfully merged PR #${prNumber}`);
             } catch (error) {
+              if (error.message.includes("is not mergeable")) {
+                console.error(`PR #${prNumber} is not mergeable (conflicts or status checks failed).`);
+              }
               console.error(`Failed to merge PR #${prNumber}:`, error.message);
               throw error;
             }
