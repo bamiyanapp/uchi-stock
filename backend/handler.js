@@ -22,7 +22,10 @@ exports.createItem = async (event) => {
     if (!name || !unit) {
       return {
         statusCode: 400,
-        headers: { "Access-Control-Allow-Origin": "*" },
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Credentials": true,
+        },
         body: JSON.stringify({ message: "Name and unit are required" }),
       };
     }
@@ -46,14 +49,20 @@ exports.createItem = async (event) => {
 
     return {
       statusCode: 201,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: JSON.stringify(item),
     };
   } catch (error) {
     console.error("Error in createItem:", error);
     return {
       statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
     };
   }
@@ -70,14 +79,20 @@ exports.getItems = async (event) => {
 
     return {
       statusCode: 200,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: JSON.stringify(Items || []),
     };
   } catch (error) {
     console.error("Error in getItems:", error);
     return {
       statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
     };
   }
@@ -95,7 +110,10 @@ exports.updateItem = async (event) => {
     if (!name && !unit && currentStock === undefined) {
       return {
         statusCode: 400,
-        headers: { "Access-Control-Allow-Origin": "*" },
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Credentials": true,
+        },
         body: JSON.stringify({ message: "No update parameters provided" }),
       };
     }
@@ -129,14 +147,20 @@ exports.updateItem = async (event) => {
 
     return {
       statusCode: 200,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: JSON.stringify(Attributes),
     };
   } catch (error) {
     console.error("Error in updateItem:", error);
     return {
       statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
     };
   }
@@ -154,14 +178,20 @@ exports.deleteItem = async (event) => {
     }));
     return {
       statusCode: 204,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: "",
     };
   } catch (error) {
     console.error("Error in deleteItem:", error);
     return {
       statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
     };
   }
@@ -178,7 +208,10 @@ exports.addStock = async (event) => {
     if (!quantity || quantity <= 0) {
       return {
         statusCode: 400,
-        headers: { "Access-Control-Allow-Origin": "*" },
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Credentials": true,
+        },
         body: JSON.stringify({ message: "Positive quantity is required" }),
       };
     }
@@ -210,14 +243,20 @@ exports.addStock = async (event) => {
 
     return {
       statusCode: 200,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: JSON.stringify(Attributes),
     };
   } catch (error) {
     console.error("Error in addStock:", error);
     return {
       statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
     };
   }
@@ -234,7 +273,10 @@ exports.consumeStock = async (event) => {
     if (!quantity || quantity <= 0) {
       return {
         statusCode: 400,
-        headers: { "Access-Control-Allow-Origin": "*" },
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Credentials": true,
+        },
         body: JSON.stringify({ message: "Positive quantity is required" }),
       };
     }
@@ -266,14 +308,20 @@ exports.consumeStock = async (event) => {
 
     return {
       statusCode: 200,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: JSON.stringify(Attributes),
     };
   } catch (error) {
     console.error("Error in consumeStock:", error);
     return {
       statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
     };
   }
@@ -299,14 +347,20 @@ exports.getConsumptionHistory = async (event) => {
 
     return {
       statusCode: 200,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: JSON.stringify(Items || []),
     };
   } catch (error) {
     console.error("Error in getConsumptionHistory:", error);
     return {
       statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
     };
   }
@@ -328,7 +382,10 @@ exports.getEstimatedDepletionDate = async (event) => {
     if (!item) {
       return {
         statusCode: 404,
-        headers: { "Access-Control-Allow-Origin": "*" },
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Credentials": true,
+        },
         body: JSON.stringify({ message: "Item not found" }),
       };
     }
@@ -344,7 +401,10 @@ exports.getEstimatedDepletionDate = async (event) => {
     if (!history || history.length < 2) {
       return {
         statusCode: 200,
-        headers: { "Access-Control-Allow-Origin": "*" },
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Credentials": true,
+        },
         body: JSON.stringify({ estimatedDepletionDate: null, message: "Not enough history to estimate" }),
       };
     }
@@ -362,7 +422,10 @@ exports.getEstimatedDepletionDate = async (event) => {
     if (dailyConsumption <= 0) {
         return {
             statusCode: 200,
-            headers: { "Access-Control-Allow-Origin": "*" },
+            headers: {
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Credentials": true,
+            },
             body: JSON.stringify({ estimatedDepletionDate: null, message: "No consumption observed" }),
           };
     }
@@ -373,7 +436,10 @@ exports.getEstimatedDepletionDate = async (event) => {
 
     return {
       statusCode: 200,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: JSON.stringify({ 
         estimatedDepletionDate: estimatedDate.toISOString(),
         dailyConsumption: dailyConsumption.toFixed(2)
@@ -383,7 +449,10 @@ exports.getEstimatedDepletionDate = async (event) => {
     console.error("Error in getEstimatedDepletionDate:", error);
     return {
       statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
       body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
     };
   }

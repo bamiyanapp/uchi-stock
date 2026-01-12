@@ -48,6 +48,8 @@ describe('Household Items API', () => {
       const result = await createItem(event);
 
       expect(result.statusCode).toBe(201);
+      expect(result.headers['Access-Control-Allow-Origin']).toBe('*');
+      expect(result.headers['Access-Control-Allow-Credentials']).toBe(true);
       const body = JSON.parse(result.body);
       expect(body).toEqual({
         itemId: 'mock-id',
@@ -66,6 +68,8 @@ describe('Household Items API', () => {
       ddbMock.on(ScanCommand).resolves({ Items: mockItems });
       const result = await getItems({});
       expect(result.statusCode).toBe(200);
+      expect(result.headers['Access-Control-Allow-Origin']).toBe('*');
+      expect(result.headers['Access-Control-Allow-Credentials']).toBe(true);
       expect(JSON.parse(result.body)).toEqual(mockItems);
     });
   });
