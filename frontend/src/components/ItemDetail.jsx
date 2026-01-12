@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { ArrowLeft, Package, History as HistoryIcon, TrendingDown } from "lucide-react";
+import { ArrowLeft, Package, History as HistoryIcon, TrendingDown, Minus, Plus } from "lucide-react";
 
 const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
 
@@ -10,35 +10,59 @@ const ItemDetail = () => {
   const [item, setItem] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [estimate, setEstimate] = useState(null);
 
+  const fetchData = useCallback(async () => {
+    try {
+      const [itemRes, historyRes, estimateRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/items`),
+        fetch(`${API_BASE_URL}/items/${itemId}/history`),
+        fetch(`${API_BASE_URL}/items/${itemId}/estimate`)
+      ]);
+
+      const itemsData = await itemRes.json();
+      const historyData = await historyRes.json();
+      const estimateData = await estimateRes.json();
+
+      const currentItem = itemsData.find(i => i.itemId === itemId);
+      setItem(currentItem);
+      setHistory(Array.isArray(historyData) ? historyData : []);
+      setEstimate(estimateData);
+    } catch (error) {
+      console.error("Error fetching item details:", error);
+    }
+  }, [itemId]);
+
   useEffect(() => {
-    const fetchData = async () => {
+    const initialFetch = async () => {
       setLoading(true);
-      try {
-        const [itemRes, historyRes, estimateRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/items`),
-          fetch(`${API_BASE_URL}/items/${itemId}/history`),
-          fetch(`${API_BASE_URL}/items/${itemId}/estimate`)
-        ]);
-
-        const itemsData = await itemRes.json();
-        const historyData = await historyRes.json();
-        const estimateData = await estimateRes.json();
-
-        const currentItem = itemsData.find(i => i.itemId === itemId);
-        setItem(currentItem);
-        setHistory(Array.isArray(historyData) ? historyData : []);
-        setEstimate(estimateData);
-      } catch (error) {
-        console.error("Error fetching item details:", error);
-      } finally {
-        setLoading(false);
-      }
+      await fetchData();
+      setLoading(false);
     };
 
-    fetchData();
-  }, [itemId]);
+    initialFetch();
+  }, [fetchData]);
+
+  const handleQuickUpdate = async (type) => {
+    setSubmitting(true);
+    try {
+      const endpoint = type === "purchase" ? "stock" : "consume";
+      const response = await fetch(`${API_BASE_URL}/items/${itemId}/${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantity: 1 }),
+      });
+
+      if (response.ok) {
+        await fetchData();
+      }
+    } catch (error) {
+      console.error(`Error updating stock (${type}):`, error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -98,10 +122,32 @@ const ItemDetail = () => {
       </div>
 
       <header className="mb-5">
-        <h1 className="display-5 fw-bold mb-2">{item.name}</h1>
-        <div className="d-flex align-items-baseline">
-          <span className="display-6 me-2">{item.currentStock}</span>
-          <span className="text-muted fs-4">{item.unit}</span>
+        <div className="row align-items-center g-3">
+          <div className="col-md-6">
+            <h1 className="display-5 fw-bold mb-2">{item.name}</h1>
+            <div className="d-flex align-items-baseline">
+              <span className="display-6 me-2">{item.currentStock}</span>
+              <span className="text-muted fs-4">{item.unit}</span>
+            </div>
+          </div>
+          <div className="col-md-6">
+            <div className="d-flex gap-2 justify-content-md-end">
+              <button 
+                onClick={() => handleQuickUpdate("consumption")}
+                disabled={submitting || item.currentStock <= 0}
+                className="btn btn-outline-warning d-inline-flex align-items-center px-4 py-2"
+              >
+                <Minus size={20} className="me-2" /> 消費
+              </button>
+              <button 
+                onClick={() => handleQuickUpdate("purchase")}
+                disabled={submitting}
+                className="btn btn-primary d-inline-flex align-items-center px-4 py-2"
+              >
+                <Plus size={20} className="me-2" /> 購入
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 

@@ -108,7 +108,7 @@ describe('App', () => {
     });
   });
 
-  it('can update stock using dropdown', async () => {
+  it('can update stock using buttons', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => [
@@ -122,14 +122,23 @@ describe('App', () => {
 
     fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
 
-    const select = await screen.findByRole('combobox');
-    fireEvent.change(select, { target: { value: '3' } });
+    const consumeBtn = screen.getByTitle('消費');
+    fireEvent.click(consumeBtn);
 
     await waitFor(() => {
-      // 5 -> 3 なので /consume が呼ばれるはず
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/items/1/consume'), expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ quantity: 2 })
+        body: JSON.stringify({ quantity: 1 })
+      }));
+    });
+
+    const purchaseBtn = screen.getByTitle('購入');
+    fireEvent.click(purchaseBtn);
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/items/1/stock'), expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ quantity: 1 })
       }));
     });
   });

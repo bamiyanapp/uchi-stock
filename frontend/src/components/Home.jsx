@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Trash2, ExternalLink, Minus } from "lucide-react";
 
 const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
 
@@ -70,29 +70,24 @@ function Home() {
     }
   };
 
-  const handleStockChange = async (item, newStock) => {
-    const diff = newStock - item.currentStock;
-    if (diff === 0) return;
-
+  const handleQuickUpdate = async (item, type) => {
     try {
-      const type = diff > 0 ? "add" : "consume";
-      const quantity = Math.abs(diff);
-      const endpoint = type === "add" ? "stock" : "consume";
-
+      const endpoint = type === "purchase" ? "stock" : "consume";
       const response = await fetch(`${API_BASE_URL}/items/${item.itemId}/${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quantity }),
+        body: JSON.stringify({ quantity: 1 }),
       });
 
       if (response.ok) {
+        const newStock = type === "purchase" ? item.currentStock + 1 : Math.max(0, item.currentStock - 1);
         // Update local state for immediate feedback
         setItems(items.map(i => 
           i.itemId === item.itemId ? { ...i, currentStock: newStock, updatedAt: new Date().toISOString() } : i
         ));
       }
     } catch (error) {
-      console.error("Error updating stock:", error);
+      console.error(`Error updating stock (${type}):`, error);
     }
   };
 
@@ -187,16 +182,27 @@ function Home() {
                           {new Date().getMonth() + 1}月{new Date().getDate()}日時点の在庫
                         </label>
                         <div className="d-flex align-items-center gap-2 mb-2">
-                          <select 
-                            className="form-select form-select-lg w-auto"
-                            value={item.currentStock}
-                            onChange={(e) => handleStockChange(item, parseInt(e.target.value))}
-                          >
-                            {[...Array(Math.max(item.currentStock + 10, 20) + 1).keys()].reverse().map(n => (
-                              <option key={n} value={n}>{n}</option>
-                            ))}
-                          </select>
-                          <span className="fs-5 text-muted">{item.unit}</span>
+                          <div className="input-group">
+                            <button 
+                              className="btn btn-outline-warning" 
+                              onClick={() => handleQuickUpdate(item, "consumption")}
+                              disabled={item.currentStock <= 0}
+                              title="消費"
+                            >
+                              <Minus size={18} />
+                            </button>
+                            <span className="input-group-text bg-white px-3 fw-bold fs-5" style={{ minWidth: "3rem", textAlign: "center", display: "inline-block" }}>
+                              {item.currentStock}
+                            </span>
+                            <button 
+                              className="btn btn-outline-primary" 
+                              onClick={() => handleQuickUpdate(item, "purchase")}
+                              title="購入"
+                            >
+                              <Plus size={18} />
+                            </button>
+                          </div>
+                          <span className="text-muted">{item.unit}</span>
                         </div>
                         {item.estimate && item.estimate.estimatedDepletionDate ? (
                           <div className="small text-danger fw-bold">
