@@ -335,14 +335,10 @@ exports.getConsumptionHistory = async (event) => {
     const { itemId } = event.pathParameters;
     const { Items } = await docClient.send(new QueryCommand({
       TableName: HISTORY_TABLE,
-      IndexName: undefined, // historyId が Partition Key なので、itemIdで引くにはGSIが必要だが、一旦Scanでフィルタする（設計ミスかもしれないが、READMEに合わせる）
-      // READMEのキー設計: historyId (PK), itemId (SK) なので、itemIdでQueryするにはGSIが必要。
-      // もしくは itemId (PK), date (SK) にすべきだが、現状の serverless.yml は historyId (PK), itemId (SK)。
-      // 効率を考えてScanではなく、もしitemIdで引きたいならIndexが必要。
-      // 今回は一旦Scanでフィルタする。
-      TableName: HISTORY_TABLE,
-      FilterExpression: "itemId = :itemId",
-      ExpressionAttributeValues: { ":itemId": itemId }
+      IndexName: "ItemIdIndex",
+      KeyConditionExpression: "itemId = :itemId",
+      ExpressionAttributeValues: { ":itemId": itemId },
+      ScanIndexForward: false, // 降順（新しい順）
     }));
 
     return {

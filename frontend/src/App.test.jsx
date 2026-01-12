@@ -8,6 +8,18 @@ window.confirm = vi.fn().mockReturnValue(true);
 // Mock fetch
 window.fetch = vi.fn();
 
+// Mock Recharts
+vi.mock('recharts', () => ({
+  ResponsiveContainer: ({ children }) => <div>{children}</div>,
+  LineChart: ({ children }) => <div>{children}</div>,
+  Line: () => <div />,
+  XAxis: () => <div />,
+  YAxis: () => <div />,
+  CartesianGrid: () => <div />,
+  Tooltip: () => <div />,
+  Legend: () => <div />,
+}));
+
 describe('App', () => {
   beforeEach(() => {
     fetch.mockClear();
@@ -86,7 +98,7 @@ describe('App', () => {
     });
   });
 
-  it('can update stock', async () => {
+  it('can update stock using dropdown', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => [
@@ -100,13 +112,41 @@ describe('App', () => {
 
     fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
 
-    const addButton = await screen.findByText('+1 購入');
-    fireEvent.click(addButton);
+    const select = await screen.findByRole('combobox');
+    fireEvent.change(select, { target: { value: '3' } });
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/items/1/stock'), expect.objectContaining({
-        method: 'POST'
+      // 5 -> 3 なので /consume が呼ばれるはず
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/items/1/consume'), expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ quantity: 2 })
       }));
+    });
+  });
+
+  it('can navigate to detail page', async () => {
+    fetch.mockImplementation(async (url) => {
+      if (url.includes('/history')) return { ok: true, json: async () => [] };
+      if (url.includes('/estimate')) return { ok: true, json: async () => ({}) };
+      return {
+        ok: true,
+        json: async () => [
+          { itemId: '1', name: 'Toilet Paper', unit: 'rolls', currentStock: 5, updatedAt: new Date().toISOString() }
+        ],
+      };
+    });
+
+    await act(async () => {
+      render(<App />);
+    });
+
+    const detailLink = await screen.findByText('詳細・履歴を見る');
+    fireEvent.click(detailLink);
+
+    await waitFor(() => {
+      expect(screen.getByText('在庫一覧へ戻る')).toBeInTheDocument();
+      expect(screen.getByText('在庫推定')).toBeInTheDocument();
+      expect(screen.getByText('履歴詳細')).toBeInTheDocument();
     });
   });
 });
