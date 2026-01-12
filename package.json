@@ -19,5 +19,8 @@
     "js-yaml": "^4.1.1",
     "semantic-release": "^25.0.2"
   },
+  "scripts": {
+    "release:local": "./scripts/local-release.sh"
+  },
   "version": "1.12.1"
 }

@@ -112,6 +112,33 @@ graph TD
 
 詳細な CI/CD パイプラインの仕様については、[CI/CD Pipeline Specification](docs/cicd-pipeline-specification.md) を参照してください。
 
+## リリース
+
+このプロジェクトは `semantic-release` を使用して自動リリース管理を行っています。
+
+### ローカルでのリリース実行
+
+GitHub Actions を介さずにローカル環境からリリースノートの作成とプッシュを行うことができます。
+
+#### 準備
+1. GitHub で Personal Access Token (classic) を作成します。
+   - スコープ: `repo` が必要です。
+2. プロジェクトルートに `.env` ファイルを作成し、トークンを設定します。
+   ```env
+   GITHUB_TOKEN=ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+   ```
+
+#### 実行
+1. リリースの内容を事前に確認する（ドライラン）:
+   ```bash
+   npm run release:local -- --dry-run
+   ```
+2. 実際にリリースを実行する:
+   ```bash
+   npm run release:local
+   ```
+   ※ このコマンドにより、タグの作成、GitHub Release の作成、`CHANGELOG.md` の更新、およびそれらのプッシュが自動的に行われます。
+
 ## 運用
 
 ### バックアップと復旧

@@ -1,6 +1,6 @@
 module.exports = {
-  branches: ["release"],
-  repositoryUrl: "https://github.com/bamiyanapp/karuta.git",
+  branches: ["main", "release"],
+  repositoryUrl: "https://github.com/bamiyanapp/uchi-stock.git",
   plugins: [
     [
       "@semantic-release/commit-analyzer",
