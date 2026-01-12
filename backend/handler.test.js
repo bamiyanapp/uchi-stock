@@ -169,5 +169,45 @@ describe('Household Items API', () => {
       const getCall = ddbMock.calls().find(c => c.args[0] instanceof GetCommand);
       expect(getCall.args[0].input.Key.userId).toBe(TEST_USER);
     });
+
+    it('should return null estimate when history has invalid dates', async () => {
+      ddbMock.on(GetCommand).resolves({ Item: { userId: TEST_USER, itemId: 'item-1', currentStock: 10 } });
+      ddbMock.on(QueryCommand).resolves({ 
+        Items: [
+          { date: 'invalid-date', quantity: 2, type: 'consumption' },
+          { date: '2023-01-03T12:00:00Z', quantity: 2, type: 'consumption' }
+        ]
+      });
+
+      const result = await getEstimatedDepletionDate({ 
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-1' } 
+      });
+
+      expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      expect(body.estimatedDepletionDate).toBeNull();
+      expect(body.message).toContain('Not enough valid history');
+    });
+
+    it('should handle NaN in calculations gracefully', async () => {
+        ddbMock.on(GetCommand).resolves({ Item: { userId: TEST_USER, itemId: 'item-1', currentStock: 10 } });
+        // 同一時刻の記録が複数ある場合など、daysDiffが非常に小さくなるケースのシミュレーション
+        ddbMock.on(QueryCommand).resolves({ 
+          Items: [
+            { date: '2023-01-01T12:00:00Z', quantity: 2, type: 'consumption' },
+            { date: '2023-01-01T12:00:00Z', quantity: 2, type: 'consumption' }
+          ]
+        });
+  
+        const result = await getEstimatedDepletionDate({ 
+          headers: { 'x-user-id': TEST_USER },
+          pathParameters: { itemId: 'item-1' } 
+        });
+  
+        expect(result.statusCode).toBe(200);
+        const body = JSON.parse(result.body);
+        expect(body.dailyConsumption).toBeDefined();
+      });
   });
 });
