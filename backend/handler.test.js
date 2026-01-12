@@ -1,371 +1,261 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, ScanCommand, PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
-import { PollyClient, SynthesizeSpeechCommand } from '@aws-sdk/client-polly';
-import { getCategories, getPhrasesList, getComments, postComment, getPhrase, getCongratulationAudio, recordTime } from './handler';
-import { Readable } from 'stream';
-import { UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, ScanCommand, PutCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  createItem,
+  getItems,
+  updateItem,
+  deleteItem
+} from './handler';
 import crypto from 'crypto';
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
-const pollyMock = mockClient(PollyClient);
 
-vi.spyOn(crypto, 'randomUUID').mockReturnValue('mock-uuid');
+// crypto.randomUUID をモック化
+vi.spyOn(crypto, 'randomUUID').mockReturnValue('mock-item-id');
+// console.error をモック化してテストログを汚さないようにする
 vi.spyOn(console, 'error').mockImplementation(() => {});
 
+describe('Household Items API', () => {
+  const HOUSEHOLD_ITEMS_TABLE_NAME = 'uchi-stock-app-items';
 
-describe('getCategories', () => {
   beforeEach(() => {
     ddbMock.reset();
-    process.env.TABLE_NAME = 'TestTable';
+    process.env.TABLE_NAME = HOUSEHOLD_ITEMS_TABLE_NAME;
+    // 日時を固定
+    vi.setSystemTime(new Date('2023-01-01T12:00:00Z'));
   });
 
-  it('should return categories', async () => {
-    ddbMock.on(ScanCommand).resolves({
-      Items: [
-        { category: 'Category1' },
-        { category: 'Category2' },
-        { category: 'Category1' },
-      ],
-    });
-
-    const response = await getCategories({});
-    const body = JSON.parse(response.body);
-
-    expect(response.statusCode).toBe(200);
-    expect(body.categories).toEqual(['Category1', 'Category2']);
-  });
-
-  it('should return default category if no items', async () => {
-    ddbMock.on(ScanCommand).resolves({
-      Items: [],
-    });
-
-    const response = await getCategories({});
-    const body = JSON.parse(response.body);
-
-    expect(response.statusCode).toBe(200);
-    expect(body.categories).toEqual(['大ピンチずかん']);
-  });
-
-  it('should handle errors', async () => {
-    ddbMock.on(ScanCommand).rejects(new Error('DynamoDB error'));
-    const response = await getCategories({});
-    expect(response.statusCode).toBe(500);
-  });
-});
-
-describe('getPhrasesList', () => {
-    beforeEach(() => {
-      ddbMock.reset();
-      process.env.TABLE_NAME = 'TestTable';
-    });
-  
-    it('should return all phrases if no category is provided', async () => {
-      ddbMock.on(ScanCommand).resolves({
-        Items: [
-          { id: '1', category: 'Category1' },
-          { id: '2', category: 'Category2' },
-        ],
-      });
-  
-      const response = await getPhrasesList({});
-      const body = JSON.parse(response.body);
-  
-      expect(response.statusCode).toBe(200);
-      expect(body.phrases).toEqual([
-        { id: '1', category: 'Category1' },
-        { id: '2', category: 'Category2' },
-      ]);
-    });
-  
-    it('should return phrases for a specific category', async () => {
-      ddbMock.on(QueryCommand).resolves({
-        Items: [
-          { id: '1', category: 'Category1' },
-          { id: '3', category: 'Category1' },
-        ],
-      });
-  
+  describe('createItem', () => {
+    it('should create an item successfully', async () => {
       const event = {
-        queryStringParameters: {
-          category: 'Category1',
-        },
+        body: JSON.stringify({ name: 'Test Item', unit: 'pcs' }),
       };
-  
-      const response = await getPhrasesList(event);
-      const body = JSON.parse(response.body);
-  
-      expect(response.statusCode).toBe(200);
-      expect(body.phrases).toEqual([
-        { id: '1', category: 'Category1' },
-        { id: '3', category: 'Category1' },
-      ]);
-    });
-  
-    it('should handle errors', async () => {
-      ddbMock.on(ScanCommand).rejects(new Error('DynamoDB error'));
-      const response = await getPhrasesList({});
-      expect(response.statusCode).toBe(500);
-    });
-});
 
-describe('getComments', () => {
-    beforeEach(() => {
-        ddbMock.reset();
-        process.env.COMMENTS_TABLE_NAME = 'CommentsTestTable';
-    });
+      ddbMock.on(PutCommand).resolves({});
 
-    it('should return sorted comments', async () => {
-        const comments = [
-            { id: 1, comment: 'Comment 1', createdAt: new Date('2023-01-01').toISOString() },
-            { id: 2, comment: 'Comment 2', createdAt: new Date('2023-01-02').toISOString() },
-        ];
-        ddbMock.on(ScanCommand).resolves({ Items: comments });
-        const response = await getComments({});
-        const body = JSON.parse(response.body);
-        expect(response.statusCode).toBe(200);
-        expect(body.comments[0].id).toBe(2);
+      const result = await createItem(event);
+
+      expect(result.statusCode).toBe(201);
+      const body = JSON.parse(result.body);
+      expect(body).toEqual({
+        itemId: 'mock-item-id',
+        name: 'Test Item',
+        unit: 'pcs',
+        currentStock: 0,
+        createdAt: '2023-01-01T12:00:00.000Z',
+        updatedAt: '2023-01-01T12:00:00.000Z',
+      });
+
+      expect(ddbMock.calls()).toHaveLength(1);
+      const args = ddbMock.call(0).args[0];
+      expect(args.input).toEqual({
+        TableName: HOUSEHOLD_ITEMS_TABLE_NAME,
+        Item: {
+          itemId: 'mock-item-id',
+          name: 'Test Item',
+          unit: 'pcs',
+          currentStock: 0,
+          createdAt: '2023-01-01T12:00:00.000Z',
+          updatedAt: '2023-01-01T12:00:00.000Z',
+        },
+      });
     });
 
-    it('should handle errors', async () => {
-        ddbMock.on(ScanCommand).rejects(new Error('DynamoDB error'));
-        const response = await getComments({});
-        expect(response.statusCode).toBe(500);
-    });
-});
+    it('should return 400 if name is missing', async () => {
+      const event = {
+        body: JSON.stringify({ unit: 'pcs' }),
+      };
 
-describe('postComment', () => {
-    beforeEach(() => {
-        ddbMock.reset();
-        process.env.COMMENTS_TABLE_NAME = 'CommentsTestTable';
+      const result = await createItem(event);
+
+      expect(result.statusCode).toBe(400);
+      expect(JSON.parse(result.body)).toEqual({ message: 'Name and unit are required' });
     });
 
-    it('should post a comment', async () => {
-        ddbMock.on(PutCommand).resolves({});
-        const event = {
-            body: JSON.stringify({
-                phraseId: 'p1',
-                category: 'c1',
-                phrase: 'phrase 1',
-                comment: 'This is a comment'
-            })
-        };
-        const response = await postComment(event);
-        expect(response.statusCode).toBe(200);
-        const body = JSON.parse(response.body);
-        expect(body.message).toBe('Comment posted successfully');
+    it('should return 400 if unit is missing', async () => {
+      const event = {
+        body: JSON.stringify({ name: 'Test Item' }),
+      };
+
+      const result = await createItem(event);
+
+      expect(result.statusCode).toBe(400);
+      expect(JSON.parse(result.body)).toEqual({ message: 'Name and unit are required' });
     });
 
-    it('should return 400 for invalid input', async () => {
-        const event = { body: JSON.stringify({ phraseId: 'p1' }) }; // missing comment
-        const response = await postComment(event);
-        expect(response.statusCode).toBe(400);
+    it('should return 500 on DynamoDB error', async () => {
+      const event = {
+        body: JSON.stringify({ name: 'Test Item', unit: 'pcs' }),
+      };
+
+      ddbMock.on(PutCommand).rejects(new Error('DynamoDB Error'));
+
+      const result = await createItem(event);
+
+      expect(result.statusCode).toBe(500);
+      expect(JSON.parse(result.body).message).toBe('Internal Server Error');
+    });
+  });
+
+  describe('getItems', () => {
+    it('should return items successfully', async () => {
+      const mockItems = [
+        { itemId: '1', name: 'Item 1', unit: 'pcs' },
+        { itemId: '2', name: 'Item 2', unit: 'kg' },
+      ];
+
+      ddbMock.on(ScanCommand).resolves({ Items: mockItems });
+
+      const result = await getItems({});
+
+      expect(result.statusCode).toBe(200);
+      expect(JSON.parse(result.body)).toEqual(mockItems);
+      expect(ddbMock.calls()).toHaveLength(1);
+      expect(ddbMock.call(0).args[0].input).toEqual({
+        TableName: HOUSEHOLD_ITEMS_TABLE_NAME,
+      });
     });
 
-    it('should handle errors', async () => {
-        ddbMock.on(PutCommand).rejects(new Error('DynamoDB error'));
-        const event = {
-            body: JSON.stringify({
-                phraseId: 'p1',
-                category: 'c1',
-                phrase: 'phrase 1',
-                comment: 'This is a comment'
-            })
-        };
-        const response = await postComment(event);
-        expect(response.statusCode).toBe(500);
-    });
-});
+    it('should return empty array if no items found', async () => {
+      ddbMock.on(ScanCommand).resolves({ Items: undefined }); // or []
 
+      const result = await getItems({});
 
-describe('getCongratulationAudio', () => {
-    beforeEach(() => {
-        pollyMock.reset();
+      expect(result.statusCode).toBe(200);
+      expect(JSON.parse(result.body)).toEqual([]);
     });
 
-    it('should return audio data', async () => {
-        const audioStream = new Readable();
-        audioStream.push('audio data');
-        audioStream.push(null);
-        pollyMock.on(SynthesizeSpeechCommand).resolves({ AudioStream: audioStream });
+    it('should return 500 on DynamoDB error', async () => {
+      ddbMock.on(ScanCommand).rejects(new Error('DynamoDB Error'));
 
-        const event = { queryStringParameters: { lang: 'ja' } };
-        const response = await getCongratulationAudio(event);
-        expect(response.statusCode).toBe(200);
-        const body = JSON.parse(response.body);
-        expect(body.audioData).toBeDefined();
+      const result = await getItems({});
+
+      expect(result.statusCode).toBe(500);
+    });
+  });
+
+  describe('updateItem', () => {
+    it('should update an item successfully', async () => {
+      const event = {
+        pathParameters: { itemId: 'mock-item-id' },
+        body: JSON.stringify({ name: 'Updated Name', currentStock: 5 }),
+      };
+
+      const mockAttributes = {
+        itemId: 'mock-item-id',
+        name: 'Updated Name',
+        unit: 'pcs',
+        currentStock: 5,
+        updatedAt: '2023-01-01T12:00:00.000Z',
+      };
+
+      ddbMock.on(UpdateCommand).resolves({ Attributes: mockAttributes });
+
+      const result = await updateItem(event);
+
+      expect(result.statusCode).toBe(200);
+      expect(JSON.parse(result.body)).toEqual(mockAttributes);
+
+      expect(ddbMock.calls()).toHaveLength(1);
+      const args = ddbMock.call(0).args[0];
+      expect(args.input.TableName).toBe(HOUSEHOLD_ITEMS_TABLE_NAME);
+      expect(args.input.Key).toEqual({ itemId: 'mock-item-id' });
+      expect(args.input.UpdateExpression).toContain('set updatedAt = :updatedAt');
+      expect(args.input.UpdateExpression).toContain('#n = :name');
+      expect(args.input.UpdateExpression).toContain('currentStock = :currentStock');
+      expect(args.input.ExpressionAttributeValues[':name']).toBe('Updated Name');
+      expect(args.input.ExpressionAttributeValues[':currentStock']).toBe(5);
     });
 
-    it('should return audio data for english', async () => {
-        const audioStream = new Readable();
-        audioStream.push('audio data');
-        audioStream.push(null);
-        pollyMock.on(SynthesizeSpeechCommand).resolves({ AudioStream: audioStream });
+    it('should return 400 if no update parameters provided', async () => {
+      const event = {
+        pathParameters: { itemId: 'mock-item-id' },
+        body: JSON.stringify({}),
+      };
 
-        const event = { queryStringParameters: { lang: 'en' } };
-        const response = await getCongratulationAudio(event);
-        expect(response.statusCode).toBe(200);
-        const body = JSON.parse(response.body);
-        expect(body.audioData).toBeDefined();
+      const result = await updateItem(event);
+
+      expect(result.statusCode).toBe(400);
+      expect(JSON.parse(result.body).message).toBe('No update parameters provided');
     });
 
-    it('should handle errors', async () => {
-        pollyMock.on(SynthesizeSpeechCommand).rejects(new Error('Polly error'));
-        const response = await getCongratulationAudio({});
-        expect(response.statusCode).toBe(500);
+    it('should return 400 if currentStock is negative', async () => {
+      const event = {
+        pathParameters: { itemId: 'mock-item-id' },
+        body: JSON.stringify({ currentStock: -1 }),
+      };
+
+      const result = await updateItem(event);
+
+      expect(result.statusCode).toBe(400);
+      expect(JSON.parse(result.body).message).toBe('currentStock must be a non-negative number');
     });
 
-    it('should handle speechRate with %', async () => {
-        const audioStream = new Readable();
-        audioStream.push('audio data');
-        audioStream.push(null);
-        pollyMock.on(SynthesizeSpeechCommand).resolves({ AudioStream: audioStream });
+    it('should return 404 if item not found', async () => {
+      const event = {
+        pathParameters: { itemId: 'non-existent-id' },
+        body: JSON.stringify({ name: 'New Name' }),
+      };
 
-        const event = { queryStringParameters: { lang: 'ja', speechRate: '120%' } };
-        await getCongratulationAudio(event);
-        
-        const pollyCalls = pollyMock.calls();
-        expect(pollyCalls.length).toBe(1);
-        const pollyParams = pollyCalls[0].args[0].input;
-        expect(pollyParams.Text).toContain('<prosody rate="120%">');
-    });
-});
+      ddbMock.on(UpdateCommand).resolves({ Attributes: undefined });
 
-describe('getPhrase', () => {
-    beforeEach(() => {
-        ddbMock.reset();
-        pollyMock.reset();
-        process.env.TABLE_NAME = 'TestTable';
-        process.env.POLLY_CACHE_TABLE_NAME = 'CacheTable';
+      const result = await updateItem(event);
+
+      expect(result.statusCode).toBe(404);
+      expect(JSON.parse(result.body).message).toBe('Item not found');
     });
 
-    it('should return a phrase with audio from Polly and cache it', async () => {
-        ddbMock.on(ScanCommand).resolves({
-            Items: [{ id: 'p1', category: 'c1', phrase: 'phrase 1', level: '1' }],
-        });
-        ddbMock.on(GetCommand).resolves({ Item: undefined }); // Cache miss
-        ddbMock.on(PutCommand).resolves({}); // Cache put
+    it('should return 500 on DynamoDB error', async () => {
+      const event = {
+        pathParameters: { itemId: 'mock-item-id' },
+        body: JSON.stringify({ name: 'New Name' }),
+      };
 
-        const audioStream = new Readable();
-        audioStream.push('audio data');
-        audioStream.push(null);
-        pollyMock.on(SynthesizeSpeechCommand).resolves({ AudioStream: audioStream });
+      ddbMock.on(UpdateCommand).rejects(new Error('DynamoDB Error'));
 
-        const event = { queryStringParameters: { id: 'p1' } };
-        const response = await getPhrase(event);
-        expect(response.statusCode).toBe(200);
-        const body = JSON.parse(response.body);
-        expect(body.id).toBe('p1');
-        expect(body.audioData).toBeDefined();
+      const result = await updateItem(event);
+
+      expect(result.statusCode).toBe(500);
+    });
+  });
+
+  describe('deleteItem', () => {
+    it('should delete an item successfully', async () => {
+      const event = {
+        pathParameters: { itemId: 'mock-item-id' },
+      };
+
+      ddbMock.on(DeleteCommand).resolves({ Attributes: { itemId: 'mock-item-id' } });
+
+      const result = await deleteItem(event);
+
+      expect(result.statusCode).toBe(204);
     });
 
-    it('should return a phrase with audio from cache', async () => {
-        ddbMock.on(ScanCommand).resolves({
-            Items: [{ id: 'p1', category: 'c1', phrase: 'phrase 1', level: '1' }],
-        });
-        ddbMock.on(GetCommand).resolves({ Item: { id: 'cache-id', audioData: 'cached-audio-data' } }); // Cache hit
+    it('should return 404 if item not found', async () => {
+      const event = {
+        pathParameters: { itemId: 'non-existent-id' },
+      };
 
-        const event = { queryStringParameters: { id: 'p1' } };
-        const response = await getPhrase(event);
-        expect(response.statusCode).toBe(200);
-        const body = JSON.parse(response.body);
-        expect(body.id).toBe('p1');
-        expect(body.audioData).toBe('cached-audio-data');
+      ddbMock.on(DeleteCommand).resolves({ Attributes: undefined });
+
+      const result = await deleteItem(event);
+
+      expect(result.statusCode).toBe(404);
+      expect(JSON.parse(result.body).message).toBe('Item not found');
     });
 
-    it('should return 404 if phrase not found', async () => {
-        ddbMock.on(ScanCommand).resolves({ Items: [] });
-        const event = { queryStringParameters: { id: 'p1' } };
-        const response = await getPhrase(event);
-        expect(response.statusCode).toBe(404);
+    it('should return 500 on DynamoDB error', async () => {
+      const event = {
+        pathParameters: { itemId: 'mock-item-id' },
+      };
+
+      ddbMock.on(DeleteCommand).rejects(new Error('DynamoDB Error'));
+
+      const result = await deleteItem(event);
+
+      expect(result.statusCode).toBe(500);
     });
-
-    it('should handle errors', async () => {
-        ddbMock.on(ScanCommand).rejects(new Error('DynamoDB error'));
-        const response = await getPhrase({});
-        expect(response.statusCode).toBe(500);
-    });
-
-    it('should select a random phrase when no id is provided', async () => {
-        const items = [{ id: 'p1', category: 'c1', phrase: 'phrase 1', level: '1', readCount: 5, averageTime: 12.3 }];
-        ddbMock.on(ScanCommand).resolves({
-            Items: items,
-        });
-        ddbMock.on(GetCommand).resolves({ Item: undefined });
-        ddbMock.on(PutCommand).resolves({});
-
-        const audioStream = new Readable();
-        audioStream.push('audio data');
-        audioStream.push(null);
-        pollyMock.on(SynthesizeSpeechCommand).resolves({ AudioStream: audioStream });
-
-        const event = { queryStringParameters: { category: 'c1' } };
-        const response = await getPhrase(event);
-        expect(response.statusCode).toBe(200);
-        const body = JSON.parse(response.body);
-        expect(body.id).toBe('p1');
-        expect(body.readCount).toBe(5);
-        expect(body.averageTime).toBe(12.3);
-    });
-
-    it('should handle speechRate with %', async () => {
-        ddbMock.on(ScanCommand).resolves({
-            Items: [{ id: 'p1', category: 'c1', phrase: 'phrase 1', level: '1' }],
-        });
-        ddbMock.on(GetCommand).resolves({ Item: undefined }); // Cache miss
-        ddbMock.on(PutCommand).resolves({}); // Cache put
-
-        const audioStream = new Readable();
-        audioStream.push('audio data');
-        audioStream.push(null);
-        pollyMock.on(SynthesizeSpeechCommand).resolves({ AudioStream: audioStream });
-
-        const event = { queryStringParameters: { id: 'p1', speechRate: '110%' } };
-        await getPhrase(event);
-
-        const pollyCalls = pollyMock.calls();
-        expect(pollyCalls.length).toBe(1);
-        const pollyParams = pollyCalls[0].args[0].input;
-        expect(pollyParams.Text).toContain('<prosody rate="110%">');
-    });
-});
-
-describe('recordTime', () => {
-    beforeEach(() => {
-        ddbMock.reset();
-        process.env.TABLE_NAME = 'TestTable';
-    });
-
-    it('should record time and update statistics', async () => {
-        ddbMock.on(GetCommand).resolves({
-            Item: { id: 'p1', category: 'c1', readCount: 1, averageTime: 10 }
-        });
-        ddbMock.on(UpdateCommand).resolves({});
-
-        const event = {
-            body: JSON.stringify({ id: 'p1', category: 'c1', time: 20 })
-        };
-        const response = await recordTime(event);
-        expect(response.statusCode).toBe(200);
-
-        const updateCalls = ddbMock.commandCalls(UpdateCommand);
-        expect(updateCalls.length).toBe(1);
-        const updateParams = updateCalls[0].args[0].input;
-        expect(updateParams.ExpressionAttributeValues[':rc']).toBe(2);
-        expect(updateParams.ExpressionAttributeValues[':at']).toBe(15);
-    });
-
-    it('should return 404 if phrase not found', async () => {
-        ddbMock.on(GetCommand).resolves({ Item: undefined });
-        const event = { body: JSON.stringify({ id: 'p1', category: 'c1', time: 10 }) };
-        const response = await recordTime(event);
-        expect(response.statusCode).toBe(404);
-    });
-
-    it('should return 400 for invalid input', async () => {
-        const event = { body: JSON.stringify({ id: 'p1' }) }; // missing category and time
-        const response = await recordTime(event);
-        expect(response.statusCode).toBe(400);
-    });
+  });
 });
