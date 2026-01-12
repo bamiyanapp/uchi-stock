@@ -109,11 +109,22 @@ resources:
             AttributeType: S
           - AttributeName: itemId
             AttributeType: S
+          - AttributeName: date
+            AttributeType: S
         KeySchema:
           - AttributeName: historyId
             KeyType: HASH
           - AttributeName: itemId
             KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: ItemIdIndex
+            KeySchema:
+              - AttributeName: itemId
+                KeyType: HASH
+              - AttributeName: date
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
         PointInTimeRecoverySpecification:
           PointInTimeRecoveryEnabled: true
