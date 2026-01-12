@@ -33,6 +33,9 @@ graph TD
   - `release`: `semantic-release` によるバージョン自動採番、タグ付け、および `CHANGELOG.md` の更新
   - `build-and-deploy-frontend`: フロントエンドをビルドし、GitHub Pages へデプロイ
   - `deploy-backend`: バックエンドを Serverless Framework を使用して AWS Lambda へデプロイ
+    - デプロイ前に、DynamoDB テーブルの定義に破壊的変更（テーブル名の変更、キー構成の変更、削除など）がないか自動チェックします。
+    - デプロイ直前に、現在の DynamoDB データのバックアップ（AWS Native Backup および JSON へのダンプ）を自動実行します。
+    - 破壊的変更が検出された場合、デプロイは中断されます。意図的な変更の場合は `FORCE_DEPLOY=true` を設定して続行可能です。
 
 ## 3. リリース運用
 - **リリース条件**:
