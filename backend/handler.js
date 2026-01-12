@@ -1,209 +1,53 @@
+
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, QueryCommand } = require("@aws-sdk/lib-dynamodb");
-const { PollyClient, SynthesizeSpeechCommand } = require("@aws-sdk/client-polly");
+const { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } = require("@aws-sdk/lib-dynamodb");
+const crypto = require("crypto");
 
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
-const pollyClient = new PollyClient({ region: "ap-northeast-1" });
-const crypto = require("crypto");
 
-function normalizeSpeechRate(rate) {
-  if (!rate) return "90%";
-  const rateStr = String(rate);
-  if (/^\d/.test(rateStr)) {
-    const num = parseInt(rateStr, 10);
-    if (!isNaN(num)) {
-      return `${num}%`;
-    }
-  }
-  return rateStr;
-}
-
-exports.recordTime = async (event) => {
+/**
+ * 新しい品目を登録する。
+ * @param {object} event - API Gatewayイベント
+ * @returns {object} HTTPレスポンス
+ */
+exports.createItem = async (event) => {
   try {
     const body = JSON.parse(event.body);
-    const { id, category, time, difficulty } = body; // category, difficultyを追加
+    const { name, unit } = body;
 
-    if (!id || !category || typeof time !== 'number' || isNaN(time) || !isFinite(time)) {
+    if (!name || !unit) {
       return {
         statusCode: 400,
         headers: { "Access-Control-Allow-Origin": "*" },
-        body: JSON.stringify({ message: "Invalid input" }),
+        body: JSON.stringify({ message: "Name and unit are required" }),
       };
     }
 
-    const { Item } = await docClient.send(new GetCommand({
-      TableName: process.env.TABLE_NAME,
-      Key: { category, id },
-    }));
-
-    if (!Item) {
-      return {
-        statusCode: 404,
-        headers: { "Access-Control-Allow-Origin": "*" },
-        body: JSON.stringify({ message: "Phrase not found" }),
-      };
-    }
-
-    const oldReadCount = Item.readCount || 0;
-    const oldAverageTime = Item.averageTime || 0;
-    const oldAverageDifficulty = Item.averageDifficulty || 0;
-    
-    const newReadCount = oldReadCount + 1;
-    let newAverageTime = ((oldAverageTime * oldReadCount) + time) / newReadCount;
-
-    // 数値の健全性チェック
-    if (isNaN(newAverageTime) || !isFinite(newAverageTime)) {
-        newAverageTime = time;
-    }
-
-    let updateExpression = "set readCount = :rc, averageTime = :at";
-    let expressionAttributeValues = {
-      ":rc": newReadCount,
-      ":at": newAverageTime,
-    };
-
-    if (typeof difficulty === 'number' && !isNaN(difficulty) && isFinite(difficulty)) {
-      let newAverageDifficulty = ((oldAverageDifficulty * oldReadCount) + difficulty) / newReadCount;
-      if (isNaN(newAverageDifficulty) || !isFinite(newAverageDifficulty)) {
-        newAverageDifficulty = difficulty;
-      }
-      updateExpression += ", averageDifficulty = :ad";
-      expressionAttributeValues[":ad"] = newAverageDifficulty;
-    }
-
-    await docClient.send(new UpdateCommand({
-      TableName: process.env.TABLE_NAME,
-      Key: { category, id },
-      UpdateExpression: updateExpression,
-      ExpressionAttributeValues: expressionAttributeValues,
-    }));
-
-    return {
-      statusCode: 200,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ message: "Time recorded successfully" }),
-    };
-  } catch (error) {
-    console.error(error);
-    return {
-      statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ message: "Internal Server Error" }),
-    };
-  }
-}
-
-exports.postComment = async (event) => {
-  try {
-    const body = JSON.parse(event.body);
-    const { phraseId, category, phrase, comment } = body;
-
-    if (!phraseId || !comment) {
-      return {
-        statusCode: 400,
-        headers: { "Access-Control-Allow-Origin": "*" },
-        body: JSON.stringify({ message: "Invalid input" }),
-      };
-    }
+    const itemId = crypto.randomUUID();
+    const now = new Date().toISOString();
 
     const item = {
-      id: crypto.randomUUID(),
-      phraseId,
-      category,
-      phrase,
-      comment,
-      createdAt: new Date().toISOString(),
+      itemId,
+      name,
+      unit,
+      currentStock: 0, // 初期在庫は0
+      createdAt: now,
+      updatedAt: now,
     };
 
     await docClient.send(new PutCommand({
-      TableName: process.env.COMMENTS_TABLE_NAME,
+      TableName: process.env.TABLE_NAME,
       Item: item,
     }));
 
     return {
-      statusCode: 200,
+      statusCode: 201,
       headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ message: "Comment posted successfully" }),
+      body: JSON.stringify(item),
     };
   } catch (error) {
-    console.error(error);
-    return {
-      statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ message: "Internal Server Error" }),
-    };
-  }
-};
-
-exports.getComments = async (event) => {
-  try {
-    const scanParams = {
-      TableName: process.env.COMMENTS_TABLE_NAME,
-    };
-    const scanResult = await docClient.send(new ScanCommand(scanParams));
-    const items = scanResult.Items || [];
-
-    items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    return {
-      statusCode: 200,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ comments: items }),
-    };
-  } catch (error) {
-    console.error(error);
-    return {
-      statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ message: "Internal Server Error" }),
-    };
-  }
-};
-
-exports.getCongratulationAudio = async (event) => {
-  try {
-    const params = event.queryStringParameters || {};
-    const rawSpeechRate = params.speechRate || "90%";
-    const speechRate = normalizeSpeechRate(rawSpeechRate);
-    const lang = params.lang || "ja";
-
-    let speechText = "おめでとう、全て読み終わりました";
-    let voiceId = "Mizuki";
-    let engine = "standard";
-
-    if (lang === "en") {
-      speechText = "Congratulations! You have finished all the cards.";
-      voiceId = "Ruth";
-      engine = "neural";
-    }
-
-    const pollyParams = {
-      Text: `<speak><prosody rate="${speechRate}">${speechText}</prosody></speak>`,
-      TextType: "ssml",
-      OutputFormat: "mp3",
-      VoiceId: voiceId,
-      Engine: engine
-    };
-
-    const command = new SynthesizeSpeechCommand(pollyParams);
-    const pollyResponse = await pollyClient.send(command);
-
-    const audioBuffer = await streamToBuffer(pollyResponse.AudioStream);
-    const base64Audio = audioBuffer.toString("base64");
-
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify({
-        audioData: `data:audio/mp3;base64,${base64Audio}`,
-      }),
-    };
-  } catch (error) {
-    console.error(error);
+    console.error("Error in createItem:", error);
     return {
       statusCode: 500,
       headers: { "Access-Control-Allow-Origin": "*" },
@@ -212,152 +56,101 @@ exports.getCongratulationAudio = async (event) => {
   }
 };
 
-exports.getPhrase = async (event) => {
+/**
+ * 登録されているすべての品目を取得する。
+ * @param {object} event - API Gatewayイベント
+ * @returns {object} HTTPレスポンス
+ */
+exports.getItems = async (event) => {
   try {
-    const params = event.queryStringParameters || {};
-    const category = params.category || null;
-    const repeatCount = parseInt(params.repeatCount || "2", 10);
-    const rawSpeechRate = params.speechRate || "90%";
-    const speechRate = normalizeSpeechRate(rawSpeechRate);
-    const lang = params.lang || "ja";
-    let targetId = params.id || null;
-    const pollyCacheTableName = process.env.POLLY_CACHE_TABLE_NAME;
+    const { Items } = await docClient.send(new ScanCommand({
+      TableName: process.env.TABLE_NAME,
+    }));
 
-    let selectedItem = null;
+    return {
+      statusCode: 200,
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify(Items || []),
+    };
+  } catch (error) {
+    console.error("Error in getItems:", error);
+    return {
+      statusCode: 500,
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
+    };
+  }
+};
 
-    if (targetId && category) {
-      // IDとカテゴリ両方ある場合はGetItem
-      const getResult = await docClient.send(new GetCommand({
-        TableName: process.env.TABLE_NAME,
-        Key: { category, id: targetId },
-      }));
-      selectedItem = getResult.Item;
-    } else {
-      // それ以外は従来通りScan（またはQueryに最適化可能だが一旦Scan）
-      const scanParams = {
-        TableName: process.env.TABLE_NAME,
-        ProjectionExpression: "id, category, phrase, #lvl, kana, phrase_en, readCount, averageTime, averageDifficulty",
-        ExpressionAttributeNames: {
-          "#lvl": "level",
-        },
+/**
+ * 品目情報を更新する。
+ * @param {object} event - API Gatewayイベント
+ * @returns {object} HTTPレスポンス
+ */
+exports.updateItem = async (event) => {
+  try {
+    const { itemId } = event.pathParameters;
+    const body = JSON.parse(event.body);
+    const { name, unit, currentStock } = body;
+
+    if (!name && !unit && currentStock === undefined) {
+      return {
+        statusCode: 400,
+        headers: { "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({ message: "No update parameters provided" }),
       };
-      
-      const scanResult = await docClient.send(new ScanCommand(scanParams));
-      let items = scanResult.Items || [];
-
-      if (targetId) {
-        selectedItem = items.find(item => item.id === targetId);
-      } else {
-        if (category) {
-          items = items.filter(item => (item.category || "").trim() === category.trim());
-        }
-        
-        if (items.length > 0) {
-          const randomIndex = Math.floor(Math.random() * items.length);
-          selectedItem = items[randomIndex];
-        }
-      }
     }
 
-    if (!selectedItem) {
+    const now = new Date().toISOString();
+    let UpdateExpression = "set updatedAt = :updatedAt";
+    const ExpressionAttributeValues = { ":updatedAt": now };
+
+    if (name !== undefined) {
+      UpdateExpression += ", #n = :name";
+      ExpressionAttributeValues[":name"] = name;
+    }
+    if (unit !== undefined) {
+      UpdateExpression += ", unit = :unit";
+      ExpressionAttributeValues[":unit"] = unit;
+    }
+    if (currentStock !== undefined) {
+      if (typeof currentStock !== 'number' || currentStock < 0) {
+        return {
+          statusCode: 400,
+          headers: { "Access-Control-Allow-Origin": "*" },
+          body: JSON.stringify({ message: "currentStock must be a non-negative number" }),
+        };
+      }
+      UpdateExpression += ", currentStock = :currentStock";
+      ExpressionAttributeValues[":currentStock"] = currentStock;
+    }
+
+    const { Attributes } = await docClient.send(new UpdateCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: { itemId },
+      UpdateExpression,
+      ExpressionAttributeValues,
+      ExpressionAttributeNames: { // 'name' is a reserved keyword in DynamoDB
+        "#n": "name",
+      },
+      ReturnValues: "ALL_NEW",
+    }));
+
+    if (!Attributes) {
       return {
         statusCode: 404,
         headers: { "Access-Control-Allow-Origin": "*" },
-        body: JSON.stringify({ message: "Phrase not found" }),
+        body: JSON.stringify({ message: "Item not found" }),
       };
     }
 
-    targetId = selectedItem.id;
-
-    let audioData = null;
-    
-    const cacheId = crypto.createHash("sha256").update(
-      `${targetId}-${repeatCount}-${speechRate}-${lang}`
-    ).digest("hex");
-
-    if (pollyCacheTableName) {
-      const cachedAudio = await docClient.send(new GetCommand({
-        TableName: pollyCacheTableName,
-        Key: { id: cacheId },
-      }));
-      if (cachedAudio.Item) {
-        console.log("Serving audio from cache for id:", targetId);
-        audioData = cachedAudio.Item.audioData;
-      }
-    }
-
-    if (!audioData) {
-      const level = selectedItem.level;
-      let speechPhrase = selectedItem.phrase;
-      let voiceId = "Mizuki";
-      let engine = "standard";
-      let levelPrefix = "レベル";
-
-      if (lang === "en") {
-        speechPhrase = selectedItem.phrase_en || selectedItem.phrase;
-        voiceId = "Ruth";
-        engine = "neural";
-        levelPrefix = "Level";
-      }
-
-      const hasLevel = level !== "-" && level !== null && level !== undefined && String(level).trim() !== "";
-      const phraseWithLevel = hasLevel ? `${levelPrefix}, ${level}. ${speechPhrase}` : speechPhrase;
-
-      let innerContent = phraseWithLevel;
-      if (repeatCount >= 2) {
-        innerContent = `${phraseWithLevel}<break time="1500ms"/>${phraseWithLevel}`;
-      }
-
-      const ssmlText = `<speak><prosody rate="${speechRate}">${innerContent}</prosody></speak>`;
-
-      const command = new SynthesizeSpeechCommand({
-        Text: ssmlText,
-        TextType: "ssml",
-        OutputFormat: "mp3",
-        VoiceId: voiceId,
-        Engine: engine
-      });
-      const pollyResponse = await pollyClient.send(command);
-
-      const audioBuffer = await streamToBuffer(pollyResponse.AudioStream);
-      const base64Audio = audioBuffer.toString("base64");
-      audioData = `data:audio/mp3;base64,${base64Audio}`;
-
-      if (pollyCacheTableName) {
-        await docClient.send(new PutCommand({
-          TableName: pollyCacheTableName,
-          Item: {
-            id: cacheId,
-            audioData: audioData,
-            createdAt: new Date().toISOString(),
-          },
-        }));
-      }
-    }
-
-    const responseBody = {
-      id: selectedItem.id,
-      category: selectedItem.category,
-      phrase: selectedItem.phrase,
-      phrase_en: selectedItem.phrase_en,
-      level: selectedItem.level,
-      kana: selectedItem.kana,
-      audioData: audioData,
-      readCount: selectedItem.readCount || 0,
-      averageTime: selectedItem.averageTime || 0,
-      averageDifficulty: selectedItem.averageDifficulty || 0,
-    };
-
     return {
       statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify(responseBody),
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify(Attributes),
     };
   } catch (error) {
-    console.error(error);
+    console.error("Error in updateItem:", error);
     return {
       statusCode: 500,
       headers: { "Access-Control-Allow-Origin": "*" },
@@ -366,77 +159,36 @@ exports.getPhrase = async (event) => {
   }
 };
 
-exports.getPhrasesList = async (event) => {
+/**
+ * 品目を削除する。
+ * @param {object} event - API Gatewayイベント
+ * @returns {object} HTTPレスポンス
+ */
+exports.deleteItem = async (event) => {
   try {
-    const category = event.queryStringParameters ? event.queryStringParameters.category : null;
-    let items = [];
+    const { itemId } = event.pathParameters;
 
-    if (category) {
-      const queryParams = {
-        TableName: process.env.TABLE_NAME,
-        KeyConditionExpression: "category = :cat",
-        ExpressionAttributeValues: {
-          ":cat": category,
-        },
-        ProjectionExpression: "id, category, phrase, #lvl, kana, readCount, averageTime, averageDifficulty",
-        ExpressionAttributeNames: {
-          "#lvl": "level",
-        },
-      };
-      const queryResult = await docClient.send(new QueryCommand(queryParams));
-      items = queryResult.Items || [];
-    } else {
-      const scanParams = {
-        TableName: process.env.TABLE_NAME,
-        ProjectionExpression: "id, category, phrase, #lvl, kana, readCount, averageTime, averageDifficulty",
-        ExpressionAttributeNames: {
-          "#lvl": "level",
-        },
-      };
-      const scanResult = await docClient.send(new ScanCommand(scanParams));
-      items = scanResult.Items || [];
-    }
-
-    return {
-      statusCode: 200,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ phrases: items }),
-    };
-  } catch (error) {
-    console.error(error);
-    return {
-      statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ message: "Internal Server Error" }),
-    };
-  }
-};
-
-exports.getCategories = async (event) => {
-  try {
-    const scanParams = {
+    const { Attributes } = await docClient.send(new DeleteCommand({
       TableName: process.env.TABLE_NAME,
-      ProjectionExpression: "category",
-    };
-    const scanResult = await docClient.send(new ScanCommand(scanParams));
-    const items = scanResult.Items || [];
-    
-    let categories = [...new Set(items.map(item => item.category || "大ピンチずかん"))];
-    categories = categories.filter(cat => !!cat);
-    if (categories.length === 0) {
-      categories = ["大ピンチずかん"];
+      Key: { itemId },
+      ReturnValues: "ALL_OLD",
+    }));
+
+    if (!Attributes) {
+      return {
+        statusCode: 404,
+        headers: { "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({ message: "Item not found" }),
+      };
     }
 
     return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify({ categories }),
+      statusCode: 204, // No Content
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ message: "Item deleted successfully" }),
     };
   } catch (error) {
-    console.error(error);
+    console.error("Error in deleteItem:", error);
     return {
       statusCode: 500,
       headers: { "Access-Control-Allow-Origin": "*" },
@@ -445,11 +197,4 @@ exports.getCategories = async (event) => {
   }
 };
 
-async function streamToBuffer(stream) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    stream.on("data", (chunk) => chunks.push(chunk));
-    stream.on("error", reject);
-    stream.on("end", () => resolve(Buffer.concat(chunks)));
-  });
-}
+// TODO: addStock, consumeStock, getConsumptionHistory, getEstimatedDepletionDate functions
