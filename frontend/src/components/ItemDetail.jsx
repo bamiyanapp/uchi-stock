@@ -59,18 +59,35 @@ const ItemDetail = () => {
     );
   }
 
-  // グラフ用データの整形 (日付ごとの在庫数推移)
-  // 簡易的に履歴から逆算して在庫の推移を作るのは複雑なので、
-  // 今回は「日ごとの消費量」または「在庫数（もし記録があれば）」を表示する。
-  // 現在の履歴には「その時の在庫数」が含まれていないため、
-  // 直近の消費・購入イベントを並べる。
-  const chartData = [...history]
-    .reverse()
-    .map(h => ({
-      date: new Date(h.date).toLocaleDateString(),
-      quantity: h.quantity,
-      type: h.type === "consumption" ? "消費" : "購入"
-    }));
+  // グラフ用データの整形 (在庫数の推移を計算)
+  const calculateStockTrend = () => {
+    if (!item || !history) return [];
+    
+    let current = item.currentStock;
+    const trend = [{
+      date: "現在",
+      stock: current,
+      displayDate: new Date().toLocaleDateString()
+    }];
+
+    // 履歴を新しい順に処理して、過去に遡って在庫を計算
+    history.forEach(h => {
+      if (h.type === "consumption") {
+        current += h.quantity; // 消費した分を戻す
+      } else if (h.type === "purchase") {
+        current -= h.quantity; // 購入した分を引く
+      }
+      trend.push({
+        date: new Date(h.date).toLocaleDateString(),
+        stock: current,
+        displayDate: new Date(h.date).toLocaleDateString()
+      });
+    });
+
+    return trend.reverse();
+  };
+
+  const chartData = calculateStockTrend();
 
   return (
     <div className="container py-5">
@@ -123,21 +140,22 @@ const ItemDetail = () => {
         <div className="col-md-8">
           <div className="card h-100 shadow-sm border-0">
             <div className="card-body">
-              <h2 className="h5 card-title mb-4">消費・購入履歴（履歴量）</h2>
+              <h2 className="h5 card-title mb-4">在庫数推移</h2>
               <div style={{ width: "100%", height: 300 }}>
                 <ResponsiveContainer>
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
+                    <XAxis dataKey="displayDate" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
                     <Line 
-                      type="monotone" 
-                      dataKey="quantity" 
-                      name="数量" 
+                      type="stepAfter" 
+                      dataKey="stock" 
+                      name="在庫数" 
                       stroke="#0d6efd" 
                       strokeWidth={2}
+                      dot={{ r: 4 }}
                       activeDot={{ r: 8 }} 
                     />
                   </LineChart>
