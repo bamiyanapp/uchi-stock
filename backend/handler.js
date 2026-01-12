@@ -386,10 +386,12 @@ exports.getEstimatedDepletionDate = async (event) => {
       };
     }
 
-    // 消費履歴を取得して平均消費速度を計算（簡易版）
-    const { Items: history } = await docClient.send(new ScanCommand({
+    // 消費履歴を取得して平均消費速度を計算
+    const { Items: history } = await docClient.send(new QueryCommand({
       TableName: HISTORY_TABLE,
-      FilterExpression: "itemId = :itemId AND #t = :type",
+      IndexName: "ItemIdIndex",
+      KeyConditionExpression: "itemId = :itemId",
+      FilterExpression: "#t = :type",
       ExpressionAttributeNames: { "#t": "type" },
       ExpressionAttributeValues: { ":itemId": itemId, ":type": "consumption" }
     }));
@@ -401,16 +403,21 @@ exports.getEstimatedDepletionDate = async (event) => {
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Credentials": true,
         },
-        body: JSON.stringify({ estimatedDepletionDate: null, message: "Not enough history to estimate" }),
+        body: JSON.stringify({ 
+          estimatedDepletionDate: null, 
+          dailyConsumption: 0,
+          message: "Not enough history to estimate" 
+        }),
       };
     }
 
-    // 日付順にソート
+    // 日付順にソート（Queryの結果はソートされているはずだが念のため）
     history.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const firstDate = new Date(history[0].date);
-    const lastDate = new Date(history[history.length - 1].date);
-    const daysDiff = Math.max(1, (lastDate - firstDate) / (1000 * 60 * 60 * 24));
+    const now = new Date();
+    // 最初の記録から現在までの日数を計算（最低1日）
+    const daysDiff = Math.max(1, (now - firstDate) / (1000 * 60 * 60 * 24));
     
     const totalConsumed = history.reduce((sum, h) => sum + h.quantity, 0);
     const dailyConsumption = totalConsumed / daysDiff;

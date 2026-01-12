@@ -192,12 +192,9 @@ function Home() {
                             value={item.currentStock}
                             onChange={(e) => handleStockChange(item, parseInt(e.target.value))}
                           >
-                            {[...Array(21).keys()].map(n => (
+                            {[...Array(Math.max(item.currentStock + 10, 20) + 1).keys()].reverse().map(n => (
                               <option key={n} value={n}>{n}</option>
                             ))}
-                            {item.currentStock > 20 && (
-                              <option value={item.currentStock}>{item.currentStock}</option>
-                            )}
                           </select>
                           <span className="fs-5 text-muted">{item.unit}</span>
                         </div>

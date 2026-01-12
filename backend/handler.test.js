@@ -127,21 +127,34 @@ describe('Household Items API', () => {
   describe('getEstimatedDepletionDate', () => {
     it('should estimate depletion date', async () => {
       ddbMock.on(GetCommand).resolves({ Item: { itemId: 'item-1', currentStock: 10 } });
-      ddbMock.on(ScanCommand).resolves({ 
+      // ScanCommand から QueryCommand に変更
+      ddbMock.on(QueryCommand).resolves({ 
         Items: [
           { date: '2023-01-01T12:00:00Z', quantity: 2, type: 'consumption' },
           { date: '2023-01-03T12:00:00Z', quantity: 2, type: 'consumption' }
         ]
       });
 
+      // システム時刻を 2023-01-05 に進める
+      vi.setSystemTime(new Date('2023-01-05T12:00:00Z'));
+
       const result = await getEstimatedDepletionDate({ pathParameters: { itemId: 'item-1' } });
 
       expect(result.statusCode).toBe(200);
       const body = JSON.parse(result.body);
       expect(body.estimatedDepletionDate).toBeDefined();
-      // 2日間で4個消費 = 1日2個。在庫10個 = 5日後。
-      const expectedDate = new Date('2023-01-01T12:00:00Z');
-      expectedDate.setDate(expectedDate.getDate() + 5);
+      
+      // 計算ロジック:
+      // 開始日: 2023-01-01
+      // 現在日: 2023-01-05
+      // 経過日数: 4日
+      // 総消費量: 4
+      // 1日あたりの消費量: 1
+      // 在庫: 10
+      // 残り日数: 10日
+      // 在庫切れ予想: 2023-01-15
+      const expectedDate = new Date('2023-01-05T12:00:00Z');
+      expectedDate.setDate(expectedDate.getDate() + 10);
       expect(new Date(body.estimatedDepletionDate).toISOString()).toBe(expectedDate.toISOString());
     });
   });
