@@ -25,8 +25,8 @@ provider:
 
 custom:
   appName: uchi-stock-app
-  tableName: ${self:custom.appName}-items
-  stockHistoryTableName: ${self:custom.appName}-stock-history
+  tableName: ${self:custom.appName}-items-v2
+  stockHistoryTableName: ${self:custom.appName}-stock-history-v2
   cognitoUserPoolArn: ${env:COGNITO_USER_POOL_ARN, 'arn:aws:cognito-idp:ap-northeast-1:123456789012:userpool/ap-northeast-1_example'}
 
 functions:
