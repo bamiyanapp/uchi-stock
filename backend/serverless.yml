@@ -1,4 +1,4 @@
-service: karuta-app
+service: uchi-stock-app
 
 provider:
   name: aws
@@ -6,8 +6,7 @@ provider:
   region: ap-northeast-1
   environment:
     TABLE_NAME: ${self:custom.tableName}
-    COMMENTS_TABLE_NAME: ${self:custom.commentsTableName}
-    POLLY_CACHE_TABLE_NAME: ${self:custom.pollyCacheTableName} # 追加
+    STOCK_HISTORY_TABLE_NAME: ${self:custom.stockHistoryTableName}
   iam:
     role:
       statements:
@@ -18,113 +17,102 @@ provider:
             - dynamodb:GetItem
             - dynamodb:PutItem
             - dynamodb:UpdateItem
-          Resource: 
-            - !GetAtt KarutaTable.Arn
-            - !GetAtt CommentsTable.Arn
-            - !GetAtt PollyCacheTable.Arn # 追加
-        - Effect: Allow
-          Action:
-            - polly:SynthesizeSpeech
-          Resource: "*"
+            - dynamodb:DeleteItem
+          Resource:
+            - !GetAtt HouseholdItemsTable.Arn
+            - !GetAtt StockHistoryTable.Arn
 
 custom:
-  tableName: karuta-phrases
-  commentsTableName: karuta-comments
-  pollyCacheTableName: karuta-polly-cache # 追加
+  tableName: uchi-stock-items
+  stockHistoryTableName: uchi-stock-stock-history
 
 functions:
-  getPhrase:
-    handler: handler.getPhrase
+  createItem:
+    handler: handler.createItem
     events:
       - http:
-          path: get-phrase
-          method: get
-          cors: true
-  getCategories:
-    handler: handler.getCategories
-    events:
-      - http:
-          path: get-categories
-          method: get
-          cors: true
-  getCongratulationAudio:
-    handler: handler.getCongratulationAudio
-    events:
-      - http:
-          path: get-congratulation-audio
-          method: get
-          cors: true
-  getPhrasesList:
-    handler: handler.getPhrasesList
-    events:
-      - http:
-          path: get-phrases-list
-          method: get
-          cors: true
-  postComment:
-    handler: handler.postComment
-    events:
-      - http:
-          path: post-comment
+          path: items
           method: post
           cors: true
-  getComments:
-    handler: handler.getComments
+  getItems:
+    handler: handler.getItems
     events:
       - http:
-          path: get-comments
+          path: items
           method: get
           cors: true
-  recordTime:
-    handler: handler.recordTime
+  updateItem:
+    handler: handler.updateItem
     events:
       - http:
-          path: record-time
+          path: items/{itemId}
+          method: put
+          cors: true
+  deleteItem:
+    handler: handler.deleteItem
+    events:
+      - http:
+          path: items/{itemId}
+          method: delete
+          cors: true
+  addStock:
+    handler: handler.addStock
+    events:
+      - http:
+          path: items/{itemId}/stock
           method: post
+          cors: true
+  consumeStock:
+    handler: handler.consumeStock
+    events:
+      - http:
+          path: items/{itemId}/consume
+          method: post
+          cors: true
+  getConsumptionHistory:
+    handler: handler.getConsumptionHistory
+    events:
+      - http:
+          path: items/{itemId}/history
+          method: get
+          cors: true
+  getEstimatedDepletionDate:
+    handler: handler.getEstimatedDepletionDate
+    events:
+      - http:
+          path: items/{itemId}/estimate
+          method: get
           cors: true
 
 resources:
   Resources:
-    KarutaTable:
+    HouseholdItemsTable:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: ${self:custom.tableName}
         AttributeDefinitions:
-          - AttributeName: category
-            AttributeType: S
-          - AttributeName: id
+          - AttributeName: itemId
             AttributeType: S
         KeySchema:
-          - AttributeName: category
+          - AttributeName: itemId
             KeyType: HASH
-          - AttributeName: id
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+    StockHistoryTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.stockHistoryTableName}
+        AttributeDefinitions:
+          - AttributeName: historyId
+            AttributeType: S
+          - AttributeName: itemId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: historyId
+            KeyType: HASH
+          - AttributeName: itemId
             KeyType: RANGE
-        BillingMode: PAY_PER_REQUEST
-        PointInTimeRecoverySpecification:
-          PointInTimeRecoveryEnabled: true
-    CommentsTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${self:custom.commentsTableName}
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: id
-            KeyType: HASH
-        BillingMode: PAY_PER_REQUEST
-        PointInTimeRecoverySpecification:
-          PointInTimeRecoveryEnabled: true
-    PollyCacheTable: # 追加
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${self:custom.pollyCacheTableName}
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: id
-            KeyType: HASH
         BillingMode: PAY_PER_REQUEST
         PointInTimeRecoverySpecification:
           PointInTimeRecoveryEnabled: true
