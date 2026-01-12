@@ -11,15 +11,23 @@ function Home() {
   const [loading, setLoading] = useState(true);
   const [newItemName, setNewItemName] = useState("");
   const [newItemUnit, setNewItemUnit] = useState("");
-  const { userId } = useUser();
+  const { userId, idToken, user, login, logout, loading: authLoading } = useUser();
+
+  const getHeaders = useCallback(() => {
+    const headers = {
+      "x-user-id": userId
+    };
+    if (idToken) {
+      headers["Authorization"] = `Bearer ${idToken}`;
+    }
+    return headers;
+  }, [userId, idToken]);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/items`, {
-        headers: {
-          "x-user-id": userId
-        }
+        headers: getHeaders()
       });
       const data = await response.json();
       const itemsList = Array.isArray(data) ? data : [];
@@ -29,9 +37,7 @@ function Home() {
         itemsList.map(async (item) => {
           try {
             const estResponse = await fetch(`${API_BASE_URL}/items/${item.itemId}/estimate`, {
-              headers: {
-                "x-user-id": userId
-              }
+              headers: getHeaders()
             });
             const estData = await estResponse.json();
             return { ...item, estimate: estData };
@@ -48,7 +54,7 @@ function Home() {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [getHeaders]);
 
   useEffect(() => {
     fetchItems();
@@ -63,8 +69,8 @@ function Home() {
       const response = await fetch(`${API_BASE_URL}/items`, {
         method: "POST",
         headers: { 
-          "Content-Type": "application/json",
-          "x-user-id": userId
+          ...getHeaders(),
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ name: newItemName, unit: newItemUnit }),
       });
@@ -90,8 +96,8 @@ function Home() {
       const response = await fetch(`${API_BASE_URL}/items/${item.itemId}/${endpoint}`, {
         method: "POST",
         headers: { 
-          "Content-Type": "application/json",
-          "x-user-id": userId
+          ...getHeaders(),
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ quantity: 1 }),
       });
@@ -113,9 +119,7 @@ function Home() {
     try {
       const response = await fetch(`${API_BASE_URL}/items/${itemId}`, {
         method: "DELETE",
-        headers: {
-          "x-user-id": userId
-        }
+        headers: getHeaders()
       });
       if (response.ok) {
         fetchItems();
@@ -127,7 +131,19 @@ function Home() {
 
   return (
     <div className="container py-5">
-      <header className="text-center mb-5">
+      <header className="text-center mb-5 position-relative">
+        <div className="position-absolute top-0 end-0 p-2">
+          {authLoading ? (
+            <div className="spinner-border spinner-border-sm text-secondary" role="status"></div>
+          ) : user ? (
+            <div className="d-flex align-items-center gap-2">
+              <span className="small text-muted d-none d-md-inline">{user.username || user.userId}</span>
+              <button onClick={logout} className="btn btn-sm btn-outline-secondary">ログアウト</button>
+            </div>
+          ) : (
+            <button onClick={login} className="btn btn-sm btn-primary">Googleでログイン</button>
+          )}
+        </div>
         <h1 className="display-4 fw-bold">家庭用品在庫管理</h1>
         <p className="text-muted">気が向いた時に在庫をチェック</p>
       </header>

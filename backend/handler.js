@@ -10,7 +10,12 @@ const ITEMS_TABLE = process.env.TABLE_NAME;
 const HISTORY_TABLE = process.env.STOCK_HISTORY_TABLE_NAME;
 
 const getUserId = (event) => {
-  return event.headers["x-user-id"] || "default-user";
+  // Cognito Authorizerを使用している場合、requestContextからユーザーID(sub)を取得できる
+  if (event.requestContext && event.requestContext.authorizer && event.requestContext.authorizer.claims) {
+    return event.requestContext.authorizer.claims.sub;
+  }
+  // 従来のx-user-idヘッダーも互換性のために残す（開発・テスト用）
+  return event.headers["x-user-id"] || event.headers["X-User-Id"] || "default-user";
 };
 
 /**
