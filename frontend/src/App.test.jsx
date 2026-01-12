@@ -3,175 +3,85 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from './App';
 
 window.alert = vi.fn();
+window.confirm = vi.fn().mockReturnValue(true);
 
 // Mock fetch
 window.fetch = vi.fn();
-
-// Mock Audio
-window.Audio = vi.fn().mockImplementation(() => ({
-  play: vi.fn().mockResolvedValue(),
-  load: vi.fn(),
-  // Simulate successful loading
-  set src(url) {
-    setTimeout(() => {
-      if (this.oncanplaythrough) this.oncanplaythrough();
-      // Simulate audio ending immediately for tests
-      if (this.onended) setTimeout(this.onended, 0);
-    }, 0);
-  },
-}));
-
-// Mock window.scrollTo
-window.scrollTo = vi.fn();
 
 describe('App', () => {
   beforeEach(() => {
     fetch.mockClear();
     vi.clearAllMocks();
-    // Reset URL
-    window.history.pushState({}, '', '/');
   });
 
-  it('renders category selection screen initially', async () => {
+  it('renders household items management screen initially', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ categories: ['いろはかるた', 'テスト用'] }),
+      json: async () => [
+        { itemId: '1', name: 'Toilet Paper', unit: 'rolls', currentStock: 5, updatedAt: new Date().toISOString() }
+      ],
     });
 
     await act(async () => {
       render(<App />);
     });
 
-    expect(screen.getByText('かるた読み上げアプリ')).toBeInTheDocument();
+    expect(screen.getByText('家庭用品在庫管理')).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByText('いろはかるた')).toBeInTheDocument();
-      expect(screen.getByText('テスト用')).toBeInTheDocument();
+      expect(screen.getByText('Toilet Paper')).toBeInTheDocument();
+      expect(screen.getByText('5')).toBeInTheDocument();
+      expect(screen.getByText('rolls')).toBeInTheDocument();
     });
   });
 
-  it('navigates to comments view', async () => {
+  it('can add a new item', async () => {
+    fetch.mockImplementation(async (url, options) => {
+      if (options?.method === 'POST') {
+        return { ok: true, json: async () => ({}) };
+      }
+      return {
+        ok: true,
+        json: async () => [],
+      };
+    });
+
+    await act(async () => {
+      render(<App />);
+    });
+
+    fireEvent.change(screen.getByPlaceholderText('品目名（例: トイレットペーパー）'), { target: { value: 'Tissue' } });
+    fireEvent.change(screen.getByPlaceholderText('単位（例: ロール, パック）'), { target: { value: 'packs' } });
+    fireEvent.click(screen.getByRole('button', { name: '追加' }));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/items'), expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ name: 'Tissue', unit: 'packs' })
+      }));
+    });
+  });
+
+  it('can update stock', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ categories: [] }),
-    });
-    await act(async () => {
-      render(<App />);
-    });
-    
-    fetch.mockImplementation(async (url) => {
-      if (url.includes('get-categories')) {
-        return {
-          ok: true,
-          json: async () => ({ categories: [] }),
-        };
-      }
-      if (url.includes('get-comments')) {
-        return {
-          ok: true,
-          json: async () => ({ comments: [{ id: 1, phrase: 'TestPhrase', comment: 'Fix this', category: 'TestCat', createdAt: new Date().toISOString() }] }),
-        };
-      }
-      return { ok: false };
-    });
-
-    const commentsLink = screen.getByText(/指摘された内容を確認する/i);
-    fireEvent.click(commentsLink);
-
-    await waitFor(() => {
-      expect(screen.getByText('指摘された内容一覧')).toBeInTheDocument();
-      expect(screen.getByText(/TestPhrase/)).toBeInTheDocument();
-    }, { timeout: 3000 });
-  });
-
-  it('starts game when category is selected', async () => {
-    fetch.mockImplementation(async (url) => {
-      if (url.includes('get-categories')) return { ok: true, json: async () => ({ categories: ['Cat1'] }) };
-      if (url.includes('get-phrases-list')) return { ok: true, json: async () => ({ phrases: [{ id: 'p1', category: 'Cat1' }] }) };
-      return { ok: false };
+      json: async () => [
+        { itemId: '1', name: 'Toilet Paper', unit: 'rolls', currentStock: 5, updatedAt: new Date().toISOString() }
+      ],
     });
 
     await act(async () => {
       render(<App />);
     });
 
-    await waitFor(() => {
-      const elements = screen.queryAllByText('Cat1');
-      expect(elements.length).toBeGreaterThan(0);
-    });
+    fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
 
-    const categoryButton = screen.getByRole('button', { name: 'Cat1' });
-    fireEvent.click(categoryButton);
-
-    await waitFor(() => screen.getByText(/をお手元に持っていますか？/));
-    fireEvent.click(screen.getByText('はい'));
+    const addButton = await screen.findByText('+1 購入');
+    fireEvent.click(addButton);
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Cat1' })).toBeInTheDocument();
-      expect(screen.getByText('次の札')).toBeInTheDocument();
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/items/1/stock'), expect.objectContaining({
+        method: 'POST'
+      }));
     });
   });
-
-  it('updates settings (lang, sort order, speech rate)', async () => {
-    fetch.mockImplementation(async (url) => {
-      if (url.includes('get-categories')) return { ok: true, json: async () => ({ categories: ['Cat1'] }) };
-      return { ok: false };
-    });
-
-    await act(async () => {
-      render(<App />);
-    });
-    
-    // Select Category
-    const categoryButton = await screen.findByRole('button', { name: 'Cat1' });
-    fireEvent.click(categoryButton);
-    fireEvent.click(screen.getByText('はい'));
-
-    // Check setting buttons
-    expect(screen.getByText('English')).toBeInTheDocument();
-    expect(screen.getByText('簡単')).toBeInTheDocument();
-    expect(screen.getByText('はやい')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText('English'));
-    expect(localStorage.getItem('lang')).toBe('en');
-
-    fireEvent.click(screen.getByText('簡単'));
-    expect(localStorage.getItem('sortOrder')).toBe('easy');
-
-    fireEvent.click(screen.getByText('はやい'));
-    expect(localStorage.getItem('speechRate')).toBe('100%');
-  });
-
-  it('updates document title when viewing all-phrases', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ categories: [] }),
-    });
-    await act(async () => {
-      render(<App />);
-    });
-    
-    fetch.mockImplementation(async (url) => {
-      if (url.includes('get-categories')) {
-        return {
-          ok: true,
-          json: async () => ({ categories: [] }),
-        };
-      }
-      if (url.includes('get-phrases-list')) {
-        return {
-          ok: true,
-          json: async () => ({ phrases: [] }),
-        };
-      }
-      return { ok: false };
-    });
-
-    const allPhrasesLink = screen.getByText(/全札一覧を見る/i);
-    fireEvent.click(allPhrasesLink);
-
-    await waitFor(() => {
-      expect(document.title).toBe('全札一覧 | かるた読み上げアプリ');
-    });
-  });
-
 });
