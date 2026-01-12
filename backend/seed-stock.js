@@ -84,11 +84,21 @@ async function seed() {
 
       // 履歴の生成
       let historyCount = 0;
+      let virtualStock = itemDef.currentStock + 10; // 過去の時点での仮想在庫
+
       for (let i = itemDef.daysOfHistory; i > 0; i--) {
         const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
         let consume = false;
+        let purchase = false;
         let quantity = 1;
 
+        // 購入イベント（履歴の最初の方で1回購入しておく）
+        if (i === itemDef.daysOfHistory) {
+          purchase = true;
+          quantity = 10;
+        }
+
+        // 消費パターンの判定
         if (itemDef.consumptionPattern === "consistent" && i % 2 === 0) {
           consume = true;
         } else if (itemDef.consumptionPattern === "fast") {
@@ -99,7 +109,22 @@ async function seed() {
           consume = true;
         }
 
-        if (consume) {
+        if (purchase) {
+          await docClient.send(new PutCommand({
+            TableName: HISTORY_TABLE,
+            Item: {
+              historyId: crypto.randomUUID(),
+              itemId,
+              type: "purchase",
+              quantity,
+              date: date.toISOString(),
+              memo: "まとめ買い",
+            },
+          }));
+          historyCount++;
+        }
+
+        if (consume && !purchase) {
           await docClient.send(new PutCommand({
             TableName: HISTORY_TABLE,
             Item: {
