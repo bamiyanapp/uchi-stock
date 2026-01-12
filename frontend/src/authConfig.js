@@ -8,7 +8,7 @@ const authConfig = {
       loginWith: {
         oauth: {
           domain: import.meta.env.VITE_AUTH_DOMAIN || '',
-          scopes: ['email', 'profile', 'openid'],
+          scopes: ['email', 'profile', 'openid', 'aws.cognito.signin.user.admin'],
           redirectSignIn: [import.meta.env.VITE_REDIRECT_SIGN_IN || 'http://localhost:5173'],
           redirectSignOut: [import.meta.env.VITE_REDIRECT_SIGN_OUT || 'http://localhost:5173'],
           responseType: 'code',
@@ -20,9 +20,9 @@ const authConfig = {
 };
 
 export const configureAmplify = () => {
-  if (authConfig.Auth.Cognito.userPoolId) {
+  if (authConfig.Auth.Cognito.userPoolId && authConfig.Auth.Cognito.userPoolClientId) {
     Amplify.configure(authConfig);
   } else {
-    console.warn('Amplify is not configured. Google SSO will not work without environment variables.');
+    console.warn('Amplify is not configured. userPoolId or userPoolClientId is missing.');
   }
 };
