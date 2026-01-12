@@ -114,42 +114,6 @@ function Home() {
 
       <main>
         <section className="mb-5">
-          <div className="card shadow-sm border-0">
-            <div className="card-body p-4">
-              <h2 className="h5 mb-4 d-flex align-items-center">
-                <Plus size={20} className="me-2 text-primary" />
-                新しい品目を追加
-              </h2>
-              <form onSubmit={addItem} className="row g-3">
-                <div className="col-md-5">
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="品目名（例: トイレットペーパー）"
-                    value={newItemName}
-                    onChange={(e) => setNewItemName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="col-md-4">
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="単位（例: ロール, パック）"
-                    value={newItemUnit}
-                    onChange={(e) => setNewItemUnit(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="col-md-3">
-                  <button type="submit" className="btn btn-primary w-100">追加</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </section>
-
-        <section>
           <h2 className="h5 mb-4">在庫一覧</h2>
           {loading ? (
             <div className="text-center py-5">
@@ -236,6 +200,42 @@ function Home() {
               )}
             </div>
           )}
+        </section>
+
+        <section className="mt-5">
+          <div className="card shadow-sm border-0">
+            <div className="card-body p-4">
+              <h2 className="h5 mb-4 d-flex align-items-center">
+                <Plus size={20} className="me-2 text-primary" />
+                新しい品目を追加
+              </h2>
+              <form onSubmit={addItem} className="row g-3">
+                <div className="col-md-5">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="品目名（例: トイレットペーパー）"
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="col-md-4">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="単位（例: ロール, パック）"
+                    value={newItemUnit}
+                    onChange={(e) => setNewItemUnit(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="col-md-3">
+                  <button type="submit" className="btn btn-primary w-100">追加</button>
+                </div>
+              </form>
+            </div>
+          </div>
         </section>
       </main>
     </div>
