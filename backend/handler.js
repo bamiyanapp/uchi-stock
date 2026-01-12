@@ -432,21 +432,35 @@ exports.getEstimatedDepletionDate = async (event) => {
       };
     }
 
-    // 日付順にソート（Queryの結果はソートされているはずだが念のため）
-    history.sort((a, b) => new Date(a.date) - new Date(b.date));
+    // 日付順にソートし、有効な日付のみを抽出
+    const validHistory = history
+      .filter(h => h.date && !isNaN(new Date(h.date).getTime()))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    const firstDate = new Date(history[0].date);
+    if (validHistory.length < 2) {
+      return {
+        statusCode: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Credentials": true,
+        },
+        body: JSON.stringify({ 
+          estimatedDepletionDate: null, 
+          dailyConsumption: 0,
+          message: "Not enough valid history to estimate" 
+        }),
+      };
+    }
+
+    const firstDate = new Date(validHistory[0].date);
     const now = new Date();
     // 最初の記録から現在までの日数を計算（最低1日）
     const daysDiff = Math.max(1, (now - firstDate) / (1000 * 60 * 60 * 24));
     
-    const totalConsumed = history.reduce((sum, h) => sum + h.quantity, 0);
-    // 直近のペースを重視するため、履歴の期間（最初から最後まで）で割る
-    // ただし、現在までの期間で見ないと「最近消費していない」ことが反映されないため、
-    // 最初の記録から現在までの期間を使用する（現状維持だが、意味を明確にする）
+    const totalConsumed = validHistory.reduce((sum, h) => sum + h.quantity, 0);
     const dailyConsumption = totalConsumed / daysDiff;
 
-    if (dailyConsumption <= 0) {
+    if (dailyConsumption <= 0 || isNaN(dailyConsumption)) {
         return {
             statusCode: 200,
             headers: {
@@ -456,7 +470,7 @@ exports.getEstimatedDepletionDate = async (event) => {
             body: JSON.stringify({ 
               estimatedDepletionDate: null, 
               dailyConsumption: 0,
-              message: "No consumption observed" 
+              message: "No consumption observed or invalid calculation" 
             }),
           };
     }
@@ -473,9 +487,9 @@ exports.getEstimatedDepletionDate = async (event) => {
       },
       body: JSON.stringify({ 
         estimatedDepletionDate: estimatedDate.toISOString(),
-        dailyConsumption: dailyConsumption.toFixed(2),
+        dailyConsumption: isFinite(dailyConsumption) ? dailyConsumption.toFixed(2) : "0.00",
         totalConsumed,
-        daysObserved: daysDiff.toFixed(1),
+        daysObserved: isFinite(daysDiff) ? daysDiff.toFixed(1) : "0.0",
         currentStock: item.currentStock
       }),
     };
