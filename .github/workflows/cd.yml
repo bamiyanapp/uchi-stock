@@ -5,6 +5,12 @@ on:
   push:
     branches:
       - release
+
+# 同時実行を制限し、先行する実行をキャンセルする
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 permissions:
   contents: write
   issues: write
@@ -166,24 +172,19 @@ jobs:
         with:
           token: ${{ secrets.BOT_TOKEN }}
           base: main
-          head: release
+          branch: release
           title: "Sync release branch into main"
           body: "Automated PR to sync release changes into main."
           draft: false
           commit-message: "chore: sync release branch into main [skip ci]"
-          merge-method: squash
-          auto-merge: true
-  build-and-deploy-frontend:
+  build-frontend:
     needs: release
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: release # Checkout the release branch for deployment
+          ref: release
           fetch-depth: 0
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -207,6 +208,14 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: frontend/dist
+
+  deploy-frontend:
+    needs: build-frontend
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: 🚀 Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
