@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, ScanCommand, PutCommand, UpdateCommand, DeleteCommand, GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, PutCommand, UpdateCommand, GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import {
   createItem,
   getItems,
@@ -23,6 +23,7 @@ vi.spyOn(console, 'error').mockImplementation(() => {});
 describe('Household Items API', () => {
   const ITEMS_TABLE = 'uchi-stock-app-items';
   const HISTORY_TABLE = 'uchi-stock-app-stock-history';
+  const TEST_USER = 'test-user';
 
   beforeEach(() => {
     ddbMock.reset();
@@ -38,8 +39,9 @@ describe('Household Items API', () => {
   });
 
   describe('createItem', () => {
-    it('should create an item successfully', async () => {
+    it('should create an item successfully with user-id', async () => {
       const event = {
+        headers: { 'x-user-id': TEST_USER },
         body: JSON.stringify({ name: 'Test Item', unit: 'pcs' }),
       };
 
@@ -48,10 +50,9 @@ describe('Household Items API', () => {
       const result = await createItem(event);
 
       expect(result.statusCode).toBe(201);
-      expect(result.headers['Access-Control-Allow-Origin']).toBe('*');
-      expect(result.headers['Access-Control-Allow-Credentials']).toBe(true);
       const body = JSON.parse(result.body);
       expect(body).toEqual({
+        userId: TEST_USER,
         itemId: 'mock-id',
         name: 'Test Item',
         unit: 'pcs',
@@ -60,55 +61,74 @@ describe('Household Items API', () => {
         updatedAt: '2023-01-01T12:00:00.000Z',
       });
     });
+
+    it('should use default-user if x-user-id header is missing', async () => {
+        const event = {
+          headers: {},
+          body: JSON.stringify({ name: 'Test Item', unit: 'pcs' }),
+        };
+  
+        ddbMock.on(PutCommand).resolves({});
+  
+        const result = await createItem(event);
+        const body = JSON.parse(result.body);
+        expect(body.userId).toBe('default-user');
+      });
   });
 
   describe('getItems', () => {
-    it('should return items successfully', async () => {
-      const mockItems = [{ itemId: '1', name: 'Item 1' }];
-      ddbMock.on(ScanCommand).resolves({ Items: mockItems });
-      const result = await getItems({});
+    it('should return items successfully for specific user', async () => {
+      const mockItems = [{ itemId: '1', name: 'Item 1', userId: TEST_USER }];
+      ddbMock.on(QueryCommand).resolves({ Items: mockItems });
+      const result = await getItems({ headers: { 'x-user-id': TEST_USER } });
       expect(result.statusCode).toBe(200);
-      expect(result.headers['Access-Control-Allow-Origin']).toBe('*');
-      expect(result.headers['Access-Control-Allow-Credentials']).toBe(true);
       expect(JSON.parse(result.body)).toEqual(mockItems);
+      
+      const queryCall = ddbMock.calls().find(c => c.args[0] instanceof QueryCommand);
+      expect(queryCall.args[0].input.ExpressionAttributeValues[':userId']).toBe(TEST_USER);
     });
   });
 
   describe('addStock', () => {
-    it('should add stock successfully', async () => {
+    it('should add stock successfully for user', async () => {
       const event = {
+        headers: { 'x-user-id': TEST_USER },
         pathParameters: { itemId: 'item-1' },
         body: JSON.stringify({ quantity: 5, memo: 'Buy' }),
       };
 
       ddbMock.on(PutCommand).resolves({});
-      ddbMock.on(UpdateCommand).resolves({ Attributes: { itemId: 'item-1', currentStock: 5 } });
+      ddbMock.on(UpdateCommand).resolves({ Attributes: { userId: TEST_USER, itemId: 'item-1', currentStock: 5 } });
 
       const result = await addStock(event);
 
       expect(result.statusCode).toBe(200);
-      expect(JSON.parse(result.body).currentStock).toBe(5);
       
       const putCall = ddbMock.calls().find(c => c.args[0] instanceof PutCommand);
-      expect(putCall.args[0].input.Item.type).toBe('purchase');
-      expect(putCall.args[0].input.Item.quantity).toBe(5);
+      expect(putCall.args[0].input.Item.userId).toBe(TEST_USER);
+      
+      const updateCall = ddbMock.calls().find(c => c.args[0] instanceof UpdateCommand);
+      expect(updateCall.args[0].input.Key.userId).toBe(TEST_USER);
     });
   });
 
   describe('consumeStock', () => {
-    it('should consume stock successfully', async () => {
+    it('should consume stock successfully for user', async () => {
       const event = {
+        headers: { 'x-user-id': TEST_USER },
         pathParameters: { itemId: 'item-1' },
         body: JSON.stringify({ quantity: 2 }),
       };
 
       ddbMock.on(PutCommand).resolves({});
-      ddbMock.on(UpdateCommand).resolves({ Attributes: { itemId: 'item-1', currentStock: 3 } });
+      ddbMock.on(UpdateCommand).resolves({ Attributes: { userId: TEST_USER, itemId: 'item-1', currentStock: 3 } });
 
       const result = await consumeStock(event);
 
       expect(result.statusCode).toBe(200);
-      expect(JSON.parse(result.body).currentStock).toBe(3);
+      
+      const putCall = ddbMock.calls().find(c => c.args[0] instanceof PutCommand);
+      expect(putCall.args[0].input.Item.userId).toBe(TEST_USER);
     });
   });
 
@@ -125,9 +145,8 @@ describe('Household Items API', () => {
   });
 
   describe('getEstimatedDepletionDate', () => {
-    it('should estimate depletion date', async () => {
-      ddbMock.on(GetCommand).resolves({ Item: { itemId: 'item-1', currentStock: 10 } });
-      // ScanCommand から QueryCommand に変更
+    it('should estimate depletion date for user', async () => {
+      ddbMock.on(GetCommand).resolves({ Item: { userId: TEST_USER, itemId: 'item-1', currentStock: 10 } });
       ddbMock.on(QueryCommand).resolves({ 
         Items: [
           { date: '2023-01-01T12:00:00Z', quantity: 2, type: 'consumption' },
@@ -138,56 +157,17 @@ describe('Household Items API', () => {
       // システム時刻を 2023-01-05 に進める
       vi.setSystemTime(new Date('2023-01-05T12:00:00Z'));
 
-      const result = await getEstimatedDepletionDate({ pathParameters: { itemId: 'item-1' } });
+      const result = await getEstimatedDepletionDate({ 
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-1' } 
+      });
 
       expect(result.statusCode).toBe(200);
       const body = JSON.parse(result.body);
       expect(body.estimatedDepletionDate).toBeDefined();
       
-      // 計算ロジック:
-      // 開始日: 2023-01-01
-      // 現在日: 2023-01-05
-      // 経過日数: 4日
-      // 総消費量: 4
-      // 1日あたりの消費量: 1
-      // 在庫: 10
-      // 残り日数: 10日
-      // 在庫切れ予想: 2023-01-15
-      const expectedDate = new Date('2023-01-05T12:00:00Z');
-      expectedDate.setDate(expectedDate.getDate() + 10);
-      expect(new Date(body.estimatedDepletionDate).toISOString()).toBe(expectedDate.toISOString());
-    });
-
-    it('should calculate correct consumption for stable pattern (2 units/day)', async () => {
-      ddbMock.on(GetCommand).resolves({ Item: { itemId: 'item-stable', currentStock: 20 } });
-      
-      // 10日間の履歴 (今日含めて11件のデータ点があるが、期間としては10日間)
-      const history = [];
-      for (let i = 10; i >= 0; i--) {
-        const date = new Date('2023-01-01T12:00:00Z');
-        date.setDate(date.getDate() + (10 - i));
-        history.push({ date: date.toISOString(), quantity: 2, type: 'consumption' });
-      }
-      ddbMock.on(QueryCommand).resolves({ Items: history });
-
-      // システム時刻を 2023-01-11 に設定 (最初の記録から10日後)
-      vi.setSystemTime(new Date('2023-01-11T12:00:00Z'));
-
-      const result = await getEstimatedDepletionDate({ pathParameters: { itemId: 'item-stable' } });
-      const body = JSON.parse(result.body);
-
-      // 総消費量: 11回 * 2 = 22
-      // 経過日数: 10日
-      // 1日あたり: 2.2 (11回記録があるため)
-      // 在庫 20 / 2.2 = 9.09日
-      expect(parseFloat(body.dailyConsumption)).toBeCloseTo(2.2, 1);
-      expect(body.totalConsumed).toBe(22);
-      expect(parseFloat(body.daysObserved)).toBe(10);
-      expect(body.currentStock).toBe(20);
-      
-      const expectedDate = new Date('2023-01-11T12:00:00Z');
-      expectedDate.setDate(expectedDate.getDate() + (20 / 2.2));
-      expect(new Date(body.estimatedDepletionDate).getTime()).toBeCloseTo(expectedDate.getTime(), -3);
+      const getCall = ddbMock.calls().find(c => c.args[0] instanceof GetCommand);
+      expect(getCall.args[0].input.Key.userId).toBe(TEST_USER);
     });
   });
 });

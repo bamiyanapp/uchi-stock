@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { ArrowLeft, Package, History as HistoryIcon, TrendingDown, Minus, Plus } from "lucide-react";
+import { useUser } from "../contexts/UserContext";
 
 const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
 
@@ -12,13 +13,15 @@ const ItemDetail = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [estimate, setEstimate] = useState(null);
+  const { userId } = useUser();
 
   const fetchData = useCallback(async () => {
     try {
+      const headers = { "x-user-id": userId };
       const [itemRes, historyRes, estimateRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/items`),
-        fetch(`${API_BASE_URL}/items/${itemId}/history`),
-        fetch(`${API_BASE_URL}/items/${itemId}/estimate`)
+        fetch(`${API_BASE_URL}/items`, { headers }),
+        fetch(`${API_BASE_URL}/items/${itemId}/history`, { headers }),
+        fetch(`${API_BASE_URL}/items/${itemId}/estimate`, { headers })
       ]);
 
       const itemsData = await itemRes.json();
@@ -32,7 +35,7 @@ const ItemDetail = () => {
     } catch (error) {
       console.error("Error fetching item details:", error);
     }
-  }, [itemId]);
+  }, [itemId, userId]);
 
   useEffect(() => {
     const initialFetch = async () => {
@@ -50,7 +53,10 @@ const ItemDetail = () => {
       const endpoint = type === "purchase" ? "stock" : "consume";
       const response = await fetch(`${API_BASE_URL}/items/${itemId}/${endpoint}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-user-id": userId
+        },
         body: JSON.stringify({ quantity: 1 }),
       });
 
