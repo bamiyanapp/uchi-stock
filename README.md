@@ -91,15 +91,6 @@ graph TD
 | date | String | - | 日付 (ISO8601) |
 | memo | String | - | メモ (任意) |
 
-#### 3. polly-cache
-Amazon Polly で生成した音声データのキャッシュ。（現状維持、利用予定なし）
-
-| 属性名 | 型 | キー | 説明 |
-| :--- | :--- | :--- | :--- |
-| id | String | Partition Key | キャッシュID (ハッシュ値) |
-| audioData | String | - | Base64形式の音声データ |
-| createdAt | String | - | 作成日時 (ISO8601) |
-
 ## CI/CD Pipeline Specification
 
 詳細な CI/CD パイプラインの仕様については、[CI/CD Pipeline Specification](docs/cicd-pipeline-specification.md) を参照してください。
@@ -114,5 +105,3 @@ Amazon Polly で生成した音声データのキャッシュ。（現状維持�
   - すべてのテーブル（`household-items`, `stock-history`, `polly-cache`）において PITR を有効化しています。
   - 過去 35 日間の任意の時点にデータを復旧することが可能です。
   - 意図しないデータ削除や更新ミスが発生した際の保険として機能します。
-
-## Test Feature
