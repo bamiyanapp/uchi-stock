@@ -30,6 +30,7 @@ function App() {
     e.preventDefault();
     if (!newItemName || !newItemUnit) return;
 
+    setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/items`, {
         method: "POST",
@@ -39,10 +40,16 @@ function App() {
       if (response.ok) {
         setNewItemName("");
         setNewItemUnit("");
-        fetchItems();
+        await fetchItems();
+      } else {
+        const data = await response.json();
+        alert(`追加に失敗しました: ${data.message || response.statusText}`);
       }
     } catch (error) {
       console.error("Error adding item:", error);
+      alert("通信エラーが発生しました。");
+    } finally {
+      setLoading(false);
     }
   };
 

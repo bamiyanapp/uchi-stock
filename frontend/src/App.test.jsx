@@ -61,6 +61,31 @@ describe('App', () => {
     });
   });
 
+  it('shows error alert when adding an item fails', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    });
+
+    await act(async () => {
+      render(<App />);
+    });
+
+    fetch.mockResolvedValueOnce({
+      ok: false,
+      statusText: 'Internal Server Error',
+      json: async () => ({ message: 'Something went wrong' }),
+    });
+
+    fireEvent.change(screen.getByPlaceholderText('品目名（例: トイレットペーパー）'), { target: { value: 'Tissue' } });
+    fireEvent.change(screen.getByPlaceholderText('単位（例: ロール, パック）'), { target: { value: 'packs' } });
+    fireEvent.click(screen.getByRole('button', { name: '追加' }));
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('追加に失敗しました: Something went wrong'));
+    });
+  });
+
   it('can update stock', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
