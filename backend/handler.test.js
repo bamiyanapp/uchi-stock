@@ -181,6 +181,9 @@ describe('Household Items API', () => {
       // 1日あたり: 2.2 (11回記録があるため)
       // 在庫 20 / 2.2 = 9.09日
       expect(parseFloat(body.dailyConsumption)).toBeCloseTo(2.2, 1);
+      expect(body.totalConsumed).toBe(22);
+      expect(parseFloat(body.daysObserved)).toBe(10);
+      expect(body.currentStock).toBe(20);
       
       const expectedDate = new Date('2023-01-11T12:00:00Z');
       expectedDate.setDate(expectedDate.getDate() + (20 / 2.2));

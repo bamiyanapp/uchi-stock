@@ -420,6 +420,9 @@ exports.getEstimatedDepletionDate = async (event) => {
     const daysDiff = Math.max(1, (now - firstDate) / (1000 * 60 * 60 * 24));
     
     const totalConsumed = history.reduce((sum, h) => sum + h.quantity, 0);
+    // 直近のペースを重視するため、履歴の期間（最初から最後まで）で割る
+    // ただし、現在までの期間で見ないと「最近消費していない」ことが反映されないため、
+    // 最初の記録から現在までの期間を使用する（現状維持だが、意味を明確にする）
     const dailyConsumption = totalConsumed / daysDiff;
 
     if (dailyConsumption <= 0) {
@@ -429,11 +432,15 @@ exports.getEstimatedDepletionDate = async (event) => {
               "Access-Control-Allow-Origin": "*",
               "Access-Control-Allow-Credentials": true,
             },
-            body: JSON.stringify({ estimatedDepletionDate: null, message: "No consumption observed" }),
+            body: JSON.stringify({ 
+              estimatedDepletionDate: null, 
+              dailyConsumption: 0,
+              message: "No consumption observed" 
+            }),
           };
     }
 
-    const daysRemaining = item.currentStock / dailyConsumption;
+    const daysRemaining = Math.max(0, item.currentStock / dailyConsumption);
     const estimatedDate = new Date();
     estimatedDate.setDate(estimatedDate.getDate() + daysRemaining);
 
@@ -445,7 +452,10 @@ exports.getEstimatedDepletionDate = async (event) => {
       },
       body: JSON.stringify({ 
         estimatedDepletionDate: estimatedDate.toISOString(),
-        dailyConsumption: dailyConsumption.toFixed(2)
+        dailyConsumption: dailyConsumption.toFixed(2),
+        totalConsumed,
+        daysObserved: daysDiff.toFixed(1),
+        currentStock: item.currentStock
       }),
     };
   } catch (error) {
