@@ -8,4 +8,5 @@ const localStorageMock = {
   clear: vi.fn(),
 };
 
+// eslint-disable-next-line no-undef
 global.localStorage = localStorageMock;

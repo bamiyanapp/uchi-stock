@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Trash2, ExternalLink, Minus } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
@@ -13,11 +13,7 @@ function Home() {
   const [newItemUnit, setNewItemUnit] = useState("");
   const { userId } = useUser();
 
-  useEffect(() => {
-    fetchItems();
-  }, [userId]);
-
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/items`, {
@@ -52,7 +48,11 @@ function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
 
   const addItem = async (e) => {
     e.preventDefault();
