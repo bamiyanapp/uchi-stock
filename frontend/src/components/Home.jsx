@@ -19,7 +19,23 @@ function Home() {
     try {
       const response = await fetch(`${API_BASE_URL}/items`);
       const data = await response.json();
-      setItems(Array.isArray(data) ? data : []);
+      const itemsList = Array.isArray(data) ? data : [];
+
+      // 各アイテムの在庫切れ予想を取得
+      const itemsWithEstimates = await Promise.all(
+        itemsList.map(async (item) => {
+          try {
+            const estResponse = await fetch(`${API_BASE_URL}/items/${item.itemId}/estimate`);
+            const estData = await estResponse.json();
+            return { ...item, estimate: estData };
+          } catch (error) {
+            console.error(`Error fetching estimate for item ${item.itemId}:`, error);
+            return { ...item, estimate: null };
+          }
+        })
+      );
+
+      setItems(itemsWithEstimates);
     } catch (error) {
       console.error("Error fetching items:", error);
     } finally {
@@ -167,8 +183,10 @@ function Home() {
                       </div>
                       
                       <div className="mb-4">
-                        <label className="small text-muted mb-1 d-block">現在の在庫数</label>
-                        <div className="d-flex align-items-center gap-2">
+                        <label className="small text-muted mb-1 d-block">
+                          {new Date().getMonth() + 1}月{new Date().getDate()}日時点の在庫
+                        </label>
+                        <div className="d-flex align-items-center gap-2 mb-2">
                           <select 
                             className="form-select form-select-lg w-auto"
                             value={item.currentStock}
@@ -183,6 +201,15 @@ function Home() {
                           </select>
                           <span className="fs-5 text-muted">{item.unit}</span>
                         </div>
+                        {item.estimate && item.estimate.estimatedDepletionDate ? (
+                          <div className="small text-danger fw-bold">
+                            あと{Math.ceil((new Date(item.estimate.estimatedDepletionDate) - new Date()) / (1000 * 60 * 60 * 24))}日で在庫切れの予想
+                          </div>
+                        ) : (
+                          <div className="small text-muted">
+                            {item.estimate?.message === "Not enough history to estimate" ? "履歴不足のため予想不可" : "在庫切れ予想なし"}
+                          </div>
+                        )}
                       </div>
 
                       <div className="d-grid">

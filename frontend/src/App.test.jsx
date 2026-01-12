@@ -27,11 +27,19 @@ describe('App', () => {
   });
 
   it('renders household items management screen initially', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => [
-        { itemId: '1', name: 'Toilet Paper', unit: 'rolls', currentStock: 5, updatedAt: new Date().toISOString() }
-      ],
+    fetch.mockImplementation(async (url) => {
+      if (url.includes('/estimate')) {
+        return {
+          ok: true,
+          json: async () => ({ estimatedDepletionDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString() }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => [
+          { itemId: '1', name: 'Toilet Paper', unit: 'rolls', currentStock: 5, updatedAt: new Date().toISOString() }
+        ],
+      };
     });
 
     await act(async () => {
@@ -43,6 +51,8 @@ describe('App', () => {
       expect(screen.getByText('Toilet Paper')).toBeInTheDocument();
       expect(screen.getByText('5')).toBeInTheDocument();
       expect(screen.getByText('rolls')).toBeInTheDocument();
+      expect(screen.getByText(/時点の在庫/)).toBeInTheDocument();
+      expect(screen.getByText(/あと5日で在庫切れの予想/)).toBeInTheDocument();
     });
   });
 
