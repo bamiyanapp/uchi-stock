@@ -92,11 +92,15 @@ resources:
       Properties:
         TableName: ${self:custom.tableName}
         AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
           - AttributeName: itemId
             AttributeType: S
         KeySchema:
-          - AttributeName: itemId
+          - AttributeName: userId
             KeyType: HASH
+          - AttributeName: itemId
+            KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
         PointInTimeRecoverySpecification:
           PointInTimeRecoveryEnabled: true
@@ -107,14 +111,16 @@ resources:
         AttributeDefinitions:
           - AttributeName: historyId
             AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
           - AttributeName: itemId
             AttributeType: S
           - AttributeName: date
             AttributeType: S
         KeySchema:
-          - AttributeName: historyId
+          - AttributeName: userId
             KeyType: HASH
-          - AttributeName: itemId
+          - AttributeName: historyId
             KeyType: RANGE
         GlobalSecondaryIndexes:
           - IndexName: ItemIdIndex

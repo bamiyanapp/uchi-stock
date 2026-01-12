@@ -1,6 +1,6 @@
 
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand, QueryCommand } = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand, QueryCommand } = require("@aws-sdk/lib-dynamodb");
 const crypto = require("crypto");
 
 const dynamoClient = new DynamoDBClient({});
@@ -9,6 +9,10 @@ const docClient = DynamoDBDocumentClient.from(dynamoClient);
 const ITEMS_TABLE = process.env.TABLE_NAME;
 const HISTORY_TABLE = process.env.STOCK_HISTORY_TABLE_NAME;
 
+const getUserId = (event) => {
+  return event.headers["x-user-id"] || "default-user";
+};
+
 /**
  * 新しい品目を登録する。
  * @param {object} event - API Gatewayイベント
@@ -16,6 +20,7 @@ const HISTORY_TABLE = process.env.STOCK_HISTORY_TABLE_NAME;
  */
 exports.createItem = async (event) => {
   try {
+    const userId = getUserId(event);
     const body = JSON.parse(event.body);
     const { name, unit } = body;
 
@@ -34,6 +39,7 @@ exports.createItem = async (event) => {
     const now = new Date().toISOString();
 
     const item = {
+      userId,
       itemId,
       name,
       unit,
@@ -73,8 +79,11 @@ exports.createItem = async (event) => {
  */
 exports.getItems = async (event) => {
   try {
-    const { Items } = await docClient.send(new ScanCommand({
+    const userId = getUserId(event);
+    const { Items } = await docClient.send(new QueryCommand({
       TableName: ITEMS_TABLE,
+      KeyConditionExpression: "userId = :userId",
+      ExpressionAttributeValues: { ":userId": userId },
     }));
 
     return {
@@ -103,6 +112,7 @@ exports.getItems = async (event) => {
  */
 exports.updateItem = async (event) => {
   try {
+    const userId = getUserId(event);
     const { itemId } = event.pathParameters;
     const body = JSON.parse(event.body);
     const { name, unit, currentStock } = body;
@@ -138,7 +148,7 @@ exports.updateItem = async (event) => {
 
     const { Attributes } = await docClient.send(new UpdateCommand({
       TableName: ITEMS_TABLE,
-      Key: { itemId },
+      Key: { userId, itemId },
       UpdateExpression,
       ExpressionAttributeValues,
       ExpressionAttributeNames,
@@ -171,10 +181,11 @@ exports.updateItem = async (event) => {
  */
 exports.deleteItem = async (event) => {
   try {
+    const userId = getUserId(event);
     const { itemId } = event.pathParameters;
     await docClient.send(new DeleteCommand({
       TableName: ITEMS_TABLE,
-      Key: { itemId },
+      Key: { userId, itemId },
     }));
     return {
       statusCode: 204,
@@ -202,6 +213,7 @@ exports.deleteItem = async (event) => {
  */
 exports.addStock = async (event) => {
   try {
+    const userId = getUserId(event);
     const { itemId } = event.pathParameters;
     const { quantity, date, memo } = JSON.parse(event.body);
 
@@ -223,6 +235,7 @@ exports.addStock = async (event) => {
     await docClient.send(new PutCommand({
       TableName: HISTORY_TABLE,
       Item: {
+        userId,
         historyId,
         itemId,
         type: "purchase",
@@ -235,7 +248,7 @@ exports.addStock = async (event) => {
     // 品目の在庫数更新
     const { Attributes } = await docClient.send(new UpdateCommand({
       TableName: ITEMS_TABLE,
-      Key: { itemId },
+      Key: { userId, itemId },
       UpdateExpression: "set currentStock = currentStock + :q, updatedAt = :now",
       ExpressionAttributeValues: { ":q": quantity, ":now": now },
       ReturnValues: "ALL_NEW",
@@ -267,6 +280,7 @@ exports.addStock = async (event) => {
  */
 exports.consumeStock = async (event) => {
   try {
+    const userId = getUserId(event);
     const { itemId } = event.pathParameters;
     const { quantity, date, memo } = JSON.parse(event.body);
 
@@ -288,6 +302,7 @@ exports.consumeStock = async (event) => {
     await docClient.send(new PutCommand({
       TableName: HISTORY_TABLE,
       Item: {
+        userId,
         historyId,
         itemId,
         type: "consumption",
@@ -300,7 +315,7 @@ exports.consumeStock = async (event) => {
     // 品目の在庫数更新（マイナスにならないように調整が必要かもしれないが、一旦単純に減らす）
     const { Attributes } = await docClient.send(new UpdateCommand({
       TableName: ITEMS_TABLE,
-      Key: { itemId },
+      Key: { userId, itemId },
       UpdateExpression: "set currentStock = currentStock - :q, updatedAt = :now",
       ExpressionAttributeValues: { ":q": quantity, ":now": now },
       ReturnValues: "ALL_NEW",
@@ -367,12 +382,13 @@ exports.getConsumptionHistory = async (event) => {
  */
 exports.getEstimatedDepletionDate = async (event) => {
   try {
+    const userId = getUserId(event);
     const { itemId } = event.pathParameters;
 
     // 品目情報を取得
     const { Item: item } = await docClient.send(new GetCommand({
       TableName: ITEMS_TABLE,
-      Key: { itemId },
+      Key: { userId, itemId },
     }));
 
     if (!item) {

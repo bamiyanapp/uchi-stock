@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Trash2, ExternalLink, Minus } from "lucide-react";
+import { useUser } from "../contexts/UserContext";
+import UserSelector from "./UserSelector";
 
 const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
 
@@ -9,15 +11,16 @@ function Home() {
   const [loading, setLoading] = useState(true);
   const [newItemName, setNewItemName] = useState("");
   const [newItemUnit, setNewItemUnit] = useState("");
+  const { userId } = useUser();
 
-  useEffect(() => {
-    fetchItems();
-  }, []);
-
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/items`);
+      const response = await fetch(`${API_BASE_URL}/items`, {
+        headers: {
+          "x-user-id": userId
+        }
+      });
       const data = await response.json();
       const itemsList = Array.isArray(data) ? data : [];
 
@@ -25,7 +28,11 @@ function Home() {
       const itemsWithEstimates = await Promise.all(
         itemsList.map(async (item) => {
           try {
-            const estResponse = await fetch(`${API_BASE_URL}/items/${item.itemId}/estimate`);
+            const estResponse = await fetch(`${API_BASE_URL}/items/${item.itemId}/estimate`, {
+              headers: {
+                "x-user-id": userId
+              }
+            });
             const estData = await estResponse.json();
             return { ...item, estimate: estData };
           } catch (error) {
@@ -41,7 +48,11 @@ function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
 
   const addItem = async (e) => {
     e.preventDefault();
@@ -51,7 +62,10 @@ function Home() {
     try {
       const response = await fetch(`${API_BASE_URL}/items`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-user-id": userId
+        },
         body: JSON.stringify({ name: newItemName, unit: newItemUnit }),
       });
       if (response.ok) {
@@ -75,7 +89,10 @@ function Home() {
       const endpoint = type === "purchase" ? "stock" : "consume";
       const response = await fetch(`${API_BASE_URL}/items/${item.itemId}/${endpoint}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-user-id": userId
+        },
         body: JSON.stringify({ quantity: 1 }),
       });
 
@@ -96,6 +113,9 @@ function Home() {
     try {
       const response = await fetch(`${API_BASE_URL}/items/${itemId}`, {
         method: "DELETE",
+        headers: {
+          "x-user-id": userId
+        }
       });
       if (response.ok) {
         fetchItems();
@@ -113,6 +133,8 @@ function Home() {
       </header>
 
       <main>
+        <UserSelector />
+
         <section className="mb-5">
           <h2 className="h5 mb-4">在庫一覧</h2>
           {loading ? (
