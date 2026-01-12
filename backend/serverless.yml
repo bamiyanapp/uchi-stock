@@ -1,4 +1,4 @@
-service: uchi-stock-app
+service: ${self:custom.appName}
 
 provider:
   name: aws
@@ -23,8 +23,9 @@ provider:
             - !GetAtt StockHistoryTable.Arn
 
 custom:
-  tableName: uchi-stock-app-items
-  stockHistoryTableName: uchi-stock-app-stock-history
+  appName: uchi-stock-app
+  tableName: ${self:custom.appName}-items
+  stockHistoryTableName: ${self:custom.appName}-stock-history
 
 functions:
   createItem:
