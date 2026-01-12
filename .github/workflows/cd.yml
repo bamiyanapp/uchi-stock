@@ -222,10 +222,25 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
-      - name: Install dependencies
+      - name: Install Root dependencies
+        run: npm ci
+      - name: Install Backend dependencies
         working-directory: backend
         run: npm ci
+      - name: 🛡️ Check for Destructive Changes
+        run: node scripts/check-destructive-changes.js
+        env:
+          FORCE_DEPLOY: ${{ github.event.inputs.force_deploy || 'false' }}
+      - name: 💾 Backup DynamoDB
+        run: |
+          cd backend
+          TABLE_NAMES=$(npx serverless print --format json | jq -r '.resources.Resources[] | select(.Type=="AWS::DynamoDB::Table") | .Properties.TableName')
+          cd ..
+          node scripts/backup-dynamodb.js $TABLE_NAMES
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ap-northeast-1
       - name: 🚀 Deploy Backend (Serverless Framework)
         working-directory: backend
         run: npx serverless deploy
