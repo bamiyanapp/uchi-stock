@@ -20,7 +20,7 @@ graph TD
   - `main` または `release` ブランチへのプッシュ
   - 全てのプルリクエスト
 - **実行内容**:
-  - `commitlint`: コミットメッセージが Conventional Commits 形式に従っているか検証
+  - `commitlint`: コミットメッセージが Conventional Commits 形式に従っているか検証。**ルールに準拠していない場合は CI が失敗します。**
   - `frontend-test`: フロントエンドの Lint、ビルド、および Vitest によるテスト
   - `backend-test`: バックエンドの Vitest によるテスト
   - `merge`: PR の場合、テスト成功後に `main` ブランチへ自動マージ（Squash merge）
@@ -38,8 +38,28 @@ graph TD
 - **リリース条件**:
   - `semantic-release` による実際のタグ付けとデプロイは、**`release` ブランチへのマージ（プッシュ）時にのみ**実行されます。
   - `main` ブランチは開発用であり、保護設定による権限エラーを避けるため、自動リリースはスキップされます。
+- **コミットメッセージのルール (Conventional Commits)**:
+  - 本プロジェクトでは、自動リリースと `CHANGELOG.md` の自動生成のために [Conventional Commits](https://www.conventionalcommits.org/) を採用しています。
+  - コミットメッセージは以下の形式で記述する必要があります：
+    ```text
+    <type>(<scope>): <description>
+
+    [optional body]
+
+    [optional footer(s)]
+    ```
+  - 主要な `type`:
+    - `feat`: 新機能（マイナーバージョンアップ）
+    - `fix`: バグ修正（パッチバージョンアップ）
+    - `docs`: ドキュメントのみの変更
+    - `style`: コードの意味に影響を与えない変更（ホワイトスペース、フォーマット等）
+    - `refactor`: バグ修正も新機能追加も行わないコード変更
+    - `perf`: パフォーマンス向上
+    - `test`: テストの追加や既存テストの修正
+    - `chore`: ビルドプロセスやドキュメント生成などの補助ツール、ライブラリの変更
+  - 破壊的変更（メジャーバージョンアップ）がある場合は、`type` の後に `!` を付けるか、footer に `BREAKING CHANGE:` と記述します。
 - **リリースの手順**:
-  1. 通常の開発は `main` ブランチに対して行い、PR を作成してマージします。
+  1. 通常の開発は `main` ブランチに対して行い、PR を作成してマージします。この際、コミットメッセージがルールに準拠していることを確認してください。
   2. リリースの準備ができたら、`main` ブランチを `release` ブランチにマージします。
   3. `release` ブランチでの CI 成功後、自動的にリリースおよびデプロイが行われます。
 
