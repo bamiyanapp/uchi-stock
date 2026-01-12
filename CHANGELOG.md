@@ -1,1 +1,38 @@
+# [1.14.0](https://github.com/bamiyanapp/uchi-stock/compare/v1.13.0...v1.14.0) (2026-01-12)
+
+
+### Bug Fixes
+
+* **auth:** Googleログイン設定の修正とバリデーションの強化 ([#22](https://github.com/bamiyanapp/uchi-stock/issues/22)) ([3c98ec6](https://github.com/bamiyanapp/uchi-stock/commit/3c98ec61844b222e12a89093e9a2441490a38d12))
+* **backend:** API GatewayでのCORSエラーを修正 ([#7](https://github.com/bamiyanapp/uchi-stock/issues/7)) ([c2700ba](https://github.com/bamiyanapp/uchi-stock/commit/c2700ba8b6078f2e5efcff9e49e421bce60107e4))
+* **backend:** CORS設定に x-user-id ヘッダーを追加 ([#20](https://github.com/bamiyanapp/uchi-stock/issues/20)) ([97122cf](https://github.com/bamiyanapp/uchi-stock/commit/97122cf93067d6234a5d7ef18008d3987aa2137b))
+* **ci:** 自動マージ前にベースブランチの更新を取り込むように改善 ([#24](https://github.com/bamiyanapp/uchi-stock/issues/24)) ([57ac0be](https://github.com/bamiyanapp/uchi-stock/commit/57ac0beee110e2bba98d865f585ff5e734fea376))
+* **deploy:** DynamoDBテーブル名の変更によるデプロイエラーの解消 ([#19](https://github.com/bamiyanapp/uchi-stock/issues/19)) ([ec26ace](https://github.com/bamiyanapp/uchi-stock/commit/ec26acebad8f756bc35ee25edb81369b853f6aaa))
+* **frontend:** 品目追加時のUIフィードバックを改善 ([#6](https://github.com/bamiyanapp/uchi-stock/issues/6)) ([32cc3f0](https://github.com/bamiyanapp/uchi-stock/commit/32cc3f0b93a174d3d03aadd7b78d018102e95c42))
+* **frontend:** 失敗するテストケースを削除 ([#1](https://github.com/bamiyanapp/uchi-stock/issues/1)) ([654c9eb](https://github.com/bamiyanapp/uchi-stock/commit/654c9eb5edf8d46836d8662cfaf11b74040764b6))
+* **frontend:** 失敗するテストケースを削除 ([#4](https://github.com/bamiyanapp/uchi-stock/issues/4)) ([63ff065](https://github.com/bamiyanapp/uchi-stock/commit/63ff065d0a884708926e0b15a41922cc831808c1))
+* デバッグ ([#9](https://github.com/bamiyanapp/uchi-stock/issues/9)) ([ddc51b9](https://github.com/bamiyanapp/uchi-stock/commit/ddc51b969782d87dea64f837db6a648ab3283de5))
+
+
+### Features
+
+* **auth:** GoogleアカウントによるSSO認証機能の追加 ([#18](https://github.com/bamiyanapp/uchi-stock/issues/18)) ([7359c2e](https://github.com/bamiyanapp/uchi-stock/commit/7359c2e969e86477492fa64a3dbcdaecf927a807))
+* **backend:** CORSエラー解消のための設定追加 ([#8](https://github.com/bamiyanapp/uchi-stock/issues/8)) ([3b4419a](https://github.com/bamiyanapp/uchi-stock/commit/3b4419af2785c371a1d73c3078956a41b3894bf0))
+* **backend:** ハンドラー関数のテスト実装 ([f5639c1](https://github.com/bamiyanapp/uchi-stock/commit/f5639c1fb2eb142bb41c84d8a140d2431553de89))
+* **backend:** 在庫履歴のテストデータ拡充と計算ロジックの検証テスト追加 ([bf1fac1](https://github.com/bamiyanapp/uchi-stock/commit/bf1fac15c120481449ac902af7ffb95ec9b62d56))
+* **deploy:** AWSデプロイ時のデータ損失防止策の導入 ([#21](https://github.com/bamiyanapp/uchi-stock/issues/21)) ([8bc890b](https://github.com/bamiyanapp/uchi-stock/commit/8bc890b10e0283a706bf5fb8a929404a8c04f839))
+* **frontend:** 在庫一覧に現在日付と在庫切れ予想日数を表示 ([fb4bd6d](https://github.com/bamiyanapp/uchi-stock/commit/fb4bd6d5f45d1505e8a2c77baac4de1167b52b59))
+* **infra:** DynamoDBテーブル名にサービス名を追加 ([ec48c69](https://github.com/bamiyanapp/uchi-stock/commit/ec48c69734aa649637c84586f233cd09fc0f5749))
+* **infra:** serverless.ymlのリソース名を更新し、polly関連設定を削除 ([05d614d](https://github.com/bamiyanapp/uchi-stock/commit/05d614dbf7acfac2d71094eb5a25569440ea9718))
+* **release:** ローカル環境でのSemantic Release実行に対応 ([d75bdcb](https://github.com/bamiyanapp/uchi-stock/commit/d75bdcb9f8eab33b114cc5f170a5dc81bc8981fd))
+* **stock:** 在庫推移グラフの改善と予測ロジックの詳細化 ([7d85f34](https://github.com/bamiyanapp/uchi-stock/commit/7d85f34e54f16f2596e267f5f2c6d08015fb2709))
+* **stock:** 在庫更新UIと予測ロジックの改善 ([#13](https://github.com/bamiyanapp/uchi-stock/issues/13)) ([261f33c](https://github.com/bamiyanapp/uchi-stock/commit/261f33cbc25a720017565c93eb4f62ab352feb72))
+* **stock:** 在庫更新UIと予測ロジックの改善 ([#15](https://github.com/bamiyanapp/uchi-stock/issues/15)) ([3f778bb](https://github.com/bamiyanapp/uchi-stock/commit/3f778bb437e190f8c019d12059356e6857c99ade))
+* **stock:** 家庭用品在庫管理機能の実装 ([1f1c639](https://github.com/bamiyanapp/uchi-stock/commit/1f1c639ba3f61ee85ac4a4c23cff1b7aadbbce8a))
+* **test:** 在庫切れ予測確認のためのテストデータ投入スクリプトを追加 ([#12](https://github.com/bamiyanapp/uchi-stock/issues/12)) ([696382e](https://github.com/bamiyanapp/uchi-stock/commit/696382eb4d276953ddc0693be1837e946ab8a5c5))
+* **ui:** 品目追加フォームを在庫一覧の最下部に移動 ([#16](https://github.com/bamiyanapp/uchi-stock/issues/16)) ([3a845bd](https://github.com/bamiyanapp/uchi-stock/commit/3a845bd2ca17ed04a32edb62f4e3b5607ec09f49))
+* **ui:** 在庫更新をプルダウンからボタン操作に変更 ([0c0b331](https://github.com/bamiyanapp/uchi-stock/commit/0c0b331972ddf7add94112b01486abcfda888111))
+* 在庫更新をプルダウン化し、品目詳細ページと消費履歴グラフを追加 ([#10](https://github.com/bamiyanapp/uchi-stock/issues/10)) ([bb8e49a](https://github.com/bamiyanapp/uchi-stock/commit/bb8e49a3d2b14f241e8b54602aeab34c34089786))
+* 複数ユーザー対応とテスト用ユーザー切替機能の追加 ([#17](https://github.com/bamiyanapp/uchi-stock/issues/17)) ([7fe3e6d](https://github.com/bamiyanapp/uchi-stock/commit/7fe3e6d172d94013e022ad7901ced7dff16719d9))
+
 # Changelog

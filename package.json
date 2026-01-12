@@ -22,5 +22,5 @@
   "scripts": {
     "release:local": "./scripts/local-release.sh"
   },
-  "version": "1.12.1"
+  "version": "1.14.0"
 }
