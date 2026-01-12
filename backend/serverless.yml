@@ -23,8 +23,8 @@ provider:
             - !GetAtt StockHistoryTable.Arn
 
 custom:
-  tableName: uchi-stock-items
-  stockHistoryTableName: uchi-stock-stock-history
+  tableName: uchi-stock-app-items
+  stockHistoryTableName: uchi-stock-app-stock-history
 
 functions:
   createItem:
