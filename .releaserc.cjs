@@ -5,22 +5,7 @@ module.exports = {
     [
       "@semantic-release/commit-analyzer",
       {
-        preset: "conventionalcommits",
-        releaseRules: [
-          { type: "feat", release: "minor" },
-          { type: "fix", release: "patch" },
-
-          { type: "Feat", release: "minor" },
-          { type: "Fix", release: "patch" },
-          { type: "Refactor", release: "patch" },
-
-          { type: "Feat/fix", release: "patch" },
-          { type: "Fix/tech", release: "patch" },
-
-          { type: "Docs", release: false },
-          { type: "Chore", release: false }
-        ],
-        defaultReleaseType: "patch"
+        preset: "conventionalcommits"
       }
     ],
     "@semantic-release/release-notes-generator",
