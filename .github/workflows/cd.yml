@@ -44,56 +44,7 @@ jobs:
           git log origin/release --oneline -5
           git rev-parse main
           git rev-parse origin/main
-
-    # Release が Main の最新と同じか確認
-      - name: Sync check
-        id: sync
-        run: |
-          git fetch origin main
-          MAIN_HEAD=$(git rev-parse origin/main)
-          RELEASE_HEAD=$(git rev-parse release)
-          echo "MAIN_HEAD=$MAIN_HEAD" >> $GITHUB_ENV
-          echo "RELEASE_HEAD=$RELEASE_HEAD" >> $GITHUB_ENV
-          if [ "$MAIN_HEAD" = "$RELEASE_HEAD" ]; then
-            echo "Release is up-to-date with main"
-            echo "up_to_date=true" >> $GITHUB_ENV
-          else
-            echo "Release needs to merge main"
-            echo "up_to_date=false" >> $GITHUB_ENV
-          fi
-      # 必要ならマージ
-      - name: Merge main into release if needed
-        if: env.up_to_date == 'false'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git merge --no-ff origin/main -m "Chore: Merge main into release"
-          git push origin release
-      # Release 上の HEAD に既にタグがあるか確認
-      - name: Check for existing tags
-        id: tag_check
-        run: |
-          TAGS=$(git tag --contains HEAD | grep "^v" || true)
-          if [ -n "$TAGS" ]; then
-            echo "HEAD already has tags: $TAGS"
-            echo "tag_exists=true" >> $GITHUB_ENV
-          else
-            echo "No tags on HEAD"
-            echo "tag_exists=false" >> $GITHUB_ENV
-          fi
-
-      - name: Skip if release branch has no new commits
-        run: |
-          if git tag --contains HEAD | grep -q "v"; then
-            echo "Release branch already contains latest tag(s). Skipping release."
-            exit 0
-          fi
-      - name: Checkout release branch
-        run: git checkout release
-      - name: Merge main into release
-        run: |
-          # Fast-forward マージ
-          git merge --ff-only origin/main || echo "Already up to date"
+          git checkout release
       - name: Skip if no new commits
         run: |
           if git tag --contains HEAD | grep -q "v"; then
@@ -126,38 +77,6 @@ jobs:
           git fetch --tags origin
           git tag -l | grep v1.1
     
-      # デバッグ: Main ブランチの情報も確認
-      - name: Debug Main branch
-        run: |
-          echo "===== MAIN BRANCH ====="
-          git fetch origin main --depth=1
-          git checkout origin/main
-          echo "Branch: $(git branch --show-current)"
-          echo "Commit: $(git rev-parse HEAD)"
-          echo "Tags containing HEAD:"
-          git tag --contains HEAD
-          echo "All tags:"
-          git fetch --tags origin
-          git tag -l | grep v1.1
-          # Release ブランチに戻す
-          git checkout release
-      
-      - name: Check for tag conflicts
-        id: check-tags
-        env:
-          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN != '' && secrets.BOT_TOKEN || secrets.GITHUB_TOKEN }}
-        run: |
-          # semantic-release が付ける予定の次バージョンを確認
-          NEXT_TAG=$(npx semantic-release --dry-run | grep "The next release version is" | awk '{print $6}')
-          echo "NEXT_TAG=$NEXT_TAG" >> $GITHUB_ENV
-          # 既存タグと重複していないか確認
-          if git rev-parse "refs/tags/$NEXT_TAG" >/dev/null 2>&1; then
-            echo "Tag $NEXT_TAG already exists. Exiting."
-            exit 0
-          fi
-          git fetch --tags origin
-          git tag --contains HEAD
-
       - name: Semantic Release
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN != '' && secrets.BOT_TOKEN || secrets.GITHUB_TOKEN }}
