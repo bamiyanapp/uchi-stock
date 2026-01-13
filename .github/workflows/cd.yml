@@ -2,9 +2,11 @@ name: CD
 run-name: CD ${{ github.event.head_commit.message }}
 
 on:
-  push:
+  pull_request:
     branches:
-      - release
+      - main
+    types:
+      - closed
 permissions:
   contents: write
   issues: write
