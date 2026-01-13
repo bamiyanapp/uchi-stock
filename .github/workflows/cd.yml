@@ -175,6 +175,7 @@ jobs:
           auto-merge: true
 
   changelog:
+    needs: release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
