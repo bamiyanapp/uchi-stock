@@ -2,9 +2,10 @@ name: CD
 run-name: CD ${{ github.event.head_commit.message }}
 
 on:
-  push:
-    branches:
-      - release
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
 permissions:
   contents: write
   issues: write
@@ -14,6 +15,8 @@ permissions:
 
 jobs:
   release:
+    if: >
+      github.event.workflow_run.conclusion == 'success'
     name: Release
     runs-on: ubuntu-latest
     permissions:
@@ -175,6 +178,7 @@ jobs:
           auto-merge: true
 
   changelog:
+    needs: release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
