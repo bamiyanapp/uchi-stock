@@ -25,7 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: release
+          ref: main
           fetch-depth: 0
           token: ${{ secrets.BOT_TOKEN != '' && secrets.BOT_TOKEN || secrets.GITHUB_TOKEN }}
       - name: Setup Node.js
@@ -42,8 +42,8 @@ jobs:
           git fetch origin
           git log origin/main --oneline -5
           git log origin/release --oneline -5
-          git rev-parse release
-          git rev-parse origin/release
+          git rev-parse main
+          git rev-parse origin/main
 
     # Release が Main の最新と同じか確認
       - name: Sync check
