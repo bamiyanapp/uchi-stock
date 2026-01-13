@@ -38,12 +38,16 @@ jobs:
   
       - name: Fetch tags
         run: |
+          git checkout main          
           git fetch origin --tags --prune
           git fetch origin
+          git reset --hard origin/main
           git log origin/main --oneline -5
-          git log origin/release --oneline -5
-          git rev-parse main
+          echo "LOCAL:"
+          git rev-parse HEAD
+          echo "REMOTE:"
           git rev-parse origin/main
+          git status -sb
 
       - name: Dry-run Semantic-release
         id: dryrun
