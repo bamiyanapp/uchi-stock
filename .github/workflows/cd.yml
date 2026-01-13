@@ -110,7 +110,7 @@ jobs:
       - name: Semantic Release
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN != '' && secrets.BOT_TOKEN || secrets.GITHUB_TOKEN }}
-          # DEBUG: semantic-release:*
+          DEBUG: semantic-release:*
         run: |
           npx semantic-release
       - name: Create PR from release to main
