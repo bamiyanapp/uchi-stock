@@ -173,6 +173,38 @@ jobs:
           commit-message: "chore: sync release branch into main [skip ci]"
           merge-method: squash
           auto-merge: true
+
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      # CHANGELOG 生成
+      - name: Generate CHANGELOG
+        run: |
+          npx conventional-changelog \
+            -p conventionalcommits \
+            -i CHANGELOG.md \
+            -s \
+            -r 0
+      # json 変換（必要なら）
+      - run: node scripts/convert-changelog-to-json.js
+      # changelog ブランチへ push
+      - name: Push to changelog branch
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git checkout release
+          git checkout ${{ github.sha }} -- CHANGELOG.md frontend/src/changelog.json
+          git add CHANGELOG.md frontend/src/changelog.json
+          git commit -m "docs(changelog): ${{ github.ref_name }}" || exit 0
+          git push origin release
+
   build-and-deploy-frontend:
     needs: release
     runs-on: ubuntu-latest
