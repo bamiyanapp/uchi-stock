@@ -159,7 +159,7 @@ jobs:
           git add CHANGELOG.md frontend/src/changelog.json
           git commit -m "docs(changelog): ${{ github.ref_name }}" || exit 0
           git push origin release
-
+          
   build-and-deploy-frontend:
     needs: release
     runs-on: ubuntu-latest
