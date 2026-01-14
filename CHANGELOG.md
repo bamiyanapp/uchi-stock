@@ -32,6 +32,7 @@
 * **frontend:** 品目追加時のUIフィードバックを改善 ([#6](https://github.com/bamiyanapp/karuta/issues/6)) ([32cc3f0](https://github.com/bamiyanapp/karuta/commit/32cc3f0b93a174d3d03aadd7b78d018102e95c42))
 * **frontend:** 失敗するテストケースを削除 ([#1](https://github.com/bamiyanapp/karuta/issues/1)) ([654c9eb](https://github.com/bamiyanapp/karuta/commit/654c9eb5edf8d46836d8662cfaf11b74040764b6))
 * **frontend:** 失敗するテストケースを削除 ([#4](https://github.com/bamiyanapp/karuta/issues/4)) ([63ff065](https://github.com/bamiyanapp/karuta/commit/63ff065d0a884708926e0b15a41922cc831808c1))
+* marge ([#46](https://github.com/bamiyanapp/karuta/issues/46)) ([4236120](https://github.com/bamiyanapp/karuta/commit/42361205eb46ce64487e69c15650e9e6467e8236)), closes [#47](https://github.com/bamiyanapp/karuta/issues/47)
 * update .releaserc.cjs ([#40](https://github.com/bamiyanapp/karuta/issues/40)) ([0a4ef6d](https://github.com/bamiyanapp/karuta/commit/0a4ef6de3046b1a6d7cdec87596dcf44c7b62ddd))
 * update cd.yml ([972e676](https://github.com/bamiyanapp/karuta/commit/972e67638b18788c6d44e7fe7e355cb64e379b39))
 * update cd.yml ([#31](https://github.com/bamiyanapp/karuta/issues/31)) ([8a68b6a](https://github.com/bamiyanapp/karuta/commit/8a68b6ae722be2e837ceced13338a7d2f6eba153))
