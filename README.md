@@ -59,6 +59,14 @@ graph TD
 
 ### Screen Transitions
 
+```mermaid
+graph TD
+    Login[Google ログイン画面] --> |ログイン成功| Home[在庫一覧画面]
+    Home --> |品目名をクリック| Detail[品目詳細・履歴画面]
+    Detail --> |「在庫一覧へ戻る」をクリック| Home
+    Home --> |ログアウト| Login
+```
+
 ### Authentication
 
 本アプリは Google アカウントによる SSO（シングルサインオン）認証を採用しています。
