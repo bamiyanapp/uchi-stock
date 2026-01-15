@@ -15,8 +15,7 @@ permissions:
 
 jobs:
   release:
-    if: >
-      github.event.workflow_run.conclusion == 'success'
+    if: github.ref == 'refs/heads/main'
     name: Release
     runs-on: ubuntu-latest
     permissions:
@@ -44,18 +43,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN || secrets.GITHUB_TOKEN }}
           DEBUG: semantic-release:*
         run: npx semantic-release
-      - name: Create PR from release to main
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.BOT_TOKEN }}
-          base: main
-          head: release
-          title: "Sync release branch into main"
-          body: "Automated PR to sync release changes into main."
-          draft: false
-          commit-message: "chore: sync release branch into main [skip ci]"
-          merge-method: squash
-          auto-merge: true
 
   changelog:
     needs: release
@@ -83,7 +70,14 @@ jobs:
       # JSON 変換（任意）
       - name: Convert changelog to JSON
         run: node scripts/convert-changelog-to-json.js
-          
+      - name: Commit & push to release
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add CHANGELOG.md frontend/src/changelog.json
+          git commit -m "docs(changelog): ${{ github.ref_name }}" || exit 0
+          git push origin release
+
   build-and-deploy-frontend:
     needs: release
     runs-on: ubuntu-latest
