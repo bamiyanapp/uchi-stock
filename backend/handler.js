@@ -352,12 +352,14 @@ exports.consumeStock = async (event) => {
  */
 exports.getConsumptionHistory = async (event) => {
   try {
+    const userId = getUserId(event);
     const { itemId } = event.pathParameters;
     const { Items } = await docClient.send(new QueryCommand({
       TableName: HISTORY_TABLE,
       IndexName: "ItemIdIndex",
       KeyConditionExpression: "itemId = :itemId",
-      ExpressionAttributeValues: { ":itemId": itemId },
+      FilterExpression: "userId = :userId",
+      ExpressionAttributeValues: { ":itemId": itemId, ":userId": userId },
       ScanIndexForward: false, // 降順（新しい順）
     }));
 
@@ -412,9 +414,9 @@ exports.getEstimatedDepletionDate = async (event) => {
       TableName: HISTORY_TABLE,
       IndexName: "ItemIdIndex",
       KeyConditionExpression: "itemId = :itemId",
-      FilterExpression: "#t = :type",
+      FilterExpression: "#t = :type AND userId = :userId",
       ExpressionAttributeNames: { "#t": "type" },
-      ExpressionAttributeValues: { ":itemId": itemId, ":type": "consumption" }
+      ExpressionAttributeValues: { ":itemId": itemId, ":type": "consumption", ":userId": userId }
     }));
 
     if (!history || history.length < 2) {

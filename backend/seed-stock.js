@@ -5,8 +5,9 @@ const crypto = require("crypto");
 const client = new DynamoDBClient({ region: "ap-northeast-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
-const ITEMS_TABLE = "uchi-stock-app-items";
-const HISTORY_TABLE = "uchi-stock-app-stock-history";
+const ITEMS_TABLE = "uchi-stock-app-items-v2";
+const HISTORY_TABLE = "uchi-stock-app-stock-history-v2";
+const DEFAULT_USER_ID = "default-user";
 
 const items = [
   {
@@ -52,13 +53,19 @@ async function clearTables() {
   // Clear Items
   const itemsData = await docClient.send(new ScanCommand({ TableName: ITEMS_TABLE }));
   for (const item of itemsData.Items || []) {
-    await docClient.send(new DeleteCommand({ TableName: ITEMS_TABLE, Key: { itemId: item.itemId } }));
+    await docClient.send(new DeleteCommand({ 
+      TableName: ITEMS_TABLE, 
+      Key: { userId: item.userId, itemId: item.itemId } 
+    }));
   }
 
   // Clear History
   const historyData = await docClient.send(new ScanCommand({ TableName: HISTORY_TABLE }));
   for (const item of historyData.Items || []) {
-    await docClient.send(new DeleteCommand({ TableName: HISTORY_TABLE, Key: { historyId: item.historyId, itemId: item.itemId } }));
+    await docClient.send(new DeleteCommand({ 
+      TableName: HISTORY_TABLE, 
+      Key: { userId: item.userId, historyId: item.historyId } 
+    }));
   }
   
   console.log("Tables cleared.");
@@ -78,6 +85,7 @@ async function seed() {
       await docClient.send(new PutCommand({
         TableName: ITEMS_TABLE,
         Item: {
+          userId: DEFAULT_USER_ID,
           itemId,
           name: itemDef.name,
           unit: itemDef.unit,
@@ -123,6 +131,7 @@ async function seed() {
           await docClient.send(new PutCommand({
             TableName: HISTORY_TABLE,
             Item: {
+              userId: DEFAULT_USER_ID,
               historyId: crypto.randomUUID(),
               itemId,
               type: "purchase",
@@ -138,6 +147,7 @@ async function seed() {
           await docClient.send(new PutCommand({
             TableName: HISTORY_TABLE,
             Item: {
+              userId: DEFAULT_USER_ID,
               historyId: crypto.randomUUID(),
               itemId,
               type: "consumption",

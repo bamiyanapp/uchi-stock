@@ -137,7 +137,10 @@ describe('Household Items API', () => {
       const mockHistory = [{ historyId: 'h1', itemId: 'item-1', type: 'consumption' }];
       ddbMock.on(QueryCommand).resolves({ Items: mockHistory });
 
-      const result = await getConsumptionHistory({ pathParameters: { itemId: 'item-1' } });
+      const result = await getConsumptionHistory({ 
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-1' } 
+      });
 
       expect(result.statusCode).toBe(200);
       expect(JSON.parse(result.body)).toEqual(mockHistory);
