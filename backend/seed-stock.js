@@ -64,7 +64,7 @@ async function clearTables() {
   for (const item of historyData.Items || []) {
     await docClient.send(new DeleteCommand({ 
       TableName: HISTORY_TABLE, 
-      Key: { userId: item.userId, historyId: item.historyId } 
+      Key: { itemId: item.itemId, date: item.date } 
     }));
   }
   
