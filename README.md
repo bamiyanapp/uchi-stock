@@ -98,7 +98,8 @@ graph TD
 
 | 属性名 | 型 | キー | 説明 |
 | :--- | :--- | :--- | :--- |
-| itemId | String | Partition Key | 品目の一意識別子 (UUID) |
+| userId | String | Partition Key | ログインユーザーID (Cognito sub) |
+| itemId | String | Sort Key | 品目の一意識別子 (UUID) |
 | name | String | - | 品目名 |
 | unit | String | - | 単位（例: 個, パック, 本） |
 | currentStock | Number | - | 現在の在庫数 |
@@ -110,11 +111,12 @@ graph TD
 
 | 属性名 | 型 | キー | 説明 |
 | :--- | :--- | :--- | :--- |
-| historyId | String | Partition Key | 履歴の一意識別子 (UUID) |
-| itemId | String | Sort Key | 品目ID |
+| itemId | String | Partition Key | 品目ID |
+| date | String | Sort Key | 日付 (ISO8601) |
+| userId | String | - | ログインユーザーID |
+| historyId | String | - | 履歴の一意識別子 (UUID) |
 | type | String | - | 履歴の種類（"purchase", "consumption"） |
 | quantity | Number | - | 数量 |
-| date | String | - | 日付 (ISO8601) |
 | memo | String | - | メモ (任意) |
 
 ## CI/CD Pipeline Specification
