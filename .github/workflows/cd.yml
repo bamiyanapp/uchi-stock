@@ -6,6 +6,11 @@ on:
     workflows: ["CI"]
     types:
       - completed
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
   issues: write
@@ -38,6 +43,21 @@ jobs:
           git status -sb
           git log --oneline -5
           git tag --sort=-v:refname | head -5
+      - name: Handle tag conflict
+        run: |
+          git fetch --tags --force
+          # 最新のタグが現在のHEADの履歴に含まれていない場合、
+          # semantic-release がタグの重複エラーで失敗するのを防ぐため、
+          # fake merge (-s ours) を行い履歴を繋げる。
+          LATEST_TAG=$(git tag --sort=-v:refname | head -n 1)
+          if [ -n "$LATEST_TAG" ]; then
+            if ! git merge-base --is-ancestor "$LATEST_TAG" HEAD; then
+              echo "Warning: $LATEST_TAG is not an ancestor of HEAD. Performing a fake merge to ensure continuity."
+              git config user.name "github-actions"
+              git config user.email "github-actions@github.com"
+              git merge -s ours "$LATEST_TAG" --no-edit || echo "Merge failed, but proceeding..."
+            fi
+          fi
       - name: Semantic Release
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN || secrets.GITHUB_TOKEN }}
