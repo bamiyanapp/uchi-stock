@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { ArrowLeft, Package, History as HistoryIcon, TrendingDown, Minus, Plus } from "lucide-react";
+import { ArrowLeft, Package, History as HistoryIcon, TrendingDown, Minus, Plus, Edit } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
 
 const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
@@ -11,7 +11,6 @@ const ItemDetail = () => {
   const [item, setItem] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [estimate, setEstimate] = useState(null);
   const { userId, idToken } = useUser();
 
@@ -56,29 +55,6 @@ const ItemDetail = () => {
 
     initialFetch();
   }, [fetchData]);
-
-  const handleQuickUpdate = async (type) => {
-    setSubmitting(true);
-    try {
-      const endpoint = type === "purchase" ? "stock" : "consume";
-      const response = await fetch(`${API_BASE_URL}/items/${itemId}/${endpoint}`, {
-        method: "POST",
-        headers: { 
-          ...getHeaders(),
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ quantity: 1 }),
-      });
-
-      if (response.ok) {
-        await fetchData();
-      }
-    } catch (error) {
-      console.error(`Error updating stock (${type}):`, error);
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -148,20 +124,12 @@ const ItemDetail = () => {
           </div>
           <div className="col-md-6">
             <div className="d-flex gap-2 justify-content-md-end">
-              <button 
-                onClick={() => handleQuickUpdate("consumption")}
-                disabled={submitting || item.currentStock <= 0}
-                className="btn btn-outline-warning d-inline-flex align-items-center px-4 py-2"
-              >
-                <Minus size={20} className="me-2" /> 消費
-              </button>
-              <button 
-                onClick={() => handleQuickUpdate("purchase")}
-                disabled={submitting}
+              <Link 
+                to={`/item/${itemId}/update`}
                 className="btn btn-primary d-inline-flex align-items-center px-4 py-2"
               >
-                <Plus size={20} className="me-2" /> 購入
-              </button>
+                <Edit size={20} className="me-2" /> 在庫を更新する
+              </Link>
             </div>
           </div>
         </div>
