@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Trash2, ExternalLink, Minus } from "lucide-react";
+import { Trash2, ExternalLink, AlertTriangle, Clock } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
 import UserSelector from "./UserSelector";
 
@@ -9,8 +9,6 @@ const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.co
 function Home() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newItemName, setNewItemName] = useState("");
-  const [newItemUnit, setNewItemUnit] = useState("");
   const { userId, idToken, user, login, logout, loading: authLoading } = useUser();
 
   const getHeaders = useCallback(() => {
@@ -60,60 +58,6 @@ function Home() {
     fetchItems();
   }, [fetchItems]);
 
-  const addItem = async (e) => {
-    e.preventDefault();
-    if (!newItemName || !newItemUnit) return;
-
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/items`, {
-        method: "POST",
-        headers: { 
-          ...getHeaders(),
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ name: newItemName, unit: newItemUnit }),
-      });
-      if (response.ok) {
-        setNewItemName("");
-        setNewItemUnit("");
-        await fetchItems();
-      } else {
-        const data = await response.json();
-        alert(`追加に失敗しました: ${data.message || response.statusText}`);
-      }
-    } catch (error) {
-      console.error("Error adding item:", error);
-      alert("通信エラーが発生しました。");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleQuickUpdate = async (item, type) => {
-    try {
-      const endpoint = type === "purchase" ? "stock" : "consume";
-      const response = await fetch(`${API_BASE_URL}/items/${item.itemId}/${endpoint}`, {
-        method: "POST",
-        headers: { 
-          ...getHeaders(),
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ quantity: 1 }),
-      });
-
-      if (response.ok) {
-        const newStock = type === "purchase" ? item.currentStock + 1 : Math.max(0, item.currentStock - 1);
-        // Update local state for immediate feedback
-        setItems(items.map(i => 
-          i.itemId === item.itemId ? { ...i, currentStock: newStock, updatedAt: new Date().toISOString() } : i
-        ));
-      }
-    } catch (error) {
-      console.error(`Error updating stock (${type}):`, error);
-    }
-  };
-
   const deleteItem = async (itemId) => {
     if (!window.confirm("本当に削除しますか？")) return;
     try {
@@ -152,7 +96,10 @@ function Home() {
         <UserSelector />
 
         <section className="mb-5">
-          <h2 className="h5 mb-4">在庫一覧</h2>
+          <h2 className="h5 mb-4 d-flex align-items-center">
+            <Clock size={20} className="me-2 text-primary" />
+            残量予測とステータス
+          </h2>
           {loading ? (
             <div className="text-center py-5">
               <div className="spinner-border text-primary" role="status">
@@ -161,119 +108,93 @@ function Home() {
             </div>
           ) : (
             <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-              {items.map((item) => (
-                <div key={item.itemId} className="col">
-                  <div className="card h-100 shadow-sm border-0">
-                    <div className="card-body">
-                      <div className="d-flex justify-content-between align-items-start mb-3">
-                        <h3 className="h5 card-title mb-0">
-                          <Link to={`/item/${item.itemId}`} className="text-decoration-none text-dark hover-primary">
-                            {item.name} <ExternalLink size={14} className="text-muted" />
-                          </Link>
-                        </h3>
-                        <button 
-                          onClick={() => deleteItem(item.itemId)} 
-                          className="btn btn-sm btn-outline-danger border-0 opacity-50 hover-opacity-100"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                      
-                      <div className="mb-4">
-                        <label className="small text-muted mb-1 d-block">
-                          {new Date().getMonth() + 1}月{new Date().getDate()}日時点の在庫
-                        </label>
-                        <div className="d-flex align-items-center gap-2 mb-2">
-                          <div className="input-group">
-                            <button 
-                              className="btn btn-outline-warning" 
-                              onClick={() => handleQuickUpdate(item, "consumption")}
-                              disabled={item.currentStock <= 0}
-                              title="消費"
-                            >
-                              <Minus size={18} />
-                            </button>
-                            <span className="input-group-text bg-white px-3 fw-bold fs-5" style={{ minWidth: "3rem", textAlign: "center", display: "inline-block" }}>
-                              {item.currentStock}
-                            </span>
-                            <button 
-                              className="btn btn-outline-primary" 
-                              onClick={() => handleQuickUpdate(item, "purchase")}
-                              title="購入"
-                            >
-                              <Plus size={18} />
-                            </button>
-                          </div>
-                          <span className="text-muted">{item.unit}</span>
-                        </div>
-                        {item.estimate && item.estimate.estimatedDepletionDate ? (
-                          <div className="small text-danger fw-bold">
-                            あと{Math.ceil((new Date(item.estimate.estimatedDepletionDate) - new Date()) / (1000 * 60 * 60 * 24))}日で在庫切れの予想
-                          </div>
-                        ) : (
-                          <div className="small text-muted">
-                            {item.estimate?.message === "Not enough history to estimate" ? "履歴不足のため予想不可" : "在庫切れ予想なし"}
-                          </div>
-                        )}
-                      </div>
+              {items.map((item) => {
+                const daysRemaining = item.estimate && item.estimate.estimatedDepletionDate 
+                  ? Math.ceil((new Date(item.estimate.estimatedDepletionDate) - new Date()) / (1000 * 60 * 60 * 24))
+                  : null;
+                
+                let statusClass = "bg-success";
+                let statusText = "余裕あり";
+                if (daysRemaining !== null) {
+                  if (daysRemaining <= 3) {
+                    statusClass = "bg-danger";
+                    statusText = "まもなく在庫切れ";
+                  } else if (daysRemaining <= 7) {
+                    statusClass = "bg-warning text-dark";
+                    statusText = "少なくなっています";
+                  }
+                } else if (item.currentStock === 0) {
+                    statusClass = "bg-danger";
+                    statusText = "在庫なし";
+                }
 
-                      <div className="d-grid">
-                        <Link to={`/item/${item.itemId}`} className="btn btn-outline-primary btn-sm">
-                          詳細・履歴を見る
-                        </Link>
+                return (
+                  <div key={item.itemId} className="col">
+                    <div className="card h-100 shadow-sm border-0 overflow-hidden">
+                      <div className={`py-1 px-3 small fw-bold text-center text-white ${statusClass}`}>
+                        {statusText}
                       </div>
-                    </div>
-                    <div className="card-footer bg-transparent border-0 text-center pb-3">
-                      <small className="text-muted">
-                        更新日: {new Date(item.updatedAt).toLocaleDateString()}
-                      </small>
+                      <div className="card-body">
+                        <div className="d-flex justify-content-between align-items-start mb-3">
+                          <h3 className="h5 card-title mb-0">
+                            <Link to={`/item/${item.itemId}`} className="text-decoration-none text-dark hover-primary">
+                              {item.name} <ExternalLink size={14} className="text-muted" />
+                            </Link>
+                          </h3>
+                          <button 
+                            onClick={() => deleteItem(item.itemId)} 
+                            className="btn btn-sm btn-outline-danger border-0 opacity-50 hover-opacity-100"
+                            title="品目を削除"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                        
+                        <div className="mb-4">
+                          <div className="d-flex align-items-center gap-2 mb-3">
+                            <span className="display-6 fw-bold">{item.currentStock}</span>
+                            <span className="text-muted">{item.unit}</span>
+                          </div>
+
+                          {daysRemaining !== null ? (
+                            <div className={`d-flex align-items-center p-2 rounded ${daysRemaining <= 3 ? 'bg-danger bg-opacity-10 text-danger' : 'bg-light'}`}>
+                              <AlertTriangle size={18} className="me-2" />
+                              <span className="fw-bold">
+                                あと約 <span className="fs-4">{daysRemaining}</span> 日
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="p-2 bg-light rounded text-muted small">
+                              {item.estimate?.message === "Not enough history to estimate" ? "履歴不足のため予想不可" : "在庫切れ予想なし"}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="d-grid gap-2">
+                          <Link to={`/item/${item.itemId}/update`} className="btn btn-primary">
+                            在庫を更新する
+                          </Link>
+                          <Link to={`/item/${item.itemId}`} className="btn btn-outline-secondary btn-sm">
+                            詳細・履歴
+                          </Link>
+                        </div>
+                      </div>
+                      <div className="card-footer bg-transparent border-0 text-center pb-3">
+                        <small className="text-muted">
+                          最終更新: {new Date(item.updatedAt).toLocaleDateString()}
+                        </small>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {items.length === 0 && (
                 <div className="col-12 text-center py-5">
-                  <p className="text-muted">品目が登録されていません。</p>
+                  <p className="text-muted">品目が登録されていません。管理者に依頼して追加してください。</p>
                 </div>
               )}
             </div>
           )}
-        </section>
-
-        <section className="mt-5">
-          <div className="card shadow-sm border-0">
-            <div className="card-body p-4">
-              <h2 className="h5 mb-4 d-flex align-items-center">
-                <Plus size={20} className="me-2 text-primary" />
-                新しい品目を追加
-              </h2>
-              <form onSubmit={addItem} className="row g-3">
-                <div className="col-md-5">
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="品目名（例: トイレットペーパー）"
-                    value={newItemName}
-                    onChange={(e) => setNewItemName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="col-md-4">
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="単位（例: ロール, パック）"
-                    value={newItemUnit}
-                    onChange={(e) => setNewItemUnit(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="col-md-3">
-                  <button type="submit" className="btn btn-primary w-100">追加</button>
-                </div>
-              </form>
-            </div>
-          </div>
         </section>
       </main>
     </div>

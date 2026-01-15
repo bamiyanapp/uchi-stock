@@ -63,6 +63,9 @@ graph TD
 graph TD
     Login[Google ログイン画面] --> |ログイン成功| Home[在庫一覧画面]
     Home --> |品目名をクリック| Detail[品目詳細・履歴画面]
+    Home --> |「在庫を更新する」をクリック| Update[在庫更新画面]
+    Detail --> |「在庫を更新する」をクリック| Update
+    Update --> |「更新を保存する」をクリック| Detail
     Detail --> |「在庫一覧へ戻る」をクリック| Home
     Home --> |ログアウト| Login
 ```
@@ -82,9 +85,9 @@ graph TD
 
 | 関数名 | パス | メソッド | 説明 |
 | :--- | :--- | :--- | :--- |
-| createItem | `/items` | POST | 新しい品目を登録する。 |
+| createItem | `/items` | POST | 新しい品目を登録する。（管理用） |
 | getItems | `/items` | GET | 登録されているすべての品目を取得する。 |
-| updateItem | `/items/{itemId}` | PUT | 品目情報を更新する。 |
+| updateItem | `/items/{itemId}` | PUT | 品目情報を更新する。（管理用） |
 | deleteItem | `/items/{itemId}` | DELETE | 品目を削除する。 |
 | addStock | `/items/{itemId}/stock` | POST | 品目の在庫を追加する。 |
 | consumeStock | `/items/{itemId}/consume` | POST | 品目の在庫を消費する。 |
