@@ -134,7 +134,7 @@ describe('Household Items API', () => {
 
   describe('getConsumptionHistory', () => {
     it('should return history successfully', async () => {
-      const mockHistory = [{ historyId: 'h1', itemId: 'item-1', type: 'consumption' }];
+      const mockHistory = [{ historyId: 'h1', itemId: 'item-1', type: 'consumption', date: '2023-01-01T12:00:00Z', userId: TEST_USER }];
       ddbMock.on(QueryCommand).resolves({ Items: mockHistory });
 
       const result = await getConsumptionHistory({ 
@@ -152,8 +152,8 @@ describe('Household Items API', () => {
       ddbMock.on(GetCommand).resolves({ Item: { userId: TEST_USER, itemId: 'item-1', currentStock: 10 } });
       ddbMock.on(QueryCommand).resolves({ 
         Items: [
-          { date: '2023-01-01T12:00:00Z', quantity: 2, type: 'consumption' },
-          { date: '2023-01-03T12:00:00Z', quantity: 2, type: 'consumption' }
+          { date: '2023-01-01T12:00:00Z', quantity: 2, type: 'consumption', userId: TEST_USER },
+          { date: '2023-01-03T12:00:00Z', quantity: 2, type: 'consumption', userId: TEST_USER }
         ]
       });
 
@@ -177,8 +177,8 @@ describe('Household Items API', () => {
       ddbMock.on(GetCommand).resolves({ Item: { userId: TEST_USER, itemId: 'item-1', currentStock: 10 } });
       ddbMock.on(QueryCommand).resolves({ 
         Items: [
-          { date: 'invalid-date', quantity: 2, type: 'consumption' },
-          { date: '2023-01-03T12:00:00Z', quantity: 2, type: 'consumption' }
+          { date: 'invalid-date', quantity: 2, type: 'consumption', userId: TEST_USER },
+          { date: '2023-01-03T12:00:00Z', quantity: 2, type: 'consumption', userId: TEST_USER }
         ]
       });
 
@@ -195,11 +195,10 @@ describe('Household Items API', () => {
 
     it('should handle NaN in calculations gracefully', async () => {
         ddbMock.on(GetCommand).resolves({ Item: { userId: TEST_USER, itemId: 'item-1', currentStock: 10 } });
-        // 同一時刻の記録が複数ある場合など、daysDiffが非常に小さくなるケースのシミュレーション
         ddbMock.on(QueryCommand).resolves({ 
           Items: [
-            { date: '2023-01-01T12:00:00Z', quantity: 2, type: 'consumption' },
-            { date: '2023-01-01T12:00:00Z', quantity: 2, type: 'consumption' }
+            { date: '2023-01-01T12:00:00Z', quantity: 2, type: 'consumption', userId: TEST_USER },
+            { date: '2023-01-01T12:00:00Z', quantity: 2, type: 'consumption', userId: TEST_USER }
           ]
         });
   

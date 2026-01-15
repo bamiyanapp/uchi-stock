@@ -183,8 +183,6 @@ resources:
       Properties:
         TableName: ${self:custom.stockHistoryTableName}
         AttributeDefinitions:
-          - AttributeName: historyId
-            AttributeType: S
           - AttributeName: userId
             AttributeType: S
           - AttributeName: itemId
@@ -192,14 +190,14 @@ resources:
           - AttributeName: date
             AttributeType: S
         KeySchema:
-          - AttributeName: userId
+          - AttributeName: itemId
             KeyType: HASH
-          - AttributeName: historyId
+          - AttributeName: date
             KeyType: RANGE
         GlobalSecondaryIndexes:
-          - IndexName: ItemIdIndex
+          - IndexName: UserIdIndex
             KeySchema:
-              - AttributeName: itemId
+              - AttributeName: userId
                 KeyType: HASH
               - AttributeName: date
                 KeyType: RANGE

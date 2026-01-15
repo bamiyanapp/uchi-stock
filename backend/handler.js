@@ -356,7 +356,6 @@ exports.getConsumptionHistory = async (event) => {
     const { itemId } = event.pathParameters;
     const { Items } = await docClient.send(new QueryCommand({
       TableName: HISTORY_TABLE,
-      IndexName: "ItemIdIndex",
       KeyConditionExpression: "itemId = :itemId",
       FilterExpression: "userId = :userId",
       ExpressionAttributeValues: { ":itemId": itemId, ":userId": userId },
@@ -412,7 +411,6 @@ exports.getEstimatedDepletionDate = async (event) => {
     // 消費履歴を取得して平均消費速度を計算
     const { Items: history } = await docClient.send(new QueryCommand({
       TableName: HISTORY_TABLE,
-      IndexName: "ItemIdIndex",
       KeyConditionExpression: "itemId = :itemId",
       FilterExpression: "#t = :type AND userId = :userId",
       ExpressionAttributeNames: { "#t": "type" },
