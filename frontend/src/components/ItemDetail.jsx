@@ -25,24 +25,44 @@ const ItemDetail = () => {
   }, [userId, idToken]);
 
   const fetchData = useCallback(async () => {
+    const headers = getHeaders();
+    
+    // アイテム情報の取得
     try {
-      const headers = getHeaders();
-      const [itemRes, historyRes, estimateRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/items`, { headers }),
-        fetch(`${API_BASE_URL}/items/${itemId}/history`, { headers }),
-        fetch(`${API_BASE_URL}/items/${itemId}/estimate`, { headers })
-      ]);
-
-      const itemsData = await itemRes.json();
-      const historyData = await historyRes.json();
-      const estimateData = await estimateRes.json();
-
-      const currentItem = itemsData.find(i => i.itemId === itemId);
-      setItem(currentItem);
-      setHistory(Array.isArray(historyData) ? historyData : []);
-      setEstimate(estimateData);
+      const itemRes = await fetch(`${API_BASE_URL}/items`, { headers });
+      if (itemRes.ok) {
+        const itemsData = await itemRes.json();
+        if (Array.isArray(itemsData)) {
+          const currentItem = itemsData.find(i => i.itemId === itemId);
+          setItem(currentItem);
+        } else {
+          console.error("Expected items array but got:", itemsData);
+        }
+      }
     } catch (error) {
-      console.error("Error fetching item details:", error);
+      console.error("Error fetching item:", error);
+    }
+
+    // 履歴の取得
+    try {
+      const historyRes = await fetch(`${API_BASE_URL}/items/${itemId}/history`, { headers });
+      if (historyRes.ok) {
+        const historyData = await historyRes.json();
+        setHistory(Array.isArray(historyData) ? historyData : []);
+      }
+    } catch (error) {
+      console.error("Error fetching history:", error);
+    }
+
+    // 推定データの取得
+    try {
+      const estimateRes = await fetch(`${API_BASE_URL}/items/${itemId}/estimate`, { headers });
+      if (estimateRes.ok) {
+        const estimateData = await estimateRes.json();
+        setEstimate(estimateData);
+      }
+    } catch (error) {
+      console.error("Error fetching estimate:", error);
     }
   }, [itemId, getHeaders]);
 
@@ -88,10 +108,11 @@ const ItemDetail = () => {
 
     // 履歴を新しい順に処理して、過去に遡って在庫を計算
     history.forEach(h => {
+      const quantity = parseFloat(h.quantity) || 0;
       if (h.type === "consumption") {
-        current += h.quantity; // 消費した分を戻す
+        current += quantity; // 消費した分を戻す
       } else if (h.type === "purchase") {
-        current -= h.quantity; // 購入した分を引く
+        current -= quantity; // 購入した分を引く
       }
       trend.push({
         date: new Date(h.date).toLocaleDateString(),
