@@ -357,7 +357,8 @@ exports.getConsumptionHistory = async (event) => {
     const { Items } = await docClient.send(new QueryCommand({
       TableName: HISTORY_TABLE,
       KeyConditionExpression: "itemId = :itemId",
-      FilterExpression: "userId = :userId",
+      FilterExpression: "#u = :userId",
+      ExpressionAttributeNames: { "#u": "userId" },
       ExpressionAttributeValues: { ":itemId": itemId, ":userId": userId },
       ScanIndexForward: false, // 降順（新しい順）
     }));
@@ -409,15 +410,17 @@ exports.getEstimatedDepletionDate = async (event) => {
     }
 
     // 消費履歴を取得して平均消費速度を計算
-    const { Items: history } = await docClient.send(new QueryCommand({
+    const { Items: historyData } = await docClient.send(new QueryCommand({
       TableName: HISTORY_TABLE,
       KeyConditionExpression: "itemId = :itemId",
-      FilterExpression: "#t = :type AND userId = :userId",
-      ExpressionAttributeNames: { "#t": "type" },
+      FilterExpression: "#t = :type AND #u = :userId",
+      ExpressionAttributeNames: { "#t": "type", "#u": "userId" },
       ExpressionAttributeValues: { ":itemId": itemId, ":type": "consumption", ":userId": userId }
     }));
 
-    if (!history || history.length < 2) {
+    const history = historyData || [];
+
+    if (history.length < 2) {
       return {
         statusCode: 200,
         headers: {
