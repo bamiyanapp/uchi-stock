@@ -9,6 +9,7 @@ const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.co
 function Home() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(new Date(2026, 0, 1)); // デフォルト2026/1/1
   const { userId, idToken, user, login, logout, loading: authLoading } = useUser();
 
   const getHeaders = useCallback(() => {
@@ -34,7 +35,7 @@ function Home() {
       const itemsWithEstimates = await Promise.all(
         itemsList.map(async (item) => {
           try {
-            const estResponse = await fetch(`${API_BASE_URL}/items/${item.itemId}/estimate`, {
+            const estResponse = await fetch(`${API_BASE_URL}/items/${item.itemId}/estimate?date=${selectedDate.toISOString()}`, {
               headers: getHeaders()
             });
             const estData = await estResponse.json();
@@ -52,7 +53,7 @@ function Home() {
     } finally {
       setLoading(false);
     }
-  }, [getHeaders]);
+  }, [getHeaders, selectedDate]);
 
   useEffect(() => {
     fetchItems();
@@ -95,6 +96,17 @@ function Home() {
       <main>
         <UserSelector />
 
+        <div className="mb-4">
+          <label htmlFor="date-picker" className="form-label fw-bold">基準日付</label>
+          <input
+            id="date-picker"
+            type="date"
+            className="form-control"
+            value={selectedDate.toISOString().split('T')[0]}
+            onChange={(e) => setSelectedDate(new Date(e.target.value))}
+          />
+        </div>
+
         <section className="mb-5">
           <h2 className="h5 mb-4 d-flex align-items-center">
             <Clock size={20} className="me-2 text-primary" />
@@ -109,8 +121,8 @@ function Home() {
           ) : (
             <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
               {items.map((item) => {
-                const daysRemaining = item.estimate && item.estimate.estimatedDepletionDate 
-                  ? Math.ceil((new Date(item.estimate.estimatedDepletionDate) - new Date()) / (1000 * 60 * 60 * 24))
+                const daysRemaining = item.estimate && item.estimate.estimatedDepletionDate
+                  ? Math.ceil((new Date(item.estimate.estimatedDepletionDate) - selectedDate) / (1000 * 60 * 60 * 24))
                   : null;
                 
                 let statusClass = "bg-success";
