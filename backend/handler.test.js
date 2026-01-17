@@ -219,22 +219,66 @@ describe('Household Items API', () => {
   });
 
   describe('consumeStock', () => {
-    it('should consume stock successfully for user', async () => {
+    it('should consume stock successfully for user and update averageConsumptionRate', async () => {
       const event = {
         headers: { 'x-user-id': TEST_USER },
         pathParameters: { itemId: 'item-1' },
         body: JSON.stringify({ quantity: 2 }),
       };
 
+      // 消費履歴のクエリをモック（平均消費ペース計算用）
+      ddbMock.on(QueryCommand).resolves({
+        Items: [
+          { date: '2022-12-25T12:00:00Z', quantity: 1, type: 'consumption', userId: TEST_USER },
+          { date: '2022-12-30T12:00:00Z', quantity: 1, type: 'consumption', userId: TEST_USER }
+        ]
+      });
       ddbMock.on(PutCommand).resolves({});
-      ddbMock.on(UpdateCommand).resolves({ Attributes: { userId: TEST_USER, itemId: 'item-1', currentStock: 3 } });
+      ddbMock.on(UpdateCommand).resolves({
+        Attributes: {
+          userId: TEST_USER,
+          itemId: 'item-1',
+          currentStock: 3,
+          averageConsumptionRate: 0.4 // 2個/5日 = 0.4個/日
+        }
+      });
 
       const result = await consumeStock(event);
 
       expect(result.statusCode).toBe(200);
-      
+      const body = JSON.parse(result.body);
+      expect(body.averageConsumptionRate).toBeDefined();
+
       const putCall = ddbMock.calls().find(c => c.args[0] instanceof PutCommand);
       expect(putCall.args[0].input.Item.userId).toBe(TEST_USER);
+
+      const updateCall = ddbMock.calls().find(c => c.args[0] instanceof UpdateCommand);
+      expect(updateCall.args[0].input.ExpressionAttributeValues[':rate']).toBeDefined();
+    });
+
+    it('should set averageConsumptionRate to 0 when not enough history', async () => {
+      const event = {
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-1' },
+        body: JSON.stringify({ quantity: 2 }),
+      };
+
+      // 消費履歴が少ない場合
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
+      ddbMock.on(PutCommand).resolves({});
+      ddbMock.on(UpdateCommand).resolves({
+        Attributes: {
+          userId: TEST_USER,
+          itemId: 'item-1',
+          currentStock: 3,
+          averageConsumptionRate: 0
+        }
+      });
+
+      const result = await consumeStock(event);
+      expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      expect(body.averageConsumptionRate).toBe(0);
     });
 
     it('should return 400 if quantity is missing or invalid', async () => {
@@ -284,95 +328,88 @@ describe('Household Items API', () => {
   });
 
   describe('getEstimatedDepletionDate', () => {
-    it('should estimate depletion date for user', async () => {
-      ddbMock.on(GetCommand).resolves({ Item: { userId: TEST_USER, itemId: 'item-1', currentStock: 10 } });
-      ddbMock.on(QueryCommand).resolves({ 
-        Items: [
-          { date: '2023-01-01T12:00:00Z', quantity: 2, type: 'consumption', userId: TEST_USER },
-          { date: '2023-01-03T12:00:00Z', quantity: 2, type: 'consumption', userId: TEST_USER }
-        ]
+    it('should estimate depletion date using averageConsumptionRate', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          userId: TEST_USER,
+          itemId: 'item-1',
+          currentStock: 10,
+          averageConsumptionRate: 2.0 // 1日2個消費
+        }
       });
 
-      // システム時刻を 2023-01-05 に進める
-      vi.setSystemTime(new Date('2023-01-05T12:00:00Z'));
-
-      const result = await getEstimatedDepletionDate({ 
+      const result = await getEstimatedDepletionDate({
         headers: { 'x-user-id': TEST_USER },
-        pathParameters: { itemId: 'item-1' } 
+        pathParameters: { itemId: 'item-1' }
       });
 
       expect(result.statusCode).toBe(200);
       const body = JSON.parse(result.body);
       expect(body.estimatedDepletionDate).toBeDefined();
-      
+      expect(body.dailyConsumption).toBe("2.00");
+      expect(body.currentStock).toBe(10);
+
       const getCall = ddbMock.calls().find(c => c.args[0] instanceof GetCommand);
       expect(getCall.args[0].input.Key.userId).toBe(TEST_USER);
     });
 
-    it('should return 404 if item is not found', async () => {
-      ddbMock.on(GetCommand).resolves({ Item: null });
-      const result = await getEstimatedDepletionDate({ 
-        headers: { 'x-user-id': TEST_USER },
-        pathParameters: { itemId: 'item-nonexistent' } 
-      });
-      expect(result.statusCode).toBe(404);
-    });
-
-    it('should return null estimate when history has invalid dates', async () => {
-      ddbMock.on(GetCommand).resolves({ Item: { userId: TEST_USER, itemId: 'item-1', currentStock: 10 } });
-      ddbMock.on(QueryCommand).resolves({ 
-        Items: [
-          { date: 'invalid-date', quantity: 2, type: 'consumption', userId: TEST_USER },
-          { date: '2023-01-03T12:00:00Z', quantity: 2, type: 'consumption', userId: TEST_USER }
-        ]
+    it('should return null estimate when averageConsumptionRate is 0', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          userId: TEST_USER,
+          itemId: 'item-1',
+          currentStock: 10,
+          averageConsumptionRate: 0
+        }
       });
 
-      const result = await getEstimatedDepletionDate({ 
+      const result = await getEstimatedDepletionDate({
         headers: { 'x-user-id': TEST_USER },
-        pathParameters: { itemId: 'item-1' } 
+        pathParameters: { itemId: 'item-1' }
       });
 
       expect(result.statusCode).toBe(200);
       const body = JSON.parse(result.body);
       expect(body.estimatedDepletionDate).toBeNull();
-      expect(body.message).toContain('Not enough valid history');
+      expect(body.dailyConsumption).toBe(0);
+      expect(body.message).toContain('No consumption data available');
     });
 
-    it('should handle NaN in calculations gracefully', async () => {
-        ddbMock.on(GetCommand).resolves({ Item: { userId: TEST_USER, itemId: 'item-1', currentStock: 10 } });
-        ddbMock.on(QueryCommand).resolves({ 
-          Items: [
-            { date: '2023-01-01T12:00:00Z', quantity: 2, type: 'consumption', userId: TEST_USER },
-            { date: '2023-01-01T12:00:00Z', quantity: 2, type: 'consumption', userId: TEST_USER }
-          ]
-        });
-  
-        const result = await getEstimatedDepletionDate({ 
-          headers: { 'x-user-id': TEST_USER },
-          pathParameters: { itemId: 'item-1' } 
-        });
-  
-        expect(result.statusCode).toBe(200);
-        const body = JSON.parse(result.body);
-        expect(body.dailyConsumption).toBeDefined();
+    it('should return null estimate when averageConsumptionRate is not set', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          userId: TEST_USER,
+          itemId: 'item-1',
+          currentStock: 10
+          // averageConsumptionRate が未設定
+        }
       });
 
-    it('should return 200 with message if not enough history', async () => {
-      ddbMock.on(GetCommand).resolves({ Item: { userId: TEST_USER, itemId: 'item-1', currentStock: 10 } });
-      ddbMock.on(QueryCommand).resolves({ Items: [] });
-      const result = await getEstimatedDepletionDate({ 
+      const result = await getEstimatedDepletionDate({
         headers: { 'x-user-id': TEST_USER },
-        pathParameters: { itemId: 'item-1' } 
+        pathParameters: { itemId: 'item-1' }
       });
+
       expect(result.statusCode).toBe(200);
-      expect(JSON.parse(result.body).message).toContain('Not enough history');
+      const body = JSON.parse(result.body);
+      expect(body.estimatedDepletionDate).toBeNull();
+      expect(body.dailyConsumption).toBe(0);
+    });
+
+    it('should return 404 if item is not found', async () => {
+      ddbMock.on(GetCommand).resolves({ Item: null });
+      const result = await getEstimatedDepletionDate({
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-nonexistent' }
+      });
+      expect(result.statusCode).toBe(404);
     });
 
     it('should return 500 if dynamoDB fails', async () => {
       ddbMock.on(GetCommand).rejects(new Error('DynamoDB Error'));
-      const result = await getEstimatedDepletionDate({ 
+      const result = await getEstimatedDepletionDate({
         headers: { 'x-user-id': TEST_USER },
-        pathParameters: { itemId: 'item-1' } 
+        pathParameters: { itemId: 'item-1' }
       });
       expect(result.statusCode).toBe(500);
     });
