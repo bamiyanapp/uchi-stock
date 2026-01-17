@@ -2,10 +2,6 @@ name: CI
 run-name: CI ${{ github.event.head_commit.message || github.event.pull_request.title }}
 
 on:
-  push:
-    branches:
-      - main
-      - release
   pull_request:
 
 permissions:

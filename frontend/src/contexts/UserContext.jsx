@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { fetchAuthSession, signInWithRedirect, signOut, getCurrentUser } from 'aws-amplify/auth';
 
-const UserContext = createContext();
+// eslint-disable-next-line react-refresh/only-export-components
+export const UserContext = createContext();
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useUser = () => useContext(UserContext);

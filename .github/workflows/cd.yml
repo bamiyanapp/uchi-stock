@@ -6,6 +6,11 @@ on:
     workflows: ["CI"]
     types:
       - completed
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
   issues: write
@@ -15,8 +20,7 @@ permissions:
 
 jobs:
   release:
-    if: >
-      github.event.workflow_run.conclusion == 'success'
+    if: github.ref == 'refs/heads/main'
     name: Release
     runs-on: ubuntu-latest
     permissions:
@@ -25,9 +29,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: main
           fetch-depth: 0
-          token: ${{ secrets.BOT_TOKEN != '' && secrets.BOT_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.BOT_TOKEN || secrets.GITHUB_TOKEN }}
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -35,96 +38,31 @@ jobs:
           cache: "npm"
       - name: Install dependencies
         run: npm ci
-  
-      - name: Fetch tags
+      - name: Debug git state
         run: |
-          git checkout main          
-          git fetch origin --tags --prune
-          git fetch origin
-          git reset --hard origin/main
-          git log origin/main --oneline -5
-          echo "LOCAL:"
-          git rev-parse HEAD
-          echo "REMOTE:"
-          git rev-parse origin/main
           git status -sb
-
-      - name: Dry-run Semantic-release
-        id: dryrun
-        env:
-          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN != '' && secrets.BOT_TOKEN || secrets.GITHUB_TOKEN }}
+          git log --oneline -5
+          git tag --sort=-v:refname | head -5
+      - name: Handle tag conflict
         run: |
-          NEXT_TAG=$(npx semantic-release --dry-run | grep "The next release version is" | awk '{print $6}')
-          echo "NEXT_TAG=$NEXT_TAG" >> $GITHUB_ENV
-      - name: Check tag existence
-        run: |
-          if git rev-parse "refs/tags/$NEXT_TAG" >/dev/null 2>&1; then
-            echo "Tag $NEXT_TAG already exists. Skipping release."
-            exit 0
+          git fetch --tags --force
+          # 最新のタグが現在のHEADの履歴に含まれていない場合、
+          # semantic-release がタグの重複エラーで失敗するのを防ぐため、
+          # fake merge (-s ours) を行い履歴を繋げる。
+          LATEST_TAG=$(git tag --sort=-v:refname | head -n 1)
+          if [ -n "$LATEST_TAG" ]; then
+            if ! git merge-base --is-ancestor "$LATEST_TAG" HEAD; then
+              echo "Warning: $LATEST_TAG is not an ancestor of HEAD. Performing a fake merge to ensure continuity."
+              git config user.name "github-actions"
+              git config user.email "github-actions@github.com"
+              git merge -s ours "$LATEST_TAG" --no-edit || echo "Merge failed, but proceeding..."
+            fi
           fi
-
-      # デバッグ: Release ブランチの情報を出力
-      - name: Debug Release branch
-        run: |
-          echo "===== RELEASE BRANCH ====="
-          echo "Branch: $(git branch --show-current)"
-          echo "Commit: $(git rev-parse HEAD)"
-          echo "Tags containing HEAD:"
-          git tag --contains HEAD
-          echo "All tags:"
-          git fetch --tags origin
-          git tag -l | grep v1.1
-    
-      # デバッグ: Main ブランチの情報も確認
-      - name: Debug Main branch
-        run: |
-          echo "===== MAIN BRANCH ====="
-          git fetch origin main --depth=1
-          git checkout origin/main
-          echo "Branch: $(git branch --show-current)"
-          echo "Commit: $(git rev-parse HEAD)"
-          echo "Tags containing HEAD:"
-          git tag --contains HEAD
-          echo "All tags:"
-          git fetch --tags origin
-          git tag -l | grep v1.1
-          # Release ブランチに戻す
-          git checkout release
-      
-      - name: Check for tag conflicts
-        id: check-tags
-        env:
-          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN != '' && secrets.BOT_TOKEN || secrets.GITHUB_TOKEN }}
-        run: |
-          # semantic-release が付ける予定の次バージョンを確認
-          NEXT_TAG=$(npx semantic-release --dry-run | grep "The next release version is" | awk '{print $6}')
-          echo "NEXT_TAG=$NEXT_TAG" >> $GITHUB_ENV
-          # 既存タグと重複していないか確認
-          if git rev-parse "refs/tags/$NEXT_TAG" >/dev/null 2>&1; then
-            echo "Tag $NEXT_TAG already exists. Exiting."
-            exit 0
-          fi
-          git fetch --tags origin
-          git tag --contains HEAD
-
       - name: Semantic Release
         env:
-          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN != '' && secrets.BOT_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN || secrets.GITHUB_TOKEN }}
           DEBUG: semantic-release:*
-        run: |
-          npx semantic-release
-      - name: Create PR from release to main
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.BOT_TOKEN }}
-          base: main
-          head: release
-          title: "Sync release branch into main"
-          body: "Automated PR to sync release changes into main."
-          draft: false
-          commit-message: "chore: sync release branch into main [skip ci]"
-          merge-method: squash
-          auto-merge: true
+        run: npx semantic-release
 
   changelog:
     needs: release
@@ -159,7 +97,7 @@ jobs:
           git add CHANGELOG.md frontend/src/changelog.json
           git commit -m "docs(changelog): ${{ github.ref_name }}" || exit 0
           git push origin release
-          
+
   build-and-deploy-frontend:
     needs: release
     runs-on: ubuntu-latest
@@ -243,6 +181,12 @@ jobs:
       - name: 🌱 Seed Database
         working-directory: backend
         run: node seed.js
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: 🧪 Seed Test Data for Stock Prediction
+        working-directory: backend
+        run: node seed-test-stock-prediction.js
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

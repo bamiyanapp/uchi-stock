@@ -59,6 +59,25 @@ graph TD
 
 ### Screen Transitions
 
+```mermaid
+graph TD
+    Login[Google ログイン画面] --> |ログイン成功| Home[在庫一覧画面]
+    Home --> |品目名をクリック| Detail[品目詳細・履歴画面]
+    Home --> |「在庫を更新する」をクリック| Update[在庫更新画面]
+    Detail --> |「在庫を更新する」をクリック| Update
+    Update --> |「更新を保存する」をクリック| Detail
+    Detail --> |「在庫一覧へ戻る」をクリック| Home
+    Home --> |ログアウト| Login
+```
+
+### 画面一覧
+
+| 画面名 | パス | 説明 |
+| :--- | :--- | :--- |
+| 在庫一覧 | `/` | 登録されている品目の一覧、現在の在庫数、および在庫切れ予想日を表示します。 |
+| 品目詳細・履歴 | `/item/{itemId}` | 特定の品目の詳細情報と、これまでの在庫変動履歴（購入・消費）を表示します。 |
+| 在庫更新 | `/item/{itemId}/update` | 在庫数の追加（購入）や消費を記録し、現在の在庫数を更新します。 |
+
 ### Authentication
 
 本アプリは Google アカウントによる SSO（シングルサインオン）認証を採用しています。
@@ -74,9 +93,9 @@ graph TD
 
 | 関数名 | パス | メソッド | 説明 |
 | :--- | :--- | :--- | :--- |
-| createItem | `/items` | POST | 新しい品目を登録する。 |
+| createItem | `/items` | POST | 新しい品目を登録する。（管理用） |
 | getItems | `/items` | GET | 登録されているすべての品目を取得する。 |
-| updateItem | `/items/{itemId}` | PUT | 品目情報を更新する。 |
+| updateItem | `/items/{itemId}` | PUT | 品目情報を更新する。（管理用） |
 | deleteItem | `/items/{itemId}` | DELETE | 品目を削除する。 |
 | addStock | `/items/{itemId}/stock` | POST | 品目の在庫を追加する。 |
 | consumeStock | `/items/{itemId}/consume` | POST | 品目の在庫を消費する。 |
@@ -90,7 +109,8 @@ graph TD
 
 | 属性名 | 型 | キー | 説明 |
 | :--- | :--- | :--- | :--- |
-| itemId | String | Partition Key | 品目の一意識別子 (UUID) |
+| userId | String | Partition Key | ログインユーザーID (Cognito sub) |
+| itemId | String | Sort Key | 品目の一意識別子 (UUID) |
 | name | String | - | 品目名 |
 | unit | String | - | 単位（例: 個, パック, 本） |
 | currentStock | Number | - | 現在の在庫数 |
@@ -102,16 +122,21 @@ graph TD
 
 | 属性名 | 型 | キー | 説明 |
 | :--- | :--- | :--- | :--- |
-| historyId | String | Partition Key | 履歴の一意識別子 (UUID) |
-| itemId | String | Sort Key | 品目ID |
+| itemId | String | Partition Key | 品目ID |
+| date | String | Sort Key | 日付 (ISO8601) |
+| userId | String | - | ログインユーザーID |
+| historyId | String | - | 履歴の一意識別子 (UUID) |
 | type | String | - | 履歴の種類（"purchase", "consumption"） |
 | quantity | Number | - | 数量 |
-| date | String | - | 日付 (ISO8601) |
 | memo | String | - | メモ (任意) |
 
 ## CI/CD Pipeline Specification
 
 詳細な CI/CD パイプラインの仕様については、[CI/CD Pipeline Specification](docs/cicd-pipeline-specification.md) を参照してください。
+
+## テスト戦略
+
+詳細なテスト戦略については、[テスト戦略](docs/test-strategy.md) を参照してください。
 
 ## リリース
 
@@ -150,3 +175,11 @@ GitHub Actions を介さずにローカル環境からリリースノートの�
   - すべてのテーブル（`household-items`, `stock-history`, `polly-cache`）において PITR を有効化しています。
   - 過去 35 日間の任意の時点にデータを復旧することが可能です。
   - 意図しないデータ削除や更新ミスが発生した際の保険として機能します。
+
+## メンテナンス
+
+定期的なリポジトリの整理とメンテナンスを行っています。
+
+- **2026-01-16**: ローカルブランチの整理を実施。
+  - マージ済みのブランチを削除。
+  - 最終更新から4日以上経過した未マージの古いブランチを削除。
