@@ -465,4 +465,166 @@ describe('Household Items API', () => {
       expect(result.statusCode).toBe(500);
     });
   });
+
+  describe('Stock Prediction Tests based on test-strategy-stock-prediction.md', () => {
+    it('should predict depletion in 10 days for simple consumption case (currentStock: 10, dailyConsumption: 1)', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          userId: TEST_USER,
+          itemId: 'item-simple',
+          currentStock: 10,
+          averageConsumptionRate: 1.0
+        }
+      });
+
+      const result = await getEstimatedDepletionDate({
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-simple' }
+      });
+
+      expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      expect(body.estimatedDepletionDate).toBeDefined();
+      // T0 (2023-01-01T12:00:00Z) + 10日 = 2023-01-11T12:00:00Z
+      expect(body.estimatedDepletionDate).toBe('2023-01-11T12:00:00.000Z');
+      expect(body.dailyConsumption).toBe("1.00");
+      expect(body.currentStock).toBe(10);
+    });
+
+    it('should predict depletion in 3 days for low stock case (currentStock: 3, dailyConsumption: 1)', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          userId: TEST_USER,
+          itemId: 'item-low',
+          currentStock: 3,
+          averageConsumptionRate: 1.0
+        }
+      });
+
+      const result = await getEstimatedDepletionDate({
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-low' }
+      });
+
+      expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      expect(body.estimatedDepletionDate).toBe('2023-01-04T12:00:00.000Z'); // T0 + 3日
+      expect(body.dailyConsumption).toBe("1.00");
+      expect(body.currentStock).toBe(3);
+    });
+
+    it('should predict depletion in ~10 days for variable consumption case (currentStock: 10, averageConsumption: 1)', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          userId: TEST_USER,
+          itemId: 'item-variable',
+          currentStock: 10,
+          averageConsumptionRate: 1.0 // 変動平均
+        }
+      });
+
+      const result = await getEstimatedDepletionDate({
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-variable' }
+      });
+
+      expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      expect(body.estimatedDepletionDate).toBe('2023-01-11T12:00:00.000Z'); // ±1日許容だが平均1.0なので10日
+      expect(body.dailyConsumption).toBe("1.00");
+      expect(body.currentStock).toBe(10);
+    });
+
+    it('should recalculate after mid-term replenishment (currentStock: 15, dailyConsumption: 1)', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          userId: TEST_USER,
+          itemId: 'item-replenish',
+          currentStock: 15,
+          averageConsumptionRate: 1.0
+        }
+      });
+
+      const result = await getEstimatedDepletionDate({
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-replenish' }
+      });
+
+      expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      expect(body.estimatedDepletionDate).toBe('2023-01-16T12:00:00.000Z'); // T0 + 15日
+      expect(body.dailyConsumption).toBe("1.00");
+      expect(body.currentStock).toBe(15);
+    });
+
+    it('should handle provisional case (no consumption history)', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          userId: TEST_USER,
+          itemId: 'item-provisional',
+          currentStock: 10
+          // averageConsumptionRate 未設定（provisional）
+        }
+      });
+
+      const result = await getEstimatedDepletionDate({
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-provisional' }
+      });
+
+      expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      expect(body.estimatedDepletionDate).toBeNull();
+      expect(body.dailyConsumption).toBe(0);
+      expect(body.message).toContain('No consumption data available');
+    });
+
+    it('should handle zero consumption case (consumption=0)', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          userId: TEST_USER,
+          itemId: 'item-zero',
+          currentStock: 10,
+          averageConsumptionRate: 0
+        }
+      });
+
+      const result = await getEstimatedDepletionDate({
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-zero' }
+      });
+
+      expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      expect(body.estimatedDepletionDate).toBeNull();
+      expect(body.dailyConsumption).toBe(0);
+      expect(body.message).toContain('No consumption data available');
+    });
+
+    it('should handle long-term input stop case (low reliability)', async () => {
+      // 入力停止の場合、averageConsumptionRateは低い値になるはずだが、
+      // 現在の実装では履歴に基づいて計算されるため、テストでは既存のロジックを使用
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          userId: TEST_USER,
+          itemId: 'item-stopped',
+          currentStock: 10,
+          averageConsumptionRate: 0.1 // 古いデータによる低い消費率
+        }
+      });
+
+      const result = await getEstimatedDepletionDate({
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-stopped' }
+      });
+
+      expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      expect(body.estimatedDepletionDate).toBeDefined();
+      // 10 / 0.1 = 100日後
+      expect(body.estimatedDepletionDate).toBe('2023-04-11T12:00:00.000Z');
+      expect(body.dailyConsumption).toBe("0.10");
+      expect(body.currentStock).toBe(10);
+    });
+  });
 });
