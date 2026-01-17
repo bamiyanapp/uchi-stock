@@ -458,6 +458,14 @@ exports.getEstimatedDepletionDate = async (event) => {
   try {
     const userId = getUserId(event);
     const { itemId } = event.pathParameters;
+    const { date } = event.queryStringParameters || {};
+    let referenceDate = new Date();
+    if (date) {
+      const parsedDate = new Date(date);
+      if (!isNaN(parsedDate.getTime())) {
+        referenceDate = parsedDate;
+      }
+    }
 
     // 品目情報を取得
     const { Item: item } = await docClient.send(new GetCommand({
@@ -495,8 +503,7 @@ exports.getEstimatedDepletionDate = async (event) => {
     }
 
     const daysRemaining = Math.max(0, item.currentStock / dailyConsumption);
-    const estimatedDate = new Date();
-    estimatedDate.setDate(estimatedDate.getDate() + daysRemaining);
+    const estimatedDate = new Date(referenceDate.getTime() + daysRemaining * 24 * 60 * 60 * 1000);
 
     return {
       statusCode: 200,

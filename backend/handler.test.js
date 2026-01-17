@@ -353,6 +353,57 @@ describe('Household Items API', () => {
       expect(getCall.args[0].input.Key.userId).toBe(TEST_USER);
     });
 
+    it('should estimate depletion date based on reference date when date parameter is provided', async () => {
+      const referenceDate = '2023-01-05T12:00:00Z';
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          userId: TEST_USER,
+          itemId: 'item-1',
+          currentStock: 10,
+          averageConsumptionRate: 2.0 // 1日2個消費
+        }
+      });
+
+      const result = await getEstimatedDepletionDate({
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-1' },
+        queryStringParameters: { date: referenceDate }
+      });
+
+      expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      expect(body.estimatedDepletionDate).toBeDefined();
+      // 基準日2023-01-05 + 10/2 = 5日 = 2023-01-10
+      expect(body.estimatedDepletionDate).toBe('2023-01-10T12:00:00.000Z');
+      expect(body.dailyConsumption).toBe("2.00");
+      expect(body.currentStock).toBe(10);
+    });
+
+    it('should use current date when invalid date parameter is provided', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          userId: TEST_USER,
+          itemId: 'item-1',
+          currentStock: 10,
+          averageConsumptionRate: 2.0 // 1日2個消費
+        }
+      });
+
+      const result = await getEstimatedDepletionDate({
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-1' },
+        queryStringParameters: { date: 'invalid-date' }
+      });
+
+      expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      expect(body.estimatedDepletionDate).toBeDefined();
+      // 基準日が現在日付（2023-01-01T12:00:00Z） + 10/2 = 5日 = 2023-01-06T12:00:00Z
+      expect(body.estimatedDepletionDate).toBe('2023-01-06T12:00:00.000Z');
+      expect(body.dailyConsumption).toBe("2.00");
+      expect(body.currentStock).toBe(10);
+    });
+
     it('should return null estimate when averageConsumptionRate is 0', async () => {
       ddbMock.on(GetCommand).resolves({
         Item: {
