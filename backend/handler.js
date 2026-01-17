@@ -281,6 +281,66 @@ exports.addStock = async (event) => {
 };
 
 /**
+ * 平均消費ペースを計算する。
+ * 消費履歴から日次平均消費量を算出する。
+ * @param {string} userId - ユーザーID
+ * @param {string} itemId - アイテムID
+ * @returns {number} 日次平均消費量（個/日）、計算できない場合は0
+ */
+const calculateAverageConsumptionRate = async (userId, itemId) => {
+  try {
+    // 消費履歴を取得（消費タイプのみ）
+    const { Items: historyData } = await docClient.send(new QueryCommand({
+      TableName: HISTORY_TABLE,
+      KeyConditionExpression: "itemId = :itemId",
+      FilterExpression: "#t = :type AND #u = :userId",
+      ExpressionAttributeNames: { "#t": "type", "#u": "userId" },
+      ExpressionAttributeValues: { ":itemId": itemId, ":type": "consumption", ":userId": userId }
+    }));
+
+    const history = historyData || [];
+
+    // 最低2件の履歴が必要
+    if (history.length < 2) {
+      return 0;
+    }
+
+    // 日付順にソートし、有効な日付のみを抽出
+    const validHistory = history
+      .filter(h => h.date && !isNaN(new Date(h.date).getTime()))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    if (validHistory.length < 2) {
+      return 0;
+    }
+
+    // 期間を計算（最初の記録から現在まで）
+    const firstDate = new Date(validHistory[0].date);
+    const lastDate = new Date(validHistory[validHistory.length - 1].date);
+    const now = new Date();
+
+    // 観測期間：最初の記録から現在まで（最低1日）
+    const observationPeriodDays = Math.max(1, (now - firstDate) / (1000 * 60 * 60 * 24));
+
+    // 総消費量
+    const totalConsumed = validHistory.reduce((sum, h) => sum + h.quantity, 0);
+
+    // 日次平均消費量
+    const dailyConsumption = totalConsumed / observationPeriodDays;
+
+    // 無効な値の場合は0を返す
+    if (dailyConsumption <= 0 || isNaN(dailyConsumption) || !isFinite(dailyConsumption)) {
+      return 0;
+    }
+
+    return dailyConsumption;
+  } catch (error) {
+    console.error("Error in calculateAverageConsumptionRate:", error);
+    return 0;
+  }
+};
+
+/**
  * 在庫を消費する。
  */
 exports.consumeStock = async (event) => {
@@ -317,12 +377,19 @@ exports.consumeStock = async (event) => {
       },
     }));
 
-    // 品目の在庫数更新（マイナスにならないように調整が必要かもしれないが、一旦単純に減らす）
+    // 平均消費ペースを再計算
+    const averageConsumptionRate = await calculateAverageConsumptionRate(userId, itemId);
+
+    // 品目の在庫数と平均消費ペースを更新
     const { Attributes } = await docClient.send(new UpdateCommand({
       TableName: ITEMS_TABLE,
       Key: { userId, itemId },
-      UpdateExpression: "set currentStock = currentStock - :q, updatedAt = :now",
-      ExpressionAttributeValues: { ":q": quantity, ":now": now },
+      UpdateExpression: "set currentStock = currentStock - :q, updatedAt = :now, averageConsumptionRate = :rate",
+      ExpressionAttributeValues: {
+        ":q": quantity,
+        ":now": now,
+        ":rate": averageConsumptionRate
+      },
       ReturnValues: "ALL_NEW",
     }));
 
@@ -409,73 +476,22 @@ exports.getEstimatedDepletionDate = async (event) => {
       };
     }
 
-    // 消費履歴を取得して平均消費速度を計算
-    const { Items: historyData } = await docClient.send(new QueryCommand({
-      TableName: HISTORY_TABLE,
-      KeyConditionExpression: "itemId = :itemId",
-      FilterExpression: "#t = :type AND #u = :userId",
-      ExpressionAttributeNames: { "#t": "type", "#u": "userId" },
-      ExpressionAttributeValues: { ":itemId": itemId, ":type": "consumption", ":userId": userId }
-    }));
+    // 平均消費ペースを取得（すでに計算済みの値を使用）
+    const dailyConsumption = item.averageConsumptionRate || 0;
 
-    const history = historyData || [];
-
-    if (history.length < 2) {
+    if (dailyConsumption <= 0) {
       return {
         statusCode: 200,
         headers: {
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Credentials": true,
         },
-        body: JSON.stringify({ 
-          estimatedDepletionDate: null, 
+        body: JSON.stringify({
+          estimatedDepletionDate: null,
           dailyConsumption: 0,
-          message: "Not enough history to estimate" 
+          message: "No consumption data available"
         }),
       };
-    }
-
-    // 日付順にソートし、有効な日付のみを抽出
-    const validHistory = history
-      .filter(h => h.date && !isNaN(new Date(h.date).getTime()))
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    if (validHistory.length < 2) {
-      return {
-        statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Credentials": true,
-        },
-        body: JSON.stringify({ 
-          estimatedDepletionDate: null, 
-          dailyConsumption: 0,
-          message: "Not enough valid history to estimate" 
-        }),
-      };
-    }
-
-    const firstDate = new Date(validHistory[0].date);
-    const now = new Date();
-    // 最初の記録から現在までの日数を計算（最低1日）
-    const daysDiff = Math.max(1, (now - firstDate) / (1000 * 60 * 60 * 24));
-    
-    const totalConsumed = validHistory.reduce((sum, h) => sum + h.quantity, 0);
-    const dailyConsumption = totalConsumed / daysDiff;
-
-    if (dailyConsumption <= 0 || isNaN(dailyConsumption)) {
-        return {
-            statusCode: 200,
-            headers: {
-              "Access-Control-Allow-Origin": "*",
-              "Access-Control-Allow-Credentials": true,
-            },
-            body: JSON.stringify({ 
-              estimatedDepletionDate: null, 
-              dailyConsumption: 0,
-              message: "No consumption observed or invalid calculation" 
-            }),
-          };
     }
 
     const daysRemaining = Math.max(0, item.currentStock / dailyConsumption);
@@ -488,11 +504,9 @@ exports.getEstimatedDepletionDate = async (event) => {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Credentials": true,
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         estimatedDepletionDate: estimatedDate.toISOString(),
-        dailyConsumption: isFinite(dailyConsumption) ? dailyConsumption.toFixed(2) : "0.00",
-        totalConsumed,
-        daysObserved: isFinite(daysDiff) ? daysDiff.toFixed(1) : "0.0",
+        dailyConsumption: dailyConsumption.toFixed(2),
         currentStock: item.currentStock
       }),
     };

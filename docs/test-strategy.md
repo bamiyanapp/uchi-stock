@@ -155,7 +155,7 @@ GitHub Actions で以下のテストが自動実行されます：
 - **対象**: 消費履歴、補充履歴、平均消費量算出、信頼度管理
 
 ### 詳細戦略
-戦術レベルの詳細（テストケース、データ生成、観点整理軸など）は [docs/test-strategy-stock-prediction.md](docs/test-strategy-stock-prediction.md) を参照してください。
+戦術レベルの詳細（テストケース、データ生成、観点整理軸など）は [test-strategy-stock-prediction.md](test-strategy-stock-prediction.md) を参照してください。
 
 ## 将来の拡張計画
 
