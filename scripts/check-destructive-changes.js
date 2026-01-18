@@ -9,8 +9,11 @@ function getResolvedConfig(configPath) {
     const env = { ...process.env, SLS_INTERACTIVE_SETUP_ENABLE: "false" };
     const output = execSync(cmd, { encoding: "utf8", cwd: "backend", env });
 
+    // Remove ANSI escape sequences
+    const cleanOutput = output.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, "");
+
     // Extract JSON from output (in case of spinners or other noise)
-    const jsonMatch = output.match(/\{[\s\S]*\}/);
+    const jsonMatch = cleanOutput.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error("No JSON found in output");
     }
