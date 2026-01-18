@@ -164,10 +164,7 @@ jobs:
           FORCE_DEPLOY: ${{ github.event.inputs.force_deploy || 'false' }}
       - name: 💾 Backup DynamoDB
         run: |
-          cd backend
-          # Extract JSON from serverless print output, removing any potential noise like spinners or npm notices
-          TABLE_NAMES=$(SLS_INTERACTIVE_SETUP_ENABLE=false npx serverless print --format json | node -e "const fs = require('fs'); const input = fs.readFileSync(0, 'utf8'); const match = input.match(/\{[\s\S]*\}/); if (match) console.log(JSON.stringify(JSON.parse(match[0])));" | jq -r '.resources.Resources[] | select(.Type=="AWS::DynamoDB::Table") | .Properties.TableName')
-          cd ..
+          TABLE_NAMES=$(node scripts/get-table-names.js)
           if [ -n "$TABLE_NAMES" ]; then
             node scripts/backup-dynamodb.js $TABLE_NAMES
           else
