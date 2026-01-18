@@ -54,9 +54,12 @@ async function backup() {
       fs.writeFileSync(filePath, JSON.stringify(items, null, 2));
       console.log(`Data dump saved to: ${filePath}`);
     } catch (error) {
+      if (error.name === 'TableNotFoundException') {
+        console.warn(`Warning: Table ${tableName} not found. Skipping backup.`);
+        continue;
+      }
       console.error(`Failed to backup table ${tableName}:`, error);
-      // バックアップ失敗でも続行するか、エラー終了するか
-      // デプロイを止めるべきなので、ここでは例外を投げる
+      // テーブルが存在しない以外のエラーはデプロイを止めるべきなので、例外を投げる
       throw error;
     }
   }
