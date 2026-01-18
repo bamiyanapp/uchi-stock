@@ -68,10 +68,9 @@ jobs:
     needs: release
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout release branch
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: release
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -108,7 +107,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: release # Checkout the release branch for deployment
           fetch-depth: 0
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -151,7 +149,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: release # Checkout the release branch for deployment
           fetch-depth: 0
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -195,7 +192,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: release
           fetch-depth: 0
       - name: Set up Node.js
         uses: actions/setup-node@v4
