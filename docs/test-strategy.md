@@ -32,12 +32,12 @@
 
 ### E2Eテスト
 - **目的**: 実際のユーザー体験をエンドツーエンドで検証
-- **フレームワーク**: Playwright（計画中）
-- **対象**: ログインから在庫管理までの完全なフロー
+- **フレームワーク**: Playwright
+- **対象**: 画面遷移、在庫更新、履歴表示などの主要フロー
 - **特徴**:
-  - ブラウザでの実際の操作
-  - 遅いが最も信頼性が高い
-  - CI/CDで自動実行
+  - ブラウザ（Chromium）での実際の操作
+  - APIをモック化することで安定したテスト実行を実現
+  - CI/CDでの自動実行が可能
 
 ## 現状の実装
 
@@ -60,7 +60,7 @@
 
 ### Frontend (React)
 
-**テストファイル**:
+**ユニット・インテグレーションテスト**:
 - `frontend/src/App.test.jsx`
 - `frontend/src/components/ItemDetail.test.jsx`
 - `frontend/src/contexts/UserContext.test.jsx`
@@ -81,6 +81,21 @@
 - API統合時のエラーハンドリング
 - 認証Contextの状態管理
 
+### E2Eテスト (Playwright)
+
+**テストファイル**:
+- `frontend/e2e/home.spec.js`: 在庫一覧画面のテスト
+- `frontend/e2e/item-detail.spec.js`: 在庫詳細・履歴画面のテスト
+- `frontend/e2e/stock-update.spec.js`: 在庫更新画面のテスト
+
+- **フレームワーク**: Playwright
+- **テスト対象**: 各画面の主要な表示とインタラクション
+- **テスト観点**:
+  - Home: アイテムリストの表示、在庫切れ予想の表示
+  - ItemDetail: 詳細情報の表示、在庫推移グラフの表示、履歴一覧の表示
+  - StockUpdate: 在庫更新フォームの入力、バリデーション、送信後の遷移
+- **モック戦略**: Playwrightの `page.route` を使用してAPIレスポンスをモック化し、バックエンドに依存せずテストを完結させています。
+
 ## テスト実行
 
 ### ローカル実行
@@ -90,9 +105,13 @@
 cd backend
 npm test
 
-# Frontendテスト
+# Frontendテスト (Unit/Integration)
 cd frontend
 npm test
+
+# Frontendテスト (E2E)
+cd frontend
+npm run test:e2e
 
 # 全体テスト（ルートから）
 npm test
@@ -159,7 +178,6 @@ GitHub Actions で以下のテストが自動実行されます：
 
 ## 将来の拡張計画
 
-- E2Eテストの導入（Playwright）
 - ビジュアル回帰テスト
 - パフォーマンステスト
 - アクセシビリティテスト
