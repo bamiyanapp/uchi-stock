@@ -145,6 +145,8 @@ jobs:
     env:
       SLS_INTERACTIVE_SETUP_ENABLE: false
       CI: true
+      SLS_TTY: false
+      TERM: dumb
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -168,7 +170,8 @@ jobs:
       - name: 💾 Backup DynamoDB
         run: |
           # Extract table names using a robust inline script that handles ANSI noise and JSON parsing
-          TABLE_NAMES=$(cd backend && npx serverless print --format json | node -e "const input = require('fs').readFileSync(0, 'utf8').replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, ''); const match = input.match(/\{[\s\S]*\}/); if (match) { const config = JSON.parse(match[0]); const resources = config.resources?.Resources || {}; const tableNames = Object.values(resources).filter(res => res.Type === 'AWS::DynamoDB::Table').map(res => res.Properties.TableName); console.log(tableNames.join(' ')); }")
+          # Pipe to cat to suppress TTY/spinner features
+          TABLE_NAMES=$(cd backend && npx serverless print --format json | cat | node -e "const input = require('fs').readFileSync(0, 'utf8').replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, ''); const match = input.match(/\{[\s\S]*\}/); if (match) { const config = JSON.parse(match[0]); const resources = config.resources?.Resources || {}; const tableNames = Object.values(resources).filter(res => res.Type === 'AWS::DynamoDB::Table').map(res => res.Properties.TableName); console.log(tableNames.join(' ')); }")
           if [ -n "$TABLE_NAMES" ]; then
             node scripts/backup-dynamodb.js $TABLE_NAMES
           else
@@ -180,10 +183,28 @@ jobs:
           AWS_REGION: ap-northeast-1
       - name: 🚀 Deploy Backend (Serverless Framework)
         working-directory: backend
-        run: npx serverless deploy
+        run: npx serverless deploy | cat
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  seed-backend:
+    needs: deploy-backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: release
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install Backend dependencies
+        working-directory: backend
+        run: npm ci
       - name: 🌱 Seed Database
         working-directory: backend
         run: node seed.js

@@ -21,7 +21,7 @@ provider:
             - dynamodb:DeleteItem
           Resource:
             - !GetAtt HouseholdItemsTable.Arn
-            - !GetAtt StockHistoryTable.Arn
+            - !GetAtt StockHistoryTableV3.Arn
 
 custom:
   appName: uchi-stock-app
@@ -178,7 +178,7 @@ resources:
         BillingMode: PAY_PER_REQUEST
         PointInTimeRecoverySpecification:
           PointInTimeRecoveryEnabled: true
-    StockHistoryTable:
+    StockHistoryTableV3:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: ${self:custom.stockHistoryTableName}
