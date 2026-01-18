@@ -54,7 +54,14 @@ async function backup() {
       fs.writeFileSync(filePath, JSON.stringify(items, null, 2));
       console.log(`Data dump saved to: ${filePath}`);
     } catch (error) {
-      if (error.name === 'TableNotFoundException') {
+      // AWS SDK v3 のエラー判定（name または __type）
+      const isNotFound = 
+        error.name === 'ResourceNotFoundException' || 
+        error.name === 'TableNotFoundException' || 
+        (error.__type && error.__type.includes('TableNotFoundException')) ||
+        (error.__type && error.__type.includes('ResourceNotFoundException'));
+
+      if (isNotFound) {
         console.warn(`Warning: Table ${tableName} not found. Skipping backup.`);
         continue;
       }
