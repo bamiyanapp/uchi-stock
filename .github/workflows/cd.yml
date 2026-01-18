@@ -165,9 +165,14 @@ jobs:
       - name: 💾 Backup DynamoDB
         run: |
           cd backend
-          TABLE_NAMES=$(npx serverless print --format json | jq -r '.resources.Resources[] | select(.Type=="AWS::DynamoDB::Table") | .Properties.TableName')
+          # Extract JSON from serverless print output, removing any potential noise like spinners or npm notices
+          TABLE_NAMES=$(SLS_INTERACTIVE_SETUP_ENABLE=false npx serverless print --format json | node -e "const fs = require('fs'); const input = fs.readFileSync(0, 'utf8'); const match = input.match(/\{[\s\S]*\}/); if (match) console.log(JSON.stringify(JSON.parse(match[0])));" | jq -r '.resources.Resources[] | select(.Type=="AWS::DynamoDB::Table") | .Properties.TableName')
           cd ..
-          node scripts/backup-dynamodb.js $TABLE_NAMES
+          if [ -n "$TABLE_NAMES" ]; then
+            node scripts/backup-dynamodb.js $TABLE_NAMES
+          else
+            echo "No DynamoDB tables found to backup."
+          fi
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -178,6 +183,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SLS_INTERACTIVE_SETUP_ENABLE: false
       - name: 🌱 Seed Database
         working-directory: backend
         run: node seed.js
