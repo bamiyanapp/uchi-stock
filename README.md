@@ -134,6 +134,10 @@ graph TD
 
 詳細な CI/CD パイプラインの仕様については、[CI/CD Pipeline Specification](docs/cicd-pipeline-specification.md) を参照してください。
 
+## テスト戦略
+
+詳細なテスト戦略については、[テスト戦略](docs/test-strategy.md) を参照してください。
+
 ## リリース
 
 このプロジェクトは `semantic-release` を使用して自動リリース管理を行っています。
