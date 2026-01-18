@@ -68,9 +68,10 @@ jobs:
     needs: release
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout release branch
         uses: actions/checkout@v4
         with:
+          ref: release
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
