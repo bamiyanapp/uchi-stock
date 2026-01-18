@@ -54,8 +54,10 @@ test.describe('Item Detail Page', () => {
   test('should display item details and history', async ({ page }) => {
     // Wait for the page to load and display the item name
     await expect(page.locator('h1')).toContainText('トイレットペーパー', { timeout: 10000 });
-    await expect(page.getByText('5', { exact: true })).toBeVisible();
-    await expect(page.getByText('ロール', { exact: true })).toBeVisible();
+    
+    // Use specific locators to avoid strict mode violation for common strings/numbers
+    await expect(page.locator('.display-6').getByText('5', { exact: true })).toBeVisible();
+    await expect(page.locator('.fs-4').getByText('ロール', { exact: true })).toBeVisible();
     
     // Check estimate
     await expect(page.getByText('在庫推定')).toBeVisible();

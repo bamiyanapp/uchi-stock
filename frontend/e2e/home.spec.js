@@ -35,9 +35,12 @@ test.describe('Home Page', () => {
 
   test('should display item list', async ({ page }) => {
     await expect(page.getByText('家庭用品在庫管理')).toBeVisible();
-    await expect(page.getByText('トイレットペーパー')).toBeVisible();
-    await expect(page.getByText('5', { exact: true })).toBeVisible();
-    await expect(page.getByText('ロール', { exact: true })).toBeVisible();
+    
+    const itemCard = page.locator('.card').filter({ hasText: 'トイレットペーパー' });
+    await expect(itemCard).toBeVisible();
+    await expect(itemCard.getByText('5', { exact: true })).toBeVisible();
+    await expect(itemCard.getByText('ロール', { exact: true })).toBeVisible();
+    
     // Use regex to be flexible with the exact number of days
     await expect(page.getByText(/あと約 \d+ 日/)).toBeVisible();
   });
