@@ -99,15 +99,29 @@ jobs:
             try {
               // ベースブランチが更新されている場合に備えて最新化を試みる
               try {
-                await github.rest.pulls.updateBranch({
+                const { data: pullRequest } = await github.rest.pulls.get({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   pull_number: prNumber,
                 });
-                console.log(`Updated branch for PR #${prNumber}`);
+
+                if (pullRequest.mergeable_state === 'behind') {
+                  console.log(`PR #${prNumber} is behind base branch. Updating...`);
+                  await github.rest.pulls.updateBranch({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: prNumber,
+                  });
+                  console.log(`Updated branch for PR #${prNumber}`);
+                } else {
+                  console.log(`PR #${prNumber} mergeable state: ${pullRequest.mergeable_state}`);
+                }
               } catch (updateError) {
-                console.log(`Note: Could not update branch (maybe already up to date): ${updateError.message}`);
+                console.log(`Note: Could not update branch: ${updateError.message}`);
               }
+
+              // マージ可能になるまで少し待機 (GitHub APIの反映待ち)
+              await new Promise(resolve => setTimeout(resolve, 5000));
 
               await github.rest.pulls.merge({
                 owner: context.repo.owner,
@@ -139,4 +153,3 @@ jobs:
                 console.error(`Failed to delete branch ${branchName}:`, error.message);
               }
             }
-            
