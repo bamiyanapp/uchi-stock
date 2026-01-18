@@ -5,10 +5,21 @@ const path = require("path");
 function getResolvedConfig(configPath) {
   try {
     const cmd = `npx serverless print --config ${configPath} --format json`;
-    const output = execSync(cmd, { encoding: "utf8", cwd: "backend" });
-    return JSON.parse(output);
+    // Set interactive to false to avoid spinners and prompts
+    const env = { ...process.env, SLS_INTERACTIVE_SETUP_ENABLE: "false" };
+    const output = execSync(cmd, { encoding: "utf8", cwd: "backend", env });
+
+    // Extract JSON from output (in case of spinners or other noise)
+    const jsonMatch = output.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("No JSON found in output");
+    }
+    return JSON.parse(jsonMatch[0]);
   } catch (error) {
     console.error(`Error resolving serverless config ${configPath}:`, error.message);
+    if (error.stdout) {
+      console.error("Stdout:", error.stdout);
+    }
     return null;
   }
 }
