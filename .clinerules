@@ -61,7 +61,7 @@ Clineの作業を開始する前に、以下のルールを必ず遵守せよ。
 - unit test
 - test coverage (50%以上を目指し、不足している場合はテストコードを追加実装すること)
 - build（該当する場合）
-- backend deployment check（backend変更時は、リモートパイプラインの失敗を防ぐため、必ずローカルで `cd backend && npx serverless package` を実行し、デプロイ整合性を確認すること）
+- backend deployment check（backend変更時は、リモートパイプラインの失敗を防ぐため、必ずローカルで `cd backend && npx serverless package --stage local-test` を実行し、デプロイ整合性を確認すること。本番環境への影響を避けるため、必ず `local-test` 等の本番以外のステージ名を使用せよ）
 
 失敗した場合は自動で修正し、再実行せよ。
 成功するまで次に進んではならない。
