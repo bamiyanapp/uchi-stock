@@ -562,6 +562,20 @@ exports.getEstimatedDepletionDate = async (event) => {
     const daysRemaining = Math.max(0, item.currentStock / dailyConsumption);
     const estimatedDate = new Date(referenceDate.getTime() + daysRemaining * 24 * 60 * 60 * 1000);
 
+    // 最後に購入した際の数量を取得
+    const { Items: purchaseHistory } = await docClient.send(new QueryCommand({
+      TableName: HISTORY_TABLE(),
+      KeyConditionExpression: "itemId = :itemId",
+      FilterExpression: "#t = :type AND #u = :userId",
+      ExpressionAttributeNames: { "#t": "type", "#u": "userId" },
+      ExpressionAttributeValues: { ":itemId": itemId, ":type": "purchase", ":userId": userId },
+      ScanIndexForward: false, // 降順（新しい順）
+      Limit: 1
+    }));
+
+    const lastPurchaseQuantity = purchaseHistory && purchaseHistory.length > 0 ? purchaseHistory[0].quantity : null;
+    const stockPercentage = lastPurchaseQuantity ? Math.min(100, Math.round((item.currentStock / lastPurchaseQuantity) * 100)) : null;
+
     return {
       statusCode: 200,
       headers: {
@@ -571,7 +585,9 @@ exports.getEstimatedDepletionDate = async (event) => {
       body: JSON.stringify({
         estimatedDepletionDate: estimatedDate.toISOString(),
         dailyConsumption: dailyConsumption.toFixed(2),
-        currentStock: item.currentStock
+        currentStock: item.currentStock,
+        lastPurchaseQuantity,
+        stockPercentage
       }),
     };
   } catch (error) {

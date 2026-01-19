@@ -122,19 +122,22 @@ function Home() {
                   ? Math.ceil((new Date(item.estimate.estimatedDepletionDate) - selectedDate) / (1000 * 60 * 60 * 24))
                   : null;
                 
-                let statusClass = "bg-success";
-                let statusText = "余裕あり";
-                if (daysRemaining !== null) {
-                  if (daysRemaining <= 3) {
+                let statusClass = "bg-secondary";
+                let statusText = "在庫割合不明";
+                const stockPercentage = item.estimate?.stockPercentage;
+
+                if (stockPercentage !== undefined && stockPercentage !== null) {
+                  statusText = `在庫残り ${stockPercentage}%`;
+                  if (stockPercentage <= 20) {
                     statusClass = "bg-danger";
-                    statusText = "まもなく在庫切れ";
-                  } else if (daysRemaining <= 7) {
+                  } else if (stockPercentage <= 50) {
                     statusClass = "bg-warning text-dark";
-                    statusText = "少なくなっています";
+                  } else {
+                    statusClass = "bg-success";
                   }
                 } else if (item.currentStock === 0) {
-                    statusClass = "bg-danger";
-                    statusText = "在庫なし";
+                  statusClass = "bg-danger";
+                  statusText = "在庫なし";
                 }
 
                 return (
