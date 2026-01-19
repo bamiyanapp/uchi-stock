@@ -202,7 +202,6 @@ async function seedTestData(dryRun = false) {
             unit: testCase.unit,
             currentStock: Math.max(0, calculatedStock),
             createdAt,
-            updatedAt: now.toISOString(),
           },
         }));
       }

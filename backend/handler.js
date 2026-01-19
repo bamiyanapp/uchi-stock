@@ -6,8 +6,8 @@ const crypto = require("crypto");
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
-const ITEMS_TABLE = process.env.TABLE_NAME;
-const HISTORY_TABLE = process.env.STOCK_HISTORY_TABLE_NAME;
+const ITEMS_TABLE = () => process.env.TABLE_NAME;
+const HISTORY_TABLE = () => process.env.STOCK_HISTORY_TABLE_NAME;
 
 const getUserId = (event) => {
   // Cognito Authorizerを使用している場合、requestContextからユーザーID(sub)を取得できる
@@ -50,12 +50,25 @@ exports.createItem = async (event) => {
       unit,
       currentStock: 0,
       createdAt: now,
-      updatedAt: now,
     };
 
     await docClient.send(new PutCommand({
-      TableName: ITEMS_TABLE,
+      TableName: ITEMS_TABLE(),
       Item: item,
+    }));
+
+    // 履歴に追加
+    await docClient.send(new PutCommand({
+      TableName: HISTORY_TABLE(),
+      Item: {
+        userId,
+        historyId: crypto.randomUUID(),
+        itemId,
+        type: "creation",
+        quantity: 0,
+        date: now,
+        memo: "Initial creation",
+      },
     }));
 
     return {
@@ -80,15 +93,37 @@ exports.createItem = async (event) => {
 };
 
 /**
+ * 各アイテムの最新の履歴日時を取得する。
+ */
+const getLatestUpdateDate = async (itemId) => {
+  const { Items } = await docClient.send(new QueryCommand({
+    TableName: HISTORY_TABLE(),
+    KeyConditionExpression: "itemId = :itemId",
+    ScanIndexForward: false,
+    Limit: 1,
+    ExpressionAttributeValues: { ":itemId": itemId },
+  }));
+  return Items && Items.length > 0 ? Items[0].date : null;
+};
+
+/**
  * 登録されているすべての品目を取得する。
  */
 exports.getItems = async (event) => {
   try {
     const userId = getUserId(event);
-    const { Items } = await docClient.send(new QueryCommand({
-      TableName: ITEMS_TABLE,
+    const { Items: items } = await docClient.send(new QueryCommand({
+      TableName: ITEMS_TABLE(),
       KeyConditionExpression: "userId = :userId",
       ExpressionAttributeValues: { ":userId": userId },
+    }));
+
+    const itemsWithUpdatedAt = await Promise.all((items || []).map(async (item) => {
+      const latestDate = await getLatestUpdateDate(item.itemId);
+      return {
+        ...item,
+        updatedAt: latestDate || item.createdAt // 履歴がない場合は作成日時を使用
+      };
     }));
 
     return {
@@ -97,7 +132,7 @@ exports.getItems = async (event) => {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Credentials": true,
       },
-      body: JSON.stringify(Items || []),
+      body: JSON.stringify(itemsWithUpdatedAt),
     };
   } catch (error) {
     console.error("Error in getItems:", error);
@@ -122,7 +157,27 @@ exports.updateItem = async (event) => {
     const body = JSON.parse(event.body);
     const { name, unit, currentStock } = body;
 
-    if (!name && !unit && currentStock === undefined) {
+    const now = new Date().toISOString();
+    let UpdateExpression = "set";
+    const ExpressionAttributeValues = {};
+    const ExpressionAttributeNames = {};
+    let updates = [];
+
+    if (name !== undefined) {
+      updates.push("#n = :name");
+      ExpressionAttributeValues[":name"] = name;
+      ExpressionAttributeNames["#n"] = "name";
+    }
+    if (unit !== undefined) {
+      updates.push("unit = :unit");
+      ExpressionAttributeValues[":unit"] = unit;
+    }
+    if (currentStock !== undefined) {
+      updates.push("currentStock = :currentStock");
+      ExpressionAttributeValues[":currentStock"] = currentStock;
+    }
+
+    if (updates.length === 0) {
       return {
         statusCode: 400,
         headers: {
@@ -133,32 +188,36 @@ exports.updateItem = async (event) => {
       };
     }
 
-    const now = new Date().toISOString();
-    let UpdateExpression = "set updatedAt = :updatedAt";
-    const ExpressionAttributeValues = { ":updatedAt": now };
-    const ExpressionAttributeNames = { "#n": "name" };
-
-    if (name !== undefined) {
-      UpdateExpression += ", #n = :name";
-      ExpressionAttributeValues[":name"] = name;
-    }
-    if (unit !== undefined) {
-      UpdateExpression += ", unit = :unit";
-      ExpressionAttributeValues[":unit"] = unit;
-    }
-    if (currentStock !== undefined) {
-      UpdateExpression += ", currentStock = :currentStock";
-      ExpressionAttributeValues[":currentStock"] = currentStock;
-    }
+    UpdateExpression += " " + updates.join(", ");
 
     const { Attributes } = await docClient.send(new UpdateCommand({
-      TableName: ITEMS_TABLE,
+      TableName: ITEMS_TABLE(),
       Key: { userId, itemId },
       UpdateExpression,
       ExpressionAttributeValues,
-      ExpressionAttributeNames,
+      ExpressionAttributeNames: Object.keys(ExpressionAttributeNames).length > 0 ? ExpressionAttributeNames : undefined,
       ReturnValues: "ALL_NEW",
     }));
+
+    // 履歴に追加
+    await docClient.send(new PutCommand({
+      TableName: HISTORY_TABLE(),
+      Item: {
+        userId,
+        historyId: crypto.randomUUID(),
+        itemId,
+        type: "update",
+        quantity: 0,
+        date: now,
+        memo: "Item information updated",
+      },
+    }));
+
+    // updatedAtを付与して返す
+    const responseItem = {
+      ...Attributes,
+      updatedAt: now
+    };
 
     return {
       statusCode: 200,
@@ -166,7 +225,7 @@ exports.updateItem = async (event) => {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Credentials": true,
       },
-      body: JSON.stringify(Attributes),
+      body: JSON.stringify(responseItem),
     };
   } catch (error) {
     console.error("Error in updateItem:", error);
@@ -189,7 +248,7 @@ exports.deleteItem = async (event) => {
     const userId = getUserId(event);
     const { itemId } = event.pathParameters;
     await docClient.send(new DeleteCommand({
-      TableName: ITEMS_TABLE,
+      TableName: ITEMS_TABLE(),
       Key: { userId, itemId },
     }));
     return {
@@ -238,7 +297,7 @@ exports.addStock = async (event) => {
 
     // 在庫履歴の追加
     await docClient.send(new PutCommand({
-      TableName: HISTORY_TABLE,
+      TableName: HISTORY_TABLE(),
       Item: {
         userId,
         historyId,
@@ -252,10 +311,10 @@ exports.addStock = async (event) => {
 
     // 品目の在庫数更新
     const { Attributes } = await docClient.send(new UpdateCommand({
-      TableName: ITEMS_TABLE,
+      TableName: ITEMS_TABLE(),
       Key: { userId, itemId },
-      UpdateExpression: "set currentStock = currentStock + :q, updatedAt = :now",
-      ExpressionAttributeValues: { ":q": quantity, ":now": now },
+      UpdateExpression: "set currentStock = currentStock + :q",
+      ExpressionAttributeValues: { ":q": quantity },
       ReturnValues: "ALL_NEW",
     }));
 
@@ -265,7 +324,7 @@ exports.addStock = async (event) => {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Credentials": true,
       },
-      body: JSON.stringify(Attributes),
+      body: JSON.stringify({ ...Attributes, updatedAt: now }),
     };
   } catch (error) {
     console.error("Error in addStock:", error);
@@ -291,7 +350,7 @@ const calculateAverageConsumptionRate = async (userId, itemId) => {
   try {
     // 消費履歴を取得（消費タイプのみ）
     const { Items: historyData } = await docClient.send(new QueryCommand({
-      TableName: HISTORY_TABLE,
+      TableName: HISTORY_TABLE(),
       KeyConditionExpression: "itemId = :itemId",
       FilterExpression: "#t = :type AND #u = :userId",
       ExpressionAttributeNames: { "#t": "type", "#u": "userId" },
@@ -365,7 +424,7 @@ exports.consumeStock = async (event) => {
 
     // 在庫履歴の追加
     await docClient.send(new PutCommand({
-      TableName: HISTORY_TABLE,
+      TableName: HISTORY_TABLE(),
       Item: {
         userId,
         historyId,
@@ -382,12 +441,11 @@ exports.consumeStock = async (event) => {
 
     // 品目の在庫数と平均消費ペースを更新
     const { Attributes } = await docClient.send(new UpdateCommand({
-      TableName: ITEMS_TABLE,
+      TableName: ITEMS_TABLE(),
       Key: { userId, itemId },
-      UpdateExpression: "set currentStock = currentStock - :q, updatedAt = :now, averageConsumptionRate = :rate",
+      UpdateExpression: "set currentStock = currentStock - :q, averageConsumptionRate = :rate",
       ExpressionAttributeValues: {
         ":q": quantity,
-        ":now": now,
         ":rate": averageConsumptionRate
       },
       ReturnValues: "ALL_NEW",
@@ -399,7 +457,7 @@ exports.consumeStock = async (event) => {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Credentials": true,
       },
-      body: JSON.stringify(Attributes),
+      body: JSON.stringify({ ...Attributes, updatedAt: now }),
     };
   } catch (error) {
     console.error("Error in consumeStock:", error);
@@ -422,7 +480,7 @@ exports.getConsumptionHistory = async (event) => {
     const userId = getUserId(event);
     const { itemId } = event.pathParameters;
     const { Items } = await docClient.send(new QueryCommand({
-      TableName: HISTORY_TABLE,
+      TableName: HISTORY_TABLE(),
       KeyConditionExpression: "itemId = :itemId",
       FilterExpression: "#u = :userId",
       ExpressionAttributeNames: { "#u": "userId" },
@@ -469,7 +527,7 @@ exports.getEstimatedDepletionDate = async (event) => {
 
     // 品目情報を取得
     const { Item: item } = await docClient.send(new GetCommand({
-      TableName: ITEMS_TABLE,
+      TableName: ITEMS_TABLE(),
       Key: { userId, itemId },
     }));
 

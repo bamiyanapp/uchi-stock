@@ -163,7 +163,6 @@ async function seed(dryRun = false) {
             unit: itemDef.unit,
             currentStock: Math.max(0, calculatedStock),
             createdAt,
-            updatedAt: now.toISOString(),
           },
         }));
       }
