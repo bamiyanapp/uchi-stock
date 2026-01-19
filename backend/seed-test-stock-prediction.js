@@ -14,7 +14,6 @@ const testCases = [
   {
     name: "単純消費ケース：在庫10、消費1/日、補充なし",
     unit: "個",
-    currentStock: 10,
     expectedDays: 10, // 10日後
     history: [
       // T0 - 10日: 購入 +10
@@ -26,7 +25,6 @@ const testCases = [
   {
     name: "在庫少ケース：在庫3、消費1/日、補充なし",
     unit: "個",
-    currentStock: 3,
     expectedDays: 3,
     history: [
       { daysAgo: 3, type: "purchase", quantity: 3, memo: "初期購入" },
@@ -37,7 +35,6 @@ const testCases = [
   {
     name: "平均消費ケース：在庫10、平均1/日（変動）、許容±1日",
     unit: "個",
-    currentStock: 10,
     expectedDays: 10, // ±1日許容
     history: [
       { daysAgo: 15, type: "purchase", quantity: 15, memo: "初期購入" },
@@ -61,7 +58,6 @@ const testCases = [
   {
     name: "途中補充ケース：在庫5、消費1/日、3日後+10",
     unit: "個",
-    currentStock: 15, // 現在の在庫
     expectedDays: 18, // 補充後から再計算
     history: [
       { daysAgo: 15, type: "purchase", quantity: 5, memo: "初期購入" },
@@ -83,7 +79,6 @@ const testCases = [
   {
     name: "複数補充ケース：在庫0から複数回補充",
     unit: "個",
-    currentStock: 5,
     expectedDays: null, // 補充後から再計算
     history: [
       { daysAgo: 20, type: "purchase", quantity: 5, memo: "初期購入" },
@@ -106,14 +101,12 @@ const testCases = [
   {
     name: "初期状態ケース：履歴なし（provisional）",
     unit: "個",
-    currentStock: 10,
     expectedDays: null, // provisional、低信頼
     history: [] // 履歴なし
   },
   {
     name: "消費ゼロケース：consumption=0",
     unit: "個",
-    currentStock: 10,
     expectedDays: null, // 無限 or 未定
     history: [
       { daysAgo: 10, type: "purchase", quantity: 10, memo: "購入" }
@@ -123,7 +116,6 @@ const testCases = [
   {
     name: "入力停止ケース：長期間入力なし",
     unit: "個",
-    currentStock: 10,
     expectedDays: null, // 信頼度低下
     history: [
       { daysAgo: 30, type: "purchase", quantity: 10, memo: "購入" },
@@ -161,9 +153,13 @@ async function clearTestData() {
   console.log("Test data cleared.");
 }
 
-async function seedTestData() {
+async function seedTestData(dryRun = false) {
   try {
-    await clearTestData();
+    if (!dryRun) {
+      await clearTestData();
+    } else {
+      console.log("Dry run mode: No data will be written to DynamoDB.");
+    }
 
     const now = new Date();
 
@@ -171,48 +167,67 @@ async function seedTestData() {
       const itemId = crypto.randomUUID();
       const createdAt = now.toISOString();
 
-      // テスト品目の登録
-      await docClient.send(new PutCommand({
-        TableName: ITEMS_TABLE,
-        Item: {
-          userId: DEFAULT_USER_ID,
-          itemId,
-          name: `テスト: ${testCase.name}`,
-          unit: testCase.unit,
-          currentStock: testCase.currentStock,
-          createdAt,
-          updatedAt: now.toISOString(),
-        },
-      }));
+      // 履歴の計算
+      let calculatedStock = 0;
+      const historyToInsert = [];
 
-      console.log(`Added test item: ${testCase.name} (${itemId})`);
+      for (const entry of testCase.history) {
+        const date = new Date(now.getTime() - entry.daysAgo * 24 * 60 * 60 * 1000).toISOString();
+        
+        historyToInsert.push({
+          userId: DEFAULT_USER_ID,
+          historyId: crypto.randomUUID(),
+          itemId,
+          type: entry.type,
+          quantity: entry.quantity,
+          date,
+          memo: entry.memo,
+        });
+
+        if (entry.type === "purchase") {
+          calculatedStock += entry.quantity;
+        } else if (entry.type === "consumption") {
+          calculatedStock -= entry.quantity;
+        }
+      }
+
+      // テスト品目の登録（計算された在庫を使用）
+      if (!dryRun) {
+        await docClient.send(new PutCommand({
+          TableName: ITEMS_TABLE,
+          Item: {
+            userId: DEFAULT_USER_ID,
+            itemId,
+            name: `テスト: ${testCase.name}`,
+            unit: testCase.unit,
+            currentStock: Math.max(0, calculatedStock),
+            createdAt,
+            updatedAt: now.toISOString(),
+          },
+        }));
+      }
+
+      console.log(`Test case: ${testCase.name} - Calculated stock: ${calculatedStock}`);
 
       // 履歴の投入
       let historyCount = 0;
-      for (const entry of testCase.history) {
-        const date = new Date(now.getTime() - entry.daysAgo * 24 * 60 * 60 * 1000).toISOString();
-
-        await docClient.send(new PutCommand({
-          TableName: HISTORY_TABLE,
-          Item: {
-            userId: DEFAULT_USER_ID,
-            historyId: crypto.randomUUID(),
-            itemId,
-            type: entry.type,
-            quantity: entry.quantity,
-            date,
-            memo: entry.memo,
-          },
-        }));
+      for (const historyItem of historyToInsert) {
+        if (!dryRun) {
+          await docClient.send(new PutCommand({
+            TableName: HISTORY_TABLE,
+            Item: historyItem,
+          }));
+        }
         historyCount++;
       }
-      console.log(`  Added ${historyCount} history records for ${testCase.name}`);
+      console.log(`  Added ${historyCount} history records`);
     }
 
-    console.log("Test data seeding completed successfully.");
+    console.log("Test data seeding process completed.");
   } catch (error) {
     console.error("Seeding failed:", error);
   }
 }
 
-seedTestData();
+const dryRun = process.argv.includes("--dry-run");
+seedTestData(dryRun);
