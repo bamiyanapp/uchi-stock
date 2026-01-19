@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { ArrowLeft, Package, History as HistoryIcon, TrendingDown, Minus, Plus, Edit } from "lucide-react";
+import { ArrowLeft, History as HistoryIcon, TrendingDown, Edit } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
 
 const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
@@ -16,7 +16,7 @@ const ItemDetail = () => {
 
   const getHeaders = useCallback(() => {
     const headers = {
-      "x-user-id": userId
+      "x-user-id": userId,
     };
     if (idToken) {
       headers["Authorization"] = `Bearer ${idToken}`;
@@ -26,17 +26,15 @@ const ItemDetail = () => {
 
   const fetchData = useCallback(async () => {
     const headers = getHeaders();
-    
+
     // アイテム情報の取得
     try {
       const itemRes = await fetch(`${API_BASE_URL}/items`, { headers });
       if (itemRes.ok) {
-        const itemsData = await itemRes.json();
+        const itemsData = await itemRes.ok ? await itemRes.json() : [];
         if (Array.isArray(itemsData)) {
-          const currentItem = itemsData.find(i => i.itemId === itemId);
+          const currentItem = itemsData.find((i) => i.itemId === itemId);
           setItem(currentItem);
-        } else {
-          console.error("Expected items array but got:", itemsData);
         }
       }
     } catch (error) {
@@ -76,6 +74,47 @@ const ItemDetail = () => {
     initialFetch();
   }, [fetchData]);
 
+  // 履歴データに当時の在庫数を付与する
+  const historyWithStockLevel = React.useMemo(() => {
+    if (!item || !history) return [];
+
+    let current = item.currentStock;
+    // historyは降順（新しい順）で届くことを想定
+    return history.map((h) => {
+      const stockLevelAtThatTime = current;
+      const quantity = parseFloat(h.quantity) || 0;
+      if (h.type === "consumption") {
+        current += quantity; // 消費した分を戻す
+      } else if (h.type === "purchase") {
+        current -= quantity; // 購入した分を引く
+      }
+      return { ...h, stockLevel: stockLevelAtThatTime };
+    });
+  }, [item, history]);
+
+  // グラフ用データの整形
+  const chartData = React.useMemo(() => {
+    if (!item || !historyWithStockLevel) return [];
+
+    const trend = [
+      {
+        date: "現在",
+        stock: item.currentStock,
+        displayDate: new Date().toLocaleDateString(),
+      },
+    ];
+
+    historyWithStockLevel.forEach((h) => {
+      trend.push({
+        date: new Date(h.date).toLocaleDateString(),
+        stock: h.stockLevel,
+        displayDate: new Date(h.date).toLocaleDateString(),
+      });
+    });
+
+    return trend.reverse();
+  }, [item, historyWithStockLevel]);
+
   if (loading) {
     return (
       <div className="container py-5 text-center">
@@ -90,41 +129,12 @@ const ItemDetail = () => {
     return (
       <div className="container py-5 text-center">
         <h2>品目が見つかりませんでした。</h2>
-        <Link to="/" className="btn btn-primary mt-3">戻る</Link>
+        <Link to="/" className="btn btn-primary mt-3">
+          戻る
+        </Link>
       </div>
     );
   }
-
-  // グラフ用データの整形 (在庫数の推移を計算)
-  const calculateStockTrend = () => {
-    if (!item || !history) return [];
-    
-    let current = item.currentStock;
-    const trend = [{
-      date: "現在",
-      stock: current,
-      displayDate: new Date().toLocaleDateString()
-    }];
-
-    // 履歴を新しい順に処理して、過去に遡って在庫を計算
-    history.forEach(h => {
-      const quantity = parseFloat(h.quantity) || 0;
-      if (h.type === "consumption") {
-        current += quantity; // 消費した分を戻す
-      } else if (h.type === "purchase") {
-        current -= quantity; // 購入した分を引く
-      }
-      trend.push({
-        date: new Date(h.date).toLocaleDateString(),
-        stock: current,
-        displayDate: new Date(h.date).toLocaleDateString()
-      });
-    });
-
-    return trend.reverse();
-  };
-
-  const chartData = calculateStockTrend();
 
   return (
     <div className="container py-5">
@@ -145,10 +155,7 @@ const ItemDetail = () => {
           </div>
           <div className="col-md-6">
             <div className="d-flex gap-2 justify-content-md-end">
-              <Link 
-                to={`/item/${itemId}/update`}
-                className="btn btn-primary d-inline-flex align-items-center px-4 py-2"
-              >
+              <Link to={`/item/${itemId}/update`} className="btn btn-primary d-inline-flex align-items-center px-4 py-2">
                 <Edit size={20} className="me-2" /> 在庫を更新する
               </Link>
             </div>
@@ -200,14 +207,14 @@ const ItemDetail = () => {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line 
-                      type="stepAfter" 
-                      dataKey="stock" 
-                      name="在庫数" 
-                      stroke="#0d6efd" 
+                    <Line
+                      type="stepAfter"
+                      dataKey="stock"
+                      name="在庫数"
+                      stroke="#0d6efd"
                       strokeWidth={2}
                       dot={{ r: 4 }}
-                      activeDot={{ r: 8 }} 
+                      activeDot={{ r: 8 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -231,26 +238,36 @@ const ItemDetail = () => {
                       <th>日付</th>
                       <th>種別</th>
                       <th>数量</th>
+                      <th>残量</th>
                       <th>メモ</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {history.length > 0 ? (
-                      history.map((h) => (
+                    {historyWithStockLevel.length > 0 ? (
+                      historyWithStockLevel.map((h) => (
                         <tr key={h.historyId}>
                           <td>{new Date(h.date).toLocaleString()}</td>
                           <td>
-                            <span className={`badge ${h.type === "consumption" ? "bg-warning text-dark" : "bg-success"}`}>
+                            <span
+                              className={`badge ${h.type === "consumption" ? "bg-warning text-dark" : "bg-success"}`}
+                            >
                               {h.type === "consumption" ? "消費" : "購入"}
                             </span>
                           </td>
-                          <td>{h.quantity} {item.unit}</td>
+                          <td>
+                            {h.quantity} {item.unit}
+                          </td>
+                          <td className="fw-bold">
+                            {h.stockLevel} {item.unit}
+                          </td>
                           <td className="text-muted">{h.memo || "-"}</td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="4" className="text-center py-4 text-muted">履歴がありません</td>
+                        <td colSpan="5" className="text-center py-4 text-muted">
+                          履歴がありません
+                        </td>
                       </tr>
                     )}
                   </tbody>

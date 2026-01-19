@@ -124,6 +124,13 @@ describe('ItemDetail', () => {
       expect(screen.getByText('購入')).toBeInTheDocument();
       expect(screen.getByText('Used')).toBeInTheDocument();
       expect(screen.getByText('Bought')).toBeInTheDocument();
+      // 残量の表示確認
+      // mockHistoryは降順で届く想定。
+      // 現在の在庫 10
+      // 1件目 (h1): consumption 2 -> 直前の在庫は 10.
+      // 2件目 (h2): purchase 5 -> 直前の在庫は 10 + 2 = 12. 直前の在庫は 12.
+      expect(screen.getByText('10 pcs')).toBeInTheDocument();
+      expect(screen.getByText('12 pcs')).toBeInTheDocument();
     });
   });
 
