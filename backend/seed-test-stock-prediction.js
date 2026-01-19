@@ -6,7 +6,7 @@ const client = new DynamoDBClient({ region: "ap-northeast-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const ITEMS_TABLE = "uchi-stock-app-items-v2";
-const HISTORY_TABLE = "uchi-stock-app-stock-history-v2";
+const HISTORY_TABLE = "uchi-stock-app-stock-history-v4";
 const DEFAULT_USER_ID = "test-user";
 
 // テストケース定義（docs/test-strategy-stock-prediction.md に基づく）
