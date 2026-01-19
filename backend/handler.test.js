@@ -368,7 +368,9 @@ describe('Household Items API', () => {
       });
       // 購入履歴のモック
       ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
-        Items: [{ quantity: 20, type: 'purchase' }]
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
       });
 
       const result = await getEstimatedDepletionDate({
@@ -398,7 +400,9 @@ describe('Household Items API', () => {
       });
       // 購入履歴のモック
       ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
-        Items: [{ quantity: 20, type: 'purchase' }]
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
       });
 
       const result = await getEstimatedDepletionDate({
@@ -429,7 +433,9 @@ describe('Household Items API', () => {
       });
       // 購入履歴のモック
       ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
-        Items: [{ quantity: 20, type: 'purchase' }]
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
       });
 
       const result = await getEstimatedDepletionDate({
@@ -521,7 +527,9 @@ describe('Household Items API', () => {
       });
       // 購入履歴のモック
       ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
-        Items: [{ quantity: 20, type: 'purchase' }]
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
       });
 
       const result = await getEstimatedDepletionDate({
@@ -549,7 +557,9 @@ describe('Household Items API', () => {
       });
       // 購入履歴のモック
       ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
-        Items: [{ quantity: 20, type: 'purchase' }]
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
       });
 
       const result = await getEstimatedDepletionDate({
@@ -575,7 +585,9 @@ describe('Household Items API', () => {
       });
       // 購入履歴のモック
       ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
-        Items: [{ quantity: 20, type: 'purchase' }]
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
       });
 
       const result = await getEstimatedDepletionDate({
@@ -601,7 +613,9 @@ describe('Household Items API', () => {
       });
       // 購入履歴のモック
       ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
-        Items: [{ quantity: 20, type: 'purchase' }]
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
       });
 
       const result = await getEstimatedDepletionDate({
@@ -673,7 +687,9 @@ describe('Household Items API', () => {
       });
       // 購入履歴のモック
       ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
-        Items: [{ quantity: 20, type: 'purchase' }]
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
       });
 
       const result = await getEstimatedDepletionDate({

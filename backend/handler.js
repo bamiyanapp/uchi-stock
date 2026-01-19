@@ -559,8 +559,38 @@ exports.getEstimatedDepletionDate = async (event) => {
       };
     }
 
-    const daysRemaining = Math.max(0, item.currentStock / dailyConsumption);
-    const estimatedDate = new Date(referenceDate.getTime() + daysRemaining * 24 * 60 * 60 * 1000);
+    // 最後に在庫を「設定」または「購入」した履歴を取得
+    let latestSetStockHistory = [];
+    try {
+      const result = await docClient.send(new QueryCommand({
+        TableName: HISTORY_TABLE(),
+        KeyConditionExpression: "itemId = :itemId",
+        FilterExpression: "#u = :userId AND (#t = :purchase OR #t = :update OR #t = :creation)",
+        ExpressionAttributeNames: { "#u": "userId", "#t": "type" },
+        ExpressionAttributeValues: {
+          ":itemId": itemId,
+          ":userId": userId,
+          ":purchase": "purchase",
+          ":update": "update",
+          ":creation": "creation"
+        },
+        ScanIndexForward: false, // 降順（新しい順）
+        Limit: 1
+      }));
+      latestSetStockHistory = result.Items || [];
+    } catch (e) {
+      console.error("Error fetching latest set stock history:", e);
+      // フォールバック
+    }
+
+    const lastUpdateDateStr = latestSetStockHistory.length > 0
+      ? latestSetStockHistory[0].date
+      : item.createdAt;
+    const lastUpdateDate = new Date(lastUpdateDateStr);
+
+    const daysSinceLastUpdate = Math.max(0, (referenceDate - lastUpdateDate) / (1000 * 60 * 60 * 24));
+    const daysRemainingFromLastUpdate = item.currentStock / dailyConsumption;
+    const estimatedDate = new Date(lastUpdateDate.getTime() + (daysRemainingFromLastUpdate + daysSinceLastUpdate) * 24 * 60 * 60 * 1000);
 
     // 最後に購入した際の数量を取得
     const { Items: purchaseHistory } = await docClient.send(new QueryCommand({
