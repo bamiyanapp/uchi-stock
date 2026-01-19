@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Trash2, ExternalLink, AlertTriangle, Clock } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
-import UserSelector from "./UserSelector";
 
 const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
 
@@ -94,8 +93,6 @@ function Home() {
       </header>
 
       <main>
-        <UserSelector />
-
         <div className="mb-4">
           <label htmlFor="date-picker" className="form-label fw-bold">基準日付</label>
           <input

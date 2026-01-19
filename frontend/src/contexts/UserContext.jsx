@@ -8,9 +8,7 @@ export const UserContext = createContext();
 export const useUser = () => useContext(UserContext);
 
 export const UserProvider = ({ children }) => {
-  const [userId, setUserId] = useState(() => {
-    return localStorage.getItem('userId') || 'user-1';
-  });
+  const [userId, setUserId] = useState('test-user');
   const [user, setUser] = useState(null);
   const [idToken, setIdToken] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,10 +38,6 @@ export const UserProvider = ({ children }) => {
     checkAuth();
   }, [checkAuth]);
 
-  useEffect(() => {
-    localStorage.setItem('userId', userId);
-  }, [userId]);
-
   const login = async () => {
     try {
       await signInWithRedirect({ provider: 'Google' });
@@ -57,7 +51,7 @@ export const UserProvider = ({ children }) => {
       await signOut();
       setUser(null);
       setIdToken(null);
-      setUserId('user-1'); // Reset to default or handle as needed
+      setUserId('test-user'); // Reset to default or handle as needed
     } catch (error) {
       console.error('Error signing out:', error);
     }

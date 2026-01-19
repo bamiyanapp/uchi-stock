@@ -26,10 +26,9 @@ describe('UserContext', () => {
     vi.clearAllMocks();
     vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.spyOn(console, 'log').mockImplementation(() => {});
-    localStorage.clear();
   });
 
-  it('provides default user (user-1) when not signed in', async () => {
+  it('provides default user (test-user) when not signed in', async () => {
     auth.getCurrentUser.mockRejectedValue(new Error('Not signed in'));
     
     await act(async () => {
@@ -40,7 +39,7 @@ describe('UserContext', () => {
       );
     });
 
-    expect(screen.getByTestId('user-id').textContent).toBe('user-1');
+    expect(screen.getByTestId('user-id').textContent).toBe('test-user');
   });
 
   it('provides user id when signed in', async () => {
@@ -97,6 +96,6 @@ describe('UserContext', () => {
     });
 
     expect(auth.signOut).toHaveBeenCalled();
-    expect(screen.getByTestId('user-id').textContent).toBe('user-1');
+    expect(screen.getByTestId('user-id').textContent).toBe('test-user');
   });
 });
