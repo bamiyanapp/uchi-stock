@@ -13,35 +13,30 @@ const items = [
   {
     name: "トイレットペーパー (2日に1回消費)",
     unit: "ロール",
-    currentStock: 10,
     consumptionPattern: "consistent", // 2日に1回1ロール -> 平均0.5/日
     daysOfHistory: 20
   },
   {
     name: "牛乳 (毎日消費)",
     unit: "本",
-    currentStock: 5,
     consumptionPattern: "fast", // 毎日1本 -> 平均1.0/日
     daysOfHistory: 10
   },
   {
     name: "ティッシュペーパー (5日に1回消費)",
     unit: "箱",
-    currentStock: 2,
     consumptionPattern: "slow", // 5日に1回1箱 -> 平均0.2/日
     daysOfHistory: 30
   },
   {
     name: "お米 (不定期消費)",
     unit: "kg",
-    currentStock: 5,
     consumptionPattern: "variable", // 3〜4日に1kg
     daysOfHistory: 30
   },
   {
     name: "検証用アイテム (毎日2個消費)",
     unit: "個",
-    currentStock: 20,
     consumptionPattern: "test-stable", // 毎日2個 -> 平均2.0/日
     daysOfHistory: 10
   }
@@ -71,9 +66,13 @@ async function clearTables() {
   console.log("Tables cleared.");
 }
 
-async function seed() {
+async function seed(dryRun = false) {
   try {
-    await clearTables();
+    if (!dryRun) {
+      await clearTables();
+    } else {
+      console.log("Dry run mode: No data will be written to DynamoDB.");
+    }
 
     const now = new Date();
 
@@ -81,91 +80,113 @@ async function seed() {
       const itemId = crypto.randomUUID();
       const createdAt = new Date(now.getTime() - itemDef.daysOfHistory * 24 * 60 * 60 * 1000).toISOString();
 
-      // 品目の登録
-      await docClient.send(new PutCommand({
-        TableName: ITEMS_TABLE,
-        Item: {
-          userId: DEFAULT_USER_ID,
-          itemId,
-          name: itemDef.name,
-          unit: itemDef.unit,
-          currentStock: itemDef.currentStock,
-          createdAt,
-          updatedAt: now.toISOString(),
-        },
-      }));
-
-      console.log(`Added item: ${itemDef.name} (${itemId})`);
-
-      // 履歴の生成
+      // 履歴の生成と在庫の計算
       let historyCount = 0;
-      let virtualStock = itemDef.currentStock + 10; // 過去の時点での仮想在庫
+      let calculatedStock = 0;
+      const historyItems = [];
 
       for (let i = itemDef.daysOfHistory; i > 0; i--) {
         const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
         let consume = false;
         let purchase = false;
-        let quantity = 1;
+        let purchaseQuantity = 0;
+        let consumeQuantity = 0;
 
         // 購入イベント（履歴の最初の方で1回購入しておく）
         if (i === itemDef.daysOfHistory) {
           purchase = true;
-          quantity = 10;
+          // 消費量に見合う分だけ初期購入する（少し余裕を持たせる）
+          if (itemDef.consumptionPattern === "test-stable") {
+            purchaseQuantity = 30;
+          } else if (itemDef.consumptionPattern === "fast") {
+            purchaseQuantity = 15;
+          } else {
+            purchaseQuantity = 10;
+          }
         }
 
         // 消費パターンの判定
         if (itemDef.consumptionPattern === "consistent" && i % 2 === 0) {
           consume = true;
+          consumeQuantity = 1;
         } else if (itemDef.consumptionPattern === "fast") {
           consume = true;
+          consumeQuantity = 1;
         } else if (itemDef.consumptionPattern === "slow" && i % 5 === 0) {
           consume = true;
+          consumeQuantity = 1;
         } else if (itemDef.consumptionPattern === "variable" && i % (3 + Math.floor(Math.random() * 2)) === 0) {
           consume = true;
+          consumeQuantity = 1;
         } else if (itemDef.consumptionPattern === "test-stable") {
           consume = true;
-          quantity = 2;
+          consumeQuantity = 2;
         }
 
         if (purchase) {
-          await docClient.send(new PutCommand({
-            TableName: HISTORY_TABLE,
-            Item: {
-              userId: DEFAULT_USER_ID,
-              historyId: crypto.randomUUID(),
-              itemId,
-              type: "purchase",
-              quantity,
-              date: date.toISOString(),
-              memo: "まとめ買い",
-            },
-          }));
+          historyItems.push({
+            userId: DEFAULT_USER_ID,
+            historyId: crypto.randomUUID(),
+            itemId,
+            type: "purchase",
+            quantity: purchaseQuantity,
+            date: date.toISOString(),
+            memo: "まとめ買い",
+          });
+          calculatedStock += purchaseQuantity;
           historyCount++;
         }
 
         if (consume && !purchase) {
-          await docClient.send(new PutCommand({
-            TableName: HISTORY_TABLE,
-            Item: {
-              userId: DEFAULT_USER_ID,
-              historyId: crypto.randomUUID(),
-              itemId,
-              type: "consumption",
-              quantity,
-              date: date.toISOString(),
-              memo: "定期消費",
-            },
-          }));
+          historyItems.push({
+            userId: DEFAULT_USER_ID,
+            historyId: crypto.randomUUID(),
+            itemId,
+            type: "consumption",
+            quantity: consumeQuantity,
+            date: date.toISOString(),
+            memo: "定期消費",
+          });
+          calculatedStock -= consumeQuantity;
           historyCount++;
         }
       }
-      console.log(`  Added ${historyCount} history records for ${itemDef.name}`);
+
+      // 品目の登録（計算された在庫を使用）
+      if (!dryRun) {
+        await docClient.send(new PutCommand({
+          TableName: ITEMS_TABLE,
+          Item: {
+            userId: DEFAULT_USER_ID,
+            itemId,
+            name: itemDef.name,
+            unit: itemDef.unit,
+            currentStock: Math.max(0, calculatedStock),
+            createdAt,
+            updatedAt: now.toISOString(),
+          },
+        }));
+      }
+
+      console.log(`Item: ${itemDef.name} - Calculated stock: ${calculatedStock}`);
+
+      // 履歴の投入
+      for (const historyItem of historyItems) {
+        if (!dryRun) {
+          await docClient.send(new PutCommand({
+            TableName: HISTORY_TABLE,
+            Item: historyItem,
+          }));
+        }
+      }
+      console.log(`  Added ${historyCount} history records`);
     }
 
-    console.log("Seeding completed successfully.");
+    console.log("Seeding process completed.");
   } catch (error) {
     console.error("Seeding failed:", error);
   }
 }
 
-seed();
+const dryRun = process.argv.includes("--dry-run");
+seed(dryRun);
