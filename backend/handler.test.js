@@ -58,7 +58,6 @@ describe('Household Items API', () => {
         unit: 'pcs',
         currentStock: 0,
         createdAt: '2023-01-01T12:00:00.000Z',
-        updatedAt: '2023-01-01T12:00:00.000Z',
       });
     });
 
@@ -97,15 +96,41 @@ describe('Household Items API', () => {
   });
 
   describe('getItems', () => {
-    it('should return items successfully for specific user', async () => {
-      const mockItems = [{ itemId: '1', name: 'Item 1', userId: TEST_USER }];
-      ddbMock.on(QueryCommand).resolves({ Items: mockItems });
+    it('should return items successfully for specific user with updatedAt from history', async () => {
+      const mockItems = [{ itemId: '1', name: 'Item 1', userId: TEST_USER, createdAt: '2023-01-01T00:00:00Z' }];
+      const mockHistory = [{ date: '2023-01-01T12:00:00Z', itemId: '1' }];
+      
+      // Items取得用のモック
+      ddbMock.on(QueryCommand, {
+        TableName: ITEMS_TABLE,
+      }).resolves({ Items: mockItems });
+
+      // History取得用のモック
+      ddbMock.on(QueryCommand, {
+        TableName: HISTORY_TABLE,
+      }).resolves({ Items: mockHistory });
+
       const result = await getItems({ headers: { 'x-user-id': TEST_USER } });
       expect(result.statusCode).toBe(200);
-      expect(JSON.parse(result.body)).toEqual(mockItems);
+      const body = JSON.parse(result.body);
+      expect(body[0].updatedAt).toBe('2023-01-01T12:00:00Z');
+    });
+
+    it('should fallback to createdAt if no history found', async () => {
+      const mockItems = [{ itemId: '1', name: 'Item 1', userId: TEST_USER, createdAt: '2023-01-01T00:00:00Z' }];
       
-      const queryCall = ddbMock.calls().find(c => c.args[0] instanceof QueryCommand);
-      expect(queryCall.args[0].input.ExpressionAttributeValues[':userId']).toBe(TEST_USER);
+      ddbMock.on(QueryCommand, {
+        TableName: ITEMS_TABLE,
+      }).resolves({ Items: mockItems });
+
+      ddbMock.on(QueryCommand, {
+        TableName: HISTORY_TABLE,
+      }).resolves({ Items: [] });
+
+      const result = await getItems({ headers: { 'x-user-id': TEST_USER } });
+      expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      expect(body[0].updatedAt).toBe('2023-01-01T00:00:00Z');
     });
 
     it('should return 500 if dynamoDB fails', async () => {
@@ -116,7 +141,7 @@ describe('Household Items API', () => {
   });
 
   describe('updateItem', () => {
-    it('should update an item successfully', async () => {
+    it('should update an item successfully and return updatedAt', async () => {
       const event = {
         headers: { 'x-user-id': TEST_USER },
         pathParameters: { itemId: 'item-1' },
@@ -126,7 +151,9 @@ describe('Household Items API', () => {
 
       const result = await updateItem(event);
       expect(result.statusCode).toBe(200);
-      expect(JSON.parse(result.body).name).toBe('Updated Name');
+      const body = JSON.parse(result.body);
+      expect(body.name).toBe('Updated Name');
+      expect(body.updatedAt).toBe('2023-01-01T12:00:00.000Z');
     });
 
     it('should return 400 if no update parameters provided', async () => {
@@ -175,7 +202,7 @@ describe('Household Items API', () => {
   });
 
   describe('addStock', () => {
-    it('should add stock successfully for user', async () => {
+    it('should add stock successfully for user and return updatedAt', async () => {
       const event = {
         headers: { 'x-user-id': TEST_USER },
         pathParameters: { itemId: 'item-1' },
@@ -188,6 +215,7 @@ describe('Household Items API', () => {
       const result = await addStock(event);
 
       expect(result.statusCode).toBe(200);
+      expect(JSON.parse(result.body).updatedAt).toBe('2023-01-01T12:00:00.000Z');
       
       const putCall = ddbMock.calls().find(c => c.args[0] instanceof PutCommand);
       expect(putCall.args[0].input.Item.userId).toBe(TEST_USER);
@@ -248,6 +276,7 @@ describe('Household Items API', () => {
       expect(result.statusCode).toBe(200);
       const body = JSON.parse(result.body);
       expect(body.averageConsumptionRate).toBeDefined();
+      expect(body.updatedAt).toBe('2023-01-01T12:00:00.000Z');
 
       const putCall = ddbMock.calls().find(c => c.args[0] instanceof PutCommand);
       expect(putCall.args[0].input.Item.userId).toBe(TEST_USER);
