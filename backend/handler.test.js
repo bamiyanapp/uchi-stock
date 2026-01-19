@@ -366,6 +366,12 @@ describe('Household Items API', () => {
           averageConsumptionRate: 2.0 // 1日2個消費
         }
       });
+      // 購入履歴のモック
+      ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
+      });
 
       const result = await getEstimatedDepletionDate({
         headers: { 'x-user-id': TEST_USER },
@@ -392,6 +398,12 @@ describe('Household Items API', () => {
           averageConsumptionRate: 2.0 // 1日2個消費
         }
       });
+      // 購入履歴のモック
+      ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
+      });
 
       const result = await getEstimatedDepletionDate({
         headers: { 'x-user-id': TEST_USER },
@@ -406,6 +418,8 @@ describe('Household Items API', () => {
       expect(body.estimatedDepletionDate).toBe('2023-01-10T12:00:00.000Z');
       expect(body.dailyConsumption).toBe("2.00");
       expect(body.currentStock).toBe(10);
+      expect(body.stockPercentage).toBe(50); // 10/20 = 50%
+      expect(body.lastPurchaseQuantity).toBe(20);
     });
 
     it('should use current date when invalid date parameter is provided', async () => {
@@ -416,6 +430,12 @@ describe('Household Items API', () => {
           currentStock: 10,
           averageConsumptionRate: 2.0 // 1日2個消費
         }
+      });
+      // 購入履歴のモック
+      ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
       });
 
       const result = await getEstimatedDepletionDate({
@@ -505,6 +525,12 @@ describe('Household Items API', () => {
           averageConsumptionRate: 1.0
         }
       });
+      // 購入履歴のモック
+      ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
+      });
 
       const result = await getEstimatedDepletionDate({
         headers: { 'x-user-id': TEST_USER },
@@ -529,6 +555,12 @@ describe('Household Items API', () => {
           averageConsumptionRate: 1.0
         }
       });
+      // 購入履歴のモック
+      ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
+      });
 
       const result = await getEstimatedDepletionDate({
         headers: { 'x-user-id': TEST_USER },
@@ -551,6 +583,12 @@ describe('Household Items API', () => {
           averageConsumptionRate: 1.0 // 変動平均
         }
       });
+      // 購入履歴のモック
+      ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
+      });
 
       const result = await getEstimatedDepletionDate({
         headers: { 'x-user-id': TEST_USER },
@@ -572,6 +610,12 @@ describe('Household Items API', () => {
           currentStock: 15,
           averageConsumptionRate: 1.0
         }
+      });
+      // 購入履歴のモック
+      ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
       });
 
       const result = await getEstimatedDepletionDate({
@@ -640,6 +684,12 @@ describe('Household Items API', () => {
           currentStock: 10,
           averageConsumptionRate: 0.1 // 古いデータによる低い消費率
         }
+      });
+      // 購入履歴のモック
+      ddbMock.on(QueryCommand, { TableName: HISTORY_TABLE }).resolves({
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z' }
+        ]
       });
 
       const result = await getEstimatedDepletionDate({
