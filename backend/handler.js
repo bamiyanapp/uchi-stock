@@ -375,13 +375,12 @@ const calculateAverageConsumptionRate = async (userId, itemId) => {
 
     // 期間を計算（最初の記録から現在まで）
     const firstDate = new Date(validHistory[0].date);
-    const lastDate = new Date(validHistory[validHistory.length - 1].date);
     const now = new Date();
 
     // 観測期間：最初の記録から現在まで（最低1日）
     const observationPeriodDays = Math.max(1, (now - firstDate) / (1000 * 60 * 60 * 24));
 
-    // 総消費量
+    // 総消費量（最後の消費記録は含めない。期間の最後が「現在」であるため、最後の消費から現在までの期間も考慮した平均を出すため、全消費量を期間で割る）
     const totalConsumed = validHistory.reduce((sum, h) => sum + h.quantity, 0);
 
     // 日次平均消費量
