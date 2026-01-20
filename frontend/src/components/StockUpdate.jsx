@@ -68,6 +68,11 @@ const StockUpdate = () => {
       return;
     }
 
+    if (consumption > 0 && item && Number(consumption) > Number(item.currentStock)) {
+      alert(`消費量は現在の在庫数 (${item.currentStock}) を超えることはできません。`);
+      return;
+    }
+
     setSubmitting(true);
     try {
       const headers = {
@@ -168,7 +173,7 @@ const StockUpdate = () => {
                 </div>
 
                 <div className="mb-4">
-                  <label className="form-label fw-bold d-flex align-items-center">
+                  <label htmlFor="consumption-input" className="form-label fw-bold d-flex align-items-center">
                     <Minus size={18} className="me-2 text-warning" />
                     消費した量 ({item.unit})
                   </label>
@@ -181,11 +186,13 @@ const StockUpdate = () => {
                       -1
                     </button>
                     <input 
+                      id="consumption-input"
                       type="number" 
                       className="form-control text-center fs-5"
                       value={consumption}
                       onChange={(e) => setConsumption(Math.max(0, parseFloat(e.target.value) || 0))}
                       min="0"
+                      max={item.currentStock}
                       step="any"
                     />
                     <button 
