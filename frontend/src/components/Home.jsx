@@ -8,8 +8,19 @@ const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.co
 function Home() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(new Date(2026, 0, 1)); // デフォルト2026/1/1
+  const [selectedDate, setSelectedDate] = useState(new Date()); // デフォルト今日の日付
   const { userId, idToken, user, login, logout, loading: authLoading } = useUser();
+
+  const formatDate = (date) => {
+    return date.toLocaleDateString('sv-SE');
+  };
+
+  const handleDateChange = (e) => {
+    const [year, month, day] = e.target.value.split('-').map(Number);
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+      setSelectedDate(new Date(year, month - 1, day));
+    }
+  };
 
   const getHeaders = useCallback(() => {
     const headers = {
@@ -99,8 +110,8 @@ function Home() {
             id="date-picker"
             type="date"
             className="form-control"
-            value={selectedDate.toISOString().split('T')[0]}
-            onChange={(e) => setSelectedDate(new Date(e.target.value))}
+            value={formatDate(selectedDate)}
+            onChange={handleDateChange}
           />
         </div>
 

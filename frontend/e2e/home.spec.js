@@ -19,12 +19,14 @@ test.describe('Home Page', () => {
       });
     });
 
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 10);
     await page.route('**/items/item-1/estimate*', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          estimatedDepletionDate: '2026-01-10T00:00:00Z',
+          estimatedDepletionDate: futureDate.toISOString(),
           confidence: 0.8,
         }),
       });
