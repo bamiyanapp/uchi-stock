@@ -1,0 +1,109 @@
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { BrowserRouter } from "react-router-dom";
+import Home from "./Home";
+import { UserContext } from "../contexts/UserContext";
+
+// Mock API
+const mockItems = [
+  {
+    itemId: "item-1",
+    name: "トイレットペーパー",
+    currentStock: 5,
+    unit: "ロール",
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+global.fetch = vi.fn();
+global.alert = vi.fn();
+
+const mockUserContext = {
+  userId: "test-user",
+  idToken: "test-token",
+  user: { username: "testuser" },
+  login: vi.fn(),
+  logout: vi.fn(),
+  loading: false,
+};
+
+const renderHome = () => {
+  return render(
+    <UserContext.Provider value={mockUserContext}>
+      <BrowserRouter>
+        <Home />
+      </BrowserRouter>
+    </UserContext.Provider>
+  );
+};
+
+describe("Home Component", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    fetch.mockImplementation((url) => {
+      if (url.includes("/estimate")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ stockPercentage: 50 }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockItems),
+      });
+    });
+  });
+
+  it("renders item list", async () => {
+    renderHome();
+    await waitFor(() => {
+      expect(screen.getByText("トイレットペーパー")).toBeInTheDocument();
+    });
+  });
+
+  it("shows add item form when clicking button", async () => {
+    renderHome();
+    const addButton = screen.getByText("新しい品目を追加");
+    fireEvent.click(addButton);
+
+    expect(screen.getByText("新しい品目の登録")).toBeInTheDocument();
+    expect(screen.getByLabelText("品目名")).toBeInTheDocument();
+    expect(screen.getByLabelText("単位")).toBeInTheDocument();
+  });
+
+  it("submits new item", async () => {
+    fetch.mockImplementation((url, options) => {
+      if (options?.method === "POST") {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ itemId: "new-item", name: "ティッシュ", unit: "箱" }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+    });
+
+    renderHome();
+    fireEvent.click(screen.getByText("新しい品目を追加"));
+
+    fireEvent.change(screen.getByLabelText("品目名"), { target: { value: "ティッシュ" } });
+    fireEvent.change(screen.getByLabelText("単位"), { target: { value: "箱" } });
+
+    fireEvent.click(screen.getByText("登録する"));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/items"),
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ name: "ティッシュ", unit: "箱" }),
+        })
+      );
+    });
+
+    // Form should be closed
+    expect(screen.queryByText("新しい品目の登録")).not.toBeInTheDocument();
+  });
+});
