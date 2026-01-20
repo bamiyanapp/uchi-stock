@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Trash2, ExternalLink, AlertTriangle, Clock } from "lucide-react";
+import { Trash2, ExternalLink, AlertTriangle, Clock, Plus, X } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
 
 const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
@@ -9,6 +9,10 @@ function Home() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date(2026, 0, 1)); // デフォルト2026/1/1
+  const [isAdding, setIsAdding] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemUnit, setNewItemUnit] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { userId, idToken, user, login, logout, loading: authLoading } = useUser();
 
   const getHeaders = useCallback(() => {
@@ -73,6 +77,41 @@ function Home() {
     }
   };
 
+  const handleAddItem = async (e) => {
+    e.preventDefault();
+    if (!newItemName || !newItemUnit) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/items`, {
+        method: "POST",
+        headers: {
+          ...getHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: newItemName,
+          unit: newItemUnit,
+        }),
+      });
+
+      if (response.ok) {
+        setNewItemName("");
+        setNewItemUnit("");
+        setIsAdding(false);
+        fetchItems();
+      } else {
+        const data = await response.json();
+        alert(`エラー: ${data.message}`);
+      }
+    } catch (error) {
+      console.error("Error adding item:", error);
+      alert("エラーが発生しました");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="container py-5">
       <header className="text-center mb-5 position-relative">
@@ -93,21 +132,91 @@ function Home() {
       </header>
 
       <main>
-        <div className="mb-4">
-          <label htmlFor="date-picker" className="form-label fw-bold">基準日付</label>
-          <input
-            id="date-picker"
-            type="date"
-            className="form-control"
-            value={selectedDate.toISOString().split('T')[0]}
-            onChange={(e) => setSelectedDate(new Date(e.target.value))}
-          />
+        <div className="row mb-4 g-3">
+          <div className="col-md-6">
+            <label htmlFor="date-picker" className="form-label fw-bold">基準日付</label>
+            <input
+              id="date-picker"
+              type="date"
+              className="form-control"
+              value={selectedDate.toISOString().split('T')[0]}
+              onChange={(e) => setSelectedDate(new Date(e.target.value))}
+            />
+          </div>
+          <div className="col-md-6 d-flex align-items-end">
+            {!isAdding ? (
+              <button 
+                onClick={() => setIsAdding(true)}
+                className="btn btn-success d-flex align-items-center gap-2"
+              >
+                <Plus size={20} />
+                新しい品目を追加
+              </button>
+            ) : (
+              <button 
+                onClick={() => setIsAdding(false)}
+                className="btn btn-outline-secondary d-flex align-items-center gap-2"
+              >
+                <X size={20} />
+                キャンセル
+              </button>
+            )}
+          </div>
         </div>
 
+        {isAdding && (
+          <div className="card mb-5 border-success shadow-sm">
+            <div className="card-body">
+              <h2 className="h5 card-title mb-4">新しい品目の登録</h2>
+              <form onSubmit={handleAddItem} className="row g-3">
+                <div className="col-md-6">
+                  <label htmlFor="itemName" className="form-label">品目名</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="itemName"
+                    placeholder="例: トイレットペーパー"
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="col-md-4">
+                  <label htmlFor="itemUnit" className="form-label">単位</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="itemUnit"
+                    placeholder="例: ロール、袋、個"
+                    value={newItemUnit}
+                    onChange={(e) => setNewItemUnit(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="col-md-2 d-flex align-items-end">
+                  <button 
+                    type="submit" 
+                    className="btn btn-success w-100"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    ) : (
+                      "登録する"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         <section className="mb-5">
-          <h2 className="h5 mb-4 d-flex align-items-center">
-            <Clock size={20} className="me-2 text-primary" />
-            残量予測とステータス
+          <h2 className="h5 mb-4 d-flex align-items-center justify-content-between">
+            <div className="d-flex align-items-center">
+              <Clock size={20} className="me-2 text-primary" />
+              残量予測とステータス
+            </div>
           </h2>
           {loading ? (
             <div className="text-center py-5">
