@@ -16,6 +16,18 @@ const StockUpdate = () => {
   const [consumption, setConsumption] = useState(0);
   const [purchase, setPurchase] = useState(0);
   const [memo, setMemo] = useState("");
+  const [targetDate, setTargetDate] = useState(new Date());
+
+  const formatDate = (date) => {
+    return date.toLocaleDateString('sv-SE');
+  };
+
+  const handleDateChange = (e) => {
+    const [year, month, day] = e.target.value.split('-').map(Number);
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+      setTargetDate(new Date(year, month - 1, day));
+    }
+  };
 
   const getHeaders = useCallback(() => {
     const headers = {
@@ -68,7 +80,7 @@ const StockUpdate = () => {
         await fetch(`${API_BASE_URL}/items/${itemId}/consume`, {
           method: "POST",
           headers,
-          body: JSON.stringify({ quantity: consumption, memo }),
+          body: JSON.stringify({ quantity: consumption, memo, date: targetDate.toISOString() }),
         });
       }
 
@@ -77,7 +89,7 @@ const StockUpdate = () => {
         await fetch(`${API_BASE_URL}/items/${itemId}/stock`, {
           method: "POST",
           headers,
-          body: JSON.stringify({ quantity: purchase, memo }),
+          body: JSON.stringify({ quantity: purchase, memo, date: targetDate.toISOString() }),
         });
       }
 
@@ -140,6 +152,21 @@ const StockUpdate = () => {
               </div>
 
               <form onSubmit={handleSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="date-picker" className="form-label fw-bold d-flex align-items-center">
+                    <Calendar size={18} className="me-2 text-primary" />
+                    基準日付
+                  </label>
+                  <input
+                    id="date-picker"
+                    type="date"
+                    className="form-control"
+                    value={formatDate(targetDate)}
+                    onChange={handleDateChange}
+                  />
+                  <div className="form-text">消費または購入を行った日付を選択してください。</div>
+                </div>
+
                 <div className="mb-4">
                   <label className="form-label fw-bold d-flex align-items-center">
                     <Minus size={18} className="me-2 text-warning" />

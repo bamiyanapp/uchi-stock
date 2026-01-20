@@ -93,11 +93,11 @@ describe('App', () => {
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/items/1/consume'), expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ quantity: 2, memo: "" })
+        body: expect.stringContaining('"quantity":2,"memo":"","date":')
       }));
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/items/1/stock'), expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ quantity: 1, memo: "" })
+        body: expect.stringContaining('"quantity":1,"memo":"","date":')
       }));
     });
   });
