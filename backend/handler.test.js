@@ -547,6 +547,60 @@ describe('Household Items API', () => {
   });
 
   describe('Stock Prediction Tests based on test-strategy-stock-prediction.md', () => {
+    it('should return stock percentage based on last update when no purchase history exists', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          userId: TEST_USER,
+          itemId: 'item-update-only',
+          currentStock: 9,
+          averageConsumptionRate: 1.0,
+          updatedAt: '2023-01-02T12:00:00Z'
+        }
+      });
+      
+      // History: Update (stock=10) -> Consumption (1) -> Current (9)
+      // Reverse order (newest first): Consumption, Update
+      const mockHistory = [
+        { 
+          type: 'consumption', 
+          quantity: 1, 
+          date: '2023-01-02T12:00:00Z', 
+          userId: TEST_USER 
+        },
+        { 
+          type: 'update', 
+          quantity: 0, 
+          date: '2023-01-01T12:00:00Z', 
+          userId: TEST_USER 
+        }
+      ];
+
+      ddbMock.on(QueryCommand).callsFake((params) => {
+        // Purchase history query uses :type = "purchase"
+        if (params.ExpressionAttributeValues && params.ExpressionAttributeValues[':type'] === 'purchase') {
+          return { Items: [] };
+        }
+        return { Items: mockHistory };
+      });
+
+      const result = await getEstimatedDepletionDate({
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-update-only' }
+      });
+
+      expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      
+      // Predicted stock should be ~9
+      // Baseline calculation:
+      // 1. Start 9.
+      // 2. Consumption (1). temp = 10.
+      // 3. Update. Baseline = 10.
+      // 4. Percentage = 9 / 10 = 90%.
+      
+      expect(body.stockPercentage).toBe(90);
+    });
+
     it('should predict depletion in 10 days for simple consumption case (currentStock: 10, dailyConsumption: 1)', async () => {
       ddbMock.on(GetCommand).resolves({
         Item: {
