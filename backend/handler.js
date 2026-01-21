@@ -559,38 +559,41 @@ exports.getEstimatedDepletionDate = async (event) => {
       };
     }
 
-    // 最後に在庫を「設定」または「購入」した履歴を取得
-    let latestSetStockHistory = [];
+    // 最後に在庫が確定した履歴（作成、購入、更新、消費）を取得
+    let latestHistory = [];
     try {
       const result = await docClient.send(new QueryCommand({
         TableName: HISTORY_TABLE(),
         KeyConditionExpression: "itemId = :itemId",
-        FilterExpression: "#u = :userId AND (#t = :purchase OR #t = :update OR #t = :creation)",
+        FilterExpression: "#u = :userId AND (#t = :purchase OR #t = :update OR #t = :creation OR #t = :consumption)",
         ExpressionAttributeNames: { "#u": "userId", "#t": "type" },
         ExpressionAttributeValues: {
           ":itemId": itemId,
           ":userId": userId,
           ":purchase": "purchase",
           ":update": "update",
-          ":creation": "creation"
+          ":creation": "creation",
+          ":consumption": "consumption"
         },
         ScanIndexForward: false, // 降順（新しい順）
         Limit: 1
       }));
-      latestSetStockHistory = result.Items || [];
+      latestHistory = result.Items || [];
     } catch (e) {
-      console.error("Error fetching latest set stock history:", e);
+      console.error("Error fetching latest history:", e);
       // フォールバック
     }
 
-    const lastUpdateDateStr = latestSetStockHistory.length > 0
-      ? latestSetStockHistory[0].date
+    const lastUpdateDateStr = latestHistory.length > 0
+      ? latestHistory[0].date
       : item.createdAt;
     const lastUpdateDate = new Date(lastUpdateDateStr);
 
     const daysSinceLastUpdate = Math.max(0, (referenceDate - lastUpdateDate) / (1000 * 60 * 60 * 24));
-    const daysRemainingFromLastUpdate = item.currentStock / dailyConsumption;
-    const estimatedDate = new Date(lastUpdateDate.getTime() + (daysRemainingFromLastUpdate + daysSinceLastUpdate) * 24 * 60 * 60 * 1000);
+    const predictedStock = Math.max(0, item.currentStock - (dailyConsumption * daysSinceLastUpdate));
+    
+    const daysRemainingFromCurrent = predictedStock / dailyConsumption;
+    const estimatedDate = new Date(referenceDate.getTime() + daysRemainingFromCurrent * 24 * 60 * 60 * 1000);
 
     // 最後に購入した際の数量を取得
     const { Items: purchaseHistory } = await docClient.send(new QueryCommand({
@@ -604,7 +607,7 @@ exports.getEstimatedDepletionDate = async (event) => {
     }));
 
     const lastPurchaseQuantity = purchaseHistory && purchaseHistory.length > 0 ? purchaseHistory[0].quantity : null;
-    const stockPercentage = lastPurchaseQuantity ? Math.min(100, Math.round((item.currentStock / lastPurchaseQuantity) * 100)) : null;
+    const stockPercentage = lastPurchaseQuantity ? Math.min(100, Math.round((predictedStock / lastPurchaseQuantity) * 100)) : null;
 
     return {
       statusCode: 200,
@@ -616,6 +619,7 @@ exports.getEstimatedDepletionDate = async (event) => {
         estimatedDepletionDate: estimatedDate.toISOString(),
         dailyConsumption: dailyConsumption.toFixed(2),
         currentStock: item.currentStock,
+        predictedStock: Number(predictedStock.toFixed(2)),
         lastPurchaseQuantity,
         stockPercentage
       }),

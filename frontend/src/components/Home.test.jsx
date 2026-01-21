@@ -44,7 +44,7 @@ describe("Home Component", () => {
       if (url.includes("/estimate")) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ stockPercentage: 50 }),
+          json: () => Promise.resolve({ predictedStock: 5, stockPercentage: 50 }),
         });
       }
       return Promise.resolve({
@@ -105,5 +105,28 @@ describe("Home Component", () => {
 
     // Form should be closed
     expect(screen.queryByText("新しい品目の登録")).not.toBeInTheDocument();
+  });
+
+  it("displays predicted stock when available", async () => {
+    fetch.mockImplementation((url) => {
+      if (url.includes("/estimate")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ predictedStock: 3, stockPercentage: 60 }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockItems),
+      });
+    });
+
+    renderHome();
+    await waitFor(() => {
+      // predictedStock の 3 が表示されていることを確認
+      expect(screen.getByText("3")).toBeInTheDocument();
+      // currentStock の 5 ではないことを確認
+      expect(screen.queryByText("5")).not.toBeInTheDocument();
+    });
   });
 });
