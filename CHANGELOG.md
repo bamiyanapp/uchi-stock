@@ -236,12 +236,12 @@
 
 * update ci.yml ([#63](https://github.com/bamiyanapp/karuta/issues/63)) ([e040950](https://github.com/bamiyanapp/karuta/commit/e0409509a1de3ec8942a39ae35d94dd7b87cf2c8))
 ## [0.0.287](https://github.com/bamiyanapp/karuta/compare/v0.0.286...v0.0.287) (2026-01-11)
-## [0.0.286](https://github.com/bamiyanapp/karuta/compare/v0.0.285...v0.0.286) (2026-01-10)
+## [0.0.286](https://github.com/bamiyanapp/karuta/compare/v0.0.284...v0.0.286) (2026-01-10)
 
 ### Bug Fixes
 
 * fetchの追加 ([#60](https://github.com/bamiyanapp/karuta/issues/60)) ([6bd2b38](https://github.com/bamiyanapp/karuta/commit/6bd2b388b637ada19be482f677a64e3dafb1e6c2))
-## [0.0.285](https://github.com/bamiyanapp/karuta/compare/v0.0.284...v0.0.285) (2026-01-10)
+## 0.0.285 (2026-01-10)
 ## [0.0.284](https://github.com/bamiyanapp/karuta/compare/v0.0.283...v0.0.284) (2026-01-10)
 
 ### Bug Fixes
