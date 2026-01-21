@@ -47,6 +47,7 @@ const mockHistory = [
 const mockEstimate = {
   estimatedDepletionDate: '2023-01-10T12:00:00Z',
   dailyConsumption: '0.5',
+  predictedStock: 8.5,
 };
 
 describe('ItemDetail', () => {
@@ -87,7 +88,7 @@ describe('ItemDetail', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Test Item')).toBeInTheDocument();
-      expect(screen.getByText('10')).toBeInTheDocument();
+      expect(screen.getByText('8.5')).toBeInTheDocument();
       expect(screen.getByText('pcs')).toBeInTheDocument();
       expect(screen.getByText('0.5 pcs / 日')).toBeInTheDocument();
     });

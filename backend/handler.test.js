@@ -414,12 +414,43 @@ describe('Household Items API', () => {
       expect(result.statusCode).toBe(200);
       const body = JSON.parse(result.body);
       expect(body.estimatedDepletionDate).toBeDefined();
-      // 基準日2023-01-05 + 10/2 = 5日 = 2023-01-10
-      expect(body.estimatedDepletionDate).toBe('2023-01-10T12:00:00.000Z');
+      // 基準日2023-01-05時点の予測在庫: 10 - (2 * 4日) = 2
+      // 残り日数: 2 / 2 = 1日
+      // 在庫切れ予定日: 2023-01-05 + 1日 = 2023-01-06
+      expect(body.estimatedDepletionDate).toBe('2023-01-06T12:00:00.000Z');
       expect(body.dailyConsumption).toBe("2.00");
       expect(body.currentStock).toBe(10);
-      expect(body.stockPercentage).toBe(50); // 10/20 = 50%
+      expect(body.stockPercentage).toBe(10); // 2/20 = 10%
       expect(body.lastPurchaseQuantity).toBe(20);
+    });
+
+    it('should include predictedStock based on reference date', async () => {
+      const referenceDate = '2023-01-05T12:00:00Z'; // 1/1から4日後
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          userId: TEST_USER,
+          itemId: 'item-1',
+          currentStock: 10,
+          averageConsumptionRate: 2.0 // 1日2個消費
+        }
+      });
+      // 履歴のモック（1/1 12:00に更新）
+      ddbMock.on(QueryCommand).resolves({
+        Items: [
+          { quantity: 20, type: 'purchase', date: '2023-01-01T12:00:00Z', userId: TEST_USER }
+        ]
+      });
+
+      const result = await getEstimatedDepletionDate({
+        headers: { 'x-user-id': TEST_USER },
+        pathParameters: { itemId: 'item-1' },
+        queryStringParameters: { date: referenceDate }
+      });
+
+      expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      // 10 - (2.0 * 4日) = 2
+      expect(body.predictedStock).toBe(2);
     });
 
     it('should use current date when invalid date parameter is provided', async () => {

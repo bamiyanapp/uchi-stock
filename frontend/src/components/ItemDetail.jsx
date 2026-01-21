@@ -99,7 +99,7 @@ const ItemDetail = () => {
     const trend = [
       {
         date: "現在",
-        stock: item.currentStock,
+        stock: estimate?.predictedStock !== undefined ? estimate.predictedStock : item.currentStock,
         displayDate: new Date().toLocaleDateString(),
       },
     ];
@@ -113,7 +113,7 @@ const ItemDetail = () => {
     });
 
     return trend.reverse();
-  }, [item, historyWithStockLevel]);
+  }, [item, historyWithStockLevel, estimate]);
 
   if (loading) {
     return (
@@ -149,7 +149,9 @@ const ItemDetail = () => {
           <div className="col-md-6">
             <h1 className="display-5 fw-bold mb-2">{item.name}</h1>
             <div className="d-flex align-items-baseline">
-              <span className="display-6 me-2">{item.currentStock}</span>
+              <span className="display-6 me-2">
+                {estimate?.predictedStock !== undefined ? estimate.predictedStock : item.currentStock}
+              </span>
               <span className="text-muted fs-4">{item.unit}</span>
             </div>
           </div>

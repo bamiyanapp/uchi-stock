@@ -284,7 +284,9 @@ function Home() {
                         
                         <div className="mb-4">
                           <div className="d-flex align-items-center gap-2 mb-3">
-                            <span className="display-6 fw-bold">{item.currentStock}</span>
+                            <span className="display-6 fw-bold">
+                              {item.estimate?.predictedStock !== undefined ? item.estimate.predictedStock : item.currentStock}
+                            </span>
                             <span className="text-muted">{item.unit}</span>
                           </div>
 
