@@ -126,4 +126,42 @@ describe('StockUpdate', () => {
       body: expect.stringContaining('"quantity":10')
     }));
   });
+
+  it('includes current time when submitting', async () => {
+    // Mock date to have a specific time
+    const mockNow = new Date('2026-01-22T10:30:45Z');
+    vi.useFakeTimers();
+    vi.setSystemTime(mockNow);
+
+    fetch.mockResolvedValue({
+      ok: true,
+      json: async () => [mockItem],
+    });
+
+    await act(async () => {
+      renderComponent();
+    });
+
+    const purchaseInput = screen.getByLabelText(/新しく購入した量/);
+    await act(async () => {
+      fireEvent.change(purchaseInput, { target: { value: '5' } });
+    });
+
+    const saveButton = screen.getByText('更新を保存する');
+    fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+
+    await act(async () => {
+      fireEvent.click(saveButton);
+    });
+
+    // ISO string should contain the time 10:30:45
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/stock'),
+      expect.objectContaining({
+        body: expect.stringContaining('2026-01-22T10:30:45.000Z')
+      })
+    );
+
+    vi.useRealTimers();
+  });
 });
