@@ -606,8 +606,48 @@ exports.getEstimatedDepletionDate = async (event) => {
       Limit: 1
     }));
 
-    const lastPurchaseQuantity = purchaseHistory && purchaseHistory.length > 0 ? purchaseHistory[0].quantity : null;
-    const stockPercentage = lastPurchaseQuantity ? Math.min(100, Math.round((predictedStock / lastPurchaseQuantity) * 100)) : null;
+    let baselineQuantity = purchaseHistory && purchaseHistory.length > 0 ? purchaseHistory[0].quantity : null;
+
+    // 購入履歴がない場合は、直近の更新（Update/Creation）を基準にする
+    if (!baselineQuantity) {
+      try {
+        const { Items: historyItems } = await docClient.send(new QueryCommand({
+          TableName: HISTORY_TABLE(),
+          KeyConditionExpression: "itemId = :itemId",
+          FilterExpression: "#u = :userId",
+          ExpressionAttributeNames: { "#u": "userId" },
+          ExpressionAttributeValues: { ":itemId": itemId, ":userId": userId },
+          ScanIndexForward: false, // 降順（新しい順）
+          Limit: 50 // 直近50件まで遡る
+        }));
+        
+        if (historyItems && historyItems.length > 0) {
+          let tempStock = item.currentStock;
+          
+          for (const h of historyItems) {
+            // 将来的な拡張や並列更新を考慮し、処理済みより未来の日付の履歴はスキップすべきだが、
+            // ここでは簡易的に降順で処理する
+            
+            if (h.type === 'purchase') {
+              baselineQuantity = h.quantity;
+              break;
+            } else if (h.type === 'update' || h.type === 'creation') {
+              // Update/Creationはその時点での在庫数を「設定」するイベントなので
+              // 計算上の tempStock がその時点の在庫数（基準値）となる
+              baselineQuantity = tempStock;
+              break;
+            } else if (h.type === 'consumption') {
+              // 消費イベントの場合、消費前の在庫数に戻す
+              tempStock += h.quantity;
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Error calculating baseline stock:", e);
+      }
+    }
+
+    const stockPercentage = baselineQuantity ? Math.min(100, Math.round((predictedStock / baselineQuantity) * 100)) : null;
 
     return {
       statusCode: 200,
@@ -620,7 +660,7 @@ exports.getEstimatedDepletionDate = async (event) => {
         dailyConsumption: dailyConsumption.toFixed(2),
         currentStock: item.currentStock,
         predictedStock: Number(predictedStock.toFixed(2)),
-        lastPurchaseQuantity,
+        lastPurchaseQuantity: baselineQuantity,
         stockPercentage
       }),
     };
