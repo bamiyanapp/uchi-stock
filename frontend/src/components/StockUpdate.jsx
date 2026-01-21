@@ -25,7 +25,11 @@ const StockUpdate = () => {
   const handleDateChange = (e) => {
     const [year, month, day] = e.target.value.split('-').map(Number);
     if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-      setTargetDate(new Date(year, month - 1, day));
+      const newDate = new Date(targetDate);
+      newDate.setFullYear(year);
+      newDate.setMonth(month - 1);
+      newDate.setDate(day);
+      setTargetDate(newDate);
     }
   };
 
@@ -80,12 +84,18 @@ const StockUpdate = () => {
         "Content-Type": "application/json"
       };
 
+      // 現在の時刻を取得して、選択された日付にセットする
+      const now = new Date();
+      const submissionDate = new Date(targetDate);
+      submissionDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+      const dateStr = submissionDate.toISOString();
+
       // 消費の登録
       if (consumption > 0) {
         await fetch(`${API_BASE_URL}/items/${itemId}/consume`, {
           method: "POST",
           headers,
-          body: JSON.stringify({ quantity: consumption, memo, date: targetDate.toISOString() }),
+          body: JSON.stringify({ quantity: consumption, memo, date: dateStr }),
         });
       }
 
@@ -94,7 +104,7 @@ const StockUpdate = () => {
         await fetch(`${API_BASE_URL}/items/${itemId}/stock`, {
           method: "POST",
           headers,
-          body: JSON.stringify({ quantity: purchase, memo, date: targetDate.toISOString() }),
+          body: JSON.stringify({ quantity: purchase, memo, date: dateStr }),
         });
       }
 
@@ -207,7 +217,7 @@ const StockUpdate = () => {
                 </div>
 
                 <div className="mb-4">
-                  <label className="form-label fw-bold d-flex align-items-center">
+                  <label htmlFor="purchase-input" className="form-label fw-bold d-flex align-items-center">
                     <Plus size={18} className="me-2 text-primary" />
                     新しく購入した量 ({item.unit})
                   </label>
@@ -220,6 +230,7 @@ const StockUpdate = () => {
                       -1
                     </button>
                     <input 
+                      id="purchase-input"
                       type="number" 
                       className="form-control text-center fs-5"
                       value={purchase}
