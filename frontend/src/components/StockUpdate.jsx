@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, Minus, Plus, Calendar } from "lucide-react";
+import { ArrowLeft, Save, Minus, Plus } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
 
 const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
@@ -16,22 +16,6 @@ const StockUpdate = () => {
   const [consumption, setConsumption] = useState(0);
   const [purchase, setPurchase] = useState(0);
   const [memo, setMemo] = useState("");
-  const [targetDate, setTargetDate] = useState(new Date());
-
-  const formatDate = (date) => {
-    return date.toLocaleDateString('sv-SE');
-  };
-
-  const handleDateChange = (e) => {
-    const [year, month, day] = e.target.value.split('-').map(Number);
-    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-      const newDate = new Date(targetDate);
-      newDate.setFullYear(year);
-      newDate.setMonth(month - 1);
-      newDate.setDate(day);
-      setTargetDate(newDate);
-    }
-  };
 
   const getHeaders = useCallback(() => {
     const headers = {
@@ -84,11 +68,7 @@ const StockUpdate = () => {
         "Content-Type": "application/json"
       };
 
-      // 現在の時刻を取得して、選択された日付にセットする
-      const now = new Date();
-      const submissionDate = new Date(targetDate);
-      submissionDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
-      const dateStr = submissionDate.toISOString();
+      const dateStr = new Date().toISOString();
 
       // 消費の登録
       if (consumption > 0) {
@@ -167,21 +147,6 @@ const StockUpdate = () => {
               </div>
 
               <form onSubmit={handleSubmit}>
-                <div className="mb-4">
-                  <label htmlFor="date-picker" className="form-label fw-bold d-flex align-items-center">
-                    <Calendar size={18} className="me-2 text-primary" />
-                    基準日付
-                  </label>
-                  <input
-                    id="date-picker"
-                    type="date"
-                    className="form-control"
-                    value={formatDate(targetDate)}
-                    onChange={handleDateChange}
-                  />
-                  <div className="form-text">消費または購入を行った日付を選択してください。</div>
-                </div>
-
                 <div className="mb-4">
                   <label htmlFor="consumption-input" className="form-label fw-bold d-flex align-items-center">
                     <Minus size={18} className="me-2 text-warning" />
