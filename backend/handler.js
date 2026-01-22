@@ -155,7 +155,10 @@ exports.updateItem = async (event) => {
     const userId = getUserId(event);
     const { itemId } = event.pathParameters;
     const body = JSON.parse(event.body);
-    const { name, unit, currentStock } = body;
+    let { name, unit, currentStock } = body;
+    if (currentStock !== undefined) {
+      currentStock = Math.floor(Number(currentStock));
+    }
 
     const now = new Date().toISOString();
     let UpdateExpression = "set";
@@ -279,7 +282,8 @@ exports.addStock = async (event) => {
   try {
     const userId = getUserId(event);
     const { itemId } = event.pathParameters;
-    const { quantity, date, memo } = JSON.parse(event.body);
+    let { quantity, date, memo } = JSON.parse(event.body);
+    quantity = Math.floor(Number(quantity));
 
     if (!quantity || quantity <= 0) {
       return {
@@ -405,7 +409,8 @@ exports.consumeStock = async (event) => {
   try {
     const userId = getUserId(event);
     const { itemId } = event.pathParameters;
-    const { quantity, date, memo } = JSON.parse(event.body);
+    let { quantity, date, memo } = JSON.parse(event.body);
+    quantity = Math.floor(Number(quantity));
 
     if (!quantity || quantity <= 0) {
       return {

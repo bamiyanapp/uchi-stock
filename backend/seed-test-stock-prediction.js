@@ -38,21 +38,21 @@ const testCases = [
     expectedDays: 10, // ±1日許容
     history: [
       { daysAgo: 15, type: "purchase", quantity: 15, memo: "初期購入" },
-      // 変動消費: 0.5, 1.5, 1, 0.5, 1.5, ... (平均1)
-      { daysAgo: 14, type: "consumption", quantity: 0.5, memo: "消費" },
-      { daysAgo: 13, type: "consumption", quantity: 1.5, memo: "消費" },
+      // 変動消費: 0, 2, 1, 0, 2, ... (平均1)
+      { daysAgo: 14, type: "consumption", quantity: 0, memo: "消費" },
+      { daysAgo: 13, type: "consumption", quantity: 2, memo: "消費" },
       { daysAgo: 12, type: "consumption", quantity: 1, memo: "消費" },
-      { daysAgo: 11, type: "consumption", quantity: 0.5, memo: "消費" },
-      { daysAgo: 10, type: "consumption", quantity: 1.5, memo: "消費" },
+      { daysAgo: 11, type: "consumption", quantity: 0, memo: "消費" },
+      { daysAgo: 10, type: "consumption", quantity: 2, memo: "消費" },
       { daysAgo: 9, type: "consumption", quantity: 1, memo: "消費" },
-      { daysAgo: 8, type: "consumption", quantity: 0.5, memo: "消費" },
-      { daysAgo: 7, type: "consumption", quantity: 1.5, memo: "消費" },
+      { daysAgo: 8, type: "consumption", quantity: 0, memo: "消費" },
+      { daysAgo: 7, type: "consumption", quantity: 2, memo: "消費" },
       { daysAgo: 6, type: "consumption", quantity: 1, memo: "消費" },
-      { daysAgo: 5, type: "consumption", quantity: 0.5, memo: "消費" },
-      { daysAgo: 4, type: "consumption", quantity: 1.5, memo: "消費" },
+      { daysAgo: 5, type: "consumption", quantity: 0, memo: "消費" },
+      { daysAgo: 4, type: "consumption", quantity: 2, memo: "消費" },
       { daysAgo: 3, type: "consumption", quantity: 1, memo: "消費" },
-      { daysAgo: 2, type: "consumption", quantity: 0.5, memo: "消費" },
-      { daysAgo: 1, type: "consumption", quantity: 1.5, memo: "消費" }
+      { daysAgo: 2, type: "consumption", quantity: 0, memo: "消費" },
+      { daysAgo: 1, type: "consumption", quantity: 2, memo: "消費" }
     ]
   },
   {

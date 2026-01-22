@@ -165,10 +165,10 @@ const StockUpdate = () => {
                       type="number" 
                       className="form-control text-center fs-5"
                       value={consumption}
-                      onChange={(e) => setConsumption(Math.max(0, parseFloat(e.target.value) || 0))}
+                      onChange={(e) => setConsumption(Math.max(0, Math.floor(parseFloat(e.target.value)) || 0))}
                       min="0"
                       max={item.currentStock}
-                      step="any"
+                      step="1"
                     />
                     <button 
                       type="button" 
@@ -199,9 +199,9 @@ const StockUpdate = () => {
                       type="number" 
                       className="form-control text-center fs-5"
                       value={purchase}
-                      onChange={(e) => setPurchase(Math.max(0, parseFloat(e.target.value) || 0))}
+                      onChange={(e) => setPurchase(Math.max(0, Math.floor(parseFloat(e.target.value)) || 0))}
                       min="0"
-                      step="any"
+                      step="1"
                     />
                     <button 
                       type="button" 
