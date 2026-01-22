@@ -129,4 +129,72 @@ describe("Home Component", () => {
       expect(screen.queryByText("5")).not.toBeInTheDocument();
     });
   });
+
+  it("displays past history date when predictedStock equals currentStock and updatedAt is in the past", async () => {
+    const pastDate = new Date();
+    pastDate.setDate(pastDate.getDate() - 2); // 2日前
+
+    const pastItems = [
+      {
+        itemId: "item-1",
+        name: "トイレットペーパー",
+        currentStock: 5,
+        unit: "ロール",
+        updatedAt: pastDate.toISOString(),
+      },
+    ];
+
+    fetch.mockImplementation((url) => {
+      if (url.includes("/estimate")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ predictedStock: 5, currentStock: 5, stockPercentage: 50 }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(pastItems),
+      });
+    });
+
+    renderHome();
+    await waitFor(() => {
+      expect(screen.getByText("5")).toBeInTheDocument();
+      expect(screen.getByText(`${pastDate.toLocaleDateString()} 時点の情報`)).toBeInTheDocument();
+    });
+  });
+
+  it("does not display past history date when predictedStock is different from currentStock (prediction mode)", async () => {
+    const pastDate = new Date();
+    pastDate.setDate(pastDate.getDate() - 2);
+
+    const pastItems = [
+      {
+        itemId: "item-1",
+        name: "トイレットペーパー",
+        currentStock: 5,
+        unit: "ロール",
+        updatedAt: pastDate.toISOString(),
+      },
+    ];
+
+    fetch.mockImplementation((url) => {
+      if (url.includes("/estimate")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ predictedStock: 3, currentStock: 5, stockPercentage: 30 }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(pastItems),
+      });
+    });
+
+    renderHome();
+    await waitFor(() => {
+      expect(screen.getByText("3")).toBeInTheDocument();
+      expect(screen.queryByText(`${pastDate.toLocaleDateString()} 時点の情報`)).not.toBeInTheDocument();
+    });
+  });
 });

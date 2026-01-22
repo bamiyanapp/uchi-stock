@@ -102,4 +102,48 @@ test.describe('Home Page', () => {
     await expect(newItemCard.getByText('0', { exact: true })).toBeVisible();
     await expect(newItemCard.getByText('箱', { exact: true })).toBeVisible();
   });
+
+  test('should display past history date when it is not a prediction', async ({ page }) => {
+    const pastDate = '2026-01-10';
+    const pastDateTime = '2026-01-10T12:00:00Z';
+    
+    // Mock items with a past updatedAt
+    await page.route('**/items', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            itemId: 'item-old',
+            name: '古新聞',
+            currentStock: 10,
+            unit: '束',
+            updatedAt: pastDateTime,
+          },
+        ]),
+      });
+    });
+
+    // Mock estimate returning same stock as current (no prediction)
+    await page.route('**/items/item-old/estimate*', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          predictedStock: 10,
+          currentStock: 10,
+          stockPercentage: 100,
+        }),
+      });
+    });
+
+    await page.goto('./');
+    
+    // Check if the past date is displayed
+    // The format of toLocaleDateString() can vary by environment, 
+    // but sv-SE in handleDateChange suggests ISO-like or similar format.
+    // In many environments it will be YYYY/M/D or similar.
+    // Use regex to be flexible with the date format (e.g. 2026/1/10 or 1/10/2026)
+    await expect(page.getByText(/2026.*1.*10.*時点の情報|1.*10.*2026.*時点の情報/)).toBeVisible();
+  });
 });
