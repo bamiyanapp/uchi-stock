@@ -1,13 +1,20 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UserProvider, useUser } from './UserContext';
-import * as auth from 'aws-amplify/auth';
+import * as firebaseAuth from 'firebase/auth';
 
-vi.mock('aws-amplify/auth', () => ({
-  getCurrentUser: vi.fn(),
-  fetchAuthSession: vi.fn(),
+// Mock firebase/auth
+vi.mock('firebase/auth', () => ({
+  getAuth: vi.fn(),
+  GoogleAuthProvider: vi.fn(),
   signInWithRedirect: vi.fn(),
   signOut: vi.fn(),
+  onAuthStateChanged: vi.fn(),
+}));
+
+// Mock firebaseConfig
+vi.mock('../firebaseConfig', () => ({
+  auth: {},
 }));
 
 const TestComponent = () => {
@@ -29,7 +36,11 @@ describe('UserContext', () => {
   });
 
   it('provides default user (test-user) when not signed in', async () => {
-    auth.getCurrentUser.mockRejectedValue(new Error('Not signed in'));
+    // onAuthStateChanged calls the callback with null (not signed in)
+    firebaseAuth.onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(null);
+      return () => {}; // unsubscribe function
+    });
     
     await act(async () => {
       render(
@@ -43,9 +54,14 @@ describe('UserContext', () => {
   });
 
   it('provides user id when signed in', async () => {
-    auth.getCurrentUser.mockResolvedValue({ userId: 'real-user-uuid' });
-    auth.fetchAuthSession.mockResolvedValue({
-      tokens: { idToken: { toString: () => 'mock-id-token' } }
+    const mockUser = {
+      uid: 'real-user-uuid',
+      getIdToken: vi.fn().mockResolvedValue('mock-id-token')
+    };
+
+    firebaseAuth.onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(mockUser);
+      return () => {};
     });
 
     await act(async () => {
@@ -62,8 +78,14 @@ describe('UserContext', () => {
   });
 
   it('handles login failure', async () => {
-    auth.signInWithRedirect.mockRejectedValue(new Error('Auth failed'));
+    firebaseAuth.signInWithRedirect.mockRejectedValue(new Error('Auth failed'));
     
+    // Setup initial state as logged out
+    firebaseAuth.onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(null);
+      return () => {};
+    });
+
     await act(async () => {
       render(
         <UserProvider>
@@ -80,8 +102,20 @@ describe('UserContext', () => {
   });
 
   it('handles logout', async () => {
-    auth.signOut.mockResolvedValue({});
-    auth.getCurrentUser.mockRejectedValue(new Error('Not signed in'));
+    firebaseAuth.signOut.mockResolvedValue({});
+    
+    // Setup initial state as logged in
+    const mockUser = {
+      uid: 'real-user-uuid',
+      getIdToken: vi.fn().mockResolvedValue('mock-id-token')
+    };
+
+    // First call returns user, subsequent might return null if we simulated that properly,
+    // but here we just test the logout function is called.
+    firebaseAuth.onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(mockUser);
+      return () => {};
+    });
 
     await act(async () => {
       render(
@@ -95,7 +129,12 @@ describe('UserContext', () => {
       screen.getByText('Logout').click();
     });
 
-    expect(auth.signOut).toHaveBeenCalled();
+    expect(firebaseAuth.signOut).toHaveBeenCalled();
+    // In a real app, onAuthStateChanged would fire again with null, updating the state.
+    // Since we mock it to call once, the state update relies on the component logic if it manually resets
+    // or waits for the listener. UserContext logic:
+    // logout() calls signOut, then setUser(null), setUserId('test-user') manually.
+    
     expect(screen.getByTestId('user-id').textContent).toBe('test-user');
   });
 });

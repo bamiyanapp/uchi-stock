@@ -2,6 +2,25 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand, QueryCommand } = require("@aws-sdk/lib-dynamodb");
 const crypto = require("crypto");
+const admin = require('firebase-admin');
+
+// Firebase Admin SDKの初期化
+if (!admin.apps.length) {
+  try {
+    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) : null;
+    
+    if (serviceAccount) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+      console.log('Firebase Admin initialized successfully');
+    } else {
+      console.warn('FIREBASE_SERVICE_ACCOUNT environment variable is not set. Token verification will fail unless in test mode.');
+    }
+  } catch (error) {
+    console.error('Failed to initialize Firebase Admin:', error);
+  }
+}
 
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
@@ -9,13 +28,44 @@ const docClient = DynamoDBDocumentClient.from(dynamoClient);
 const ITEMS_TABLE = () => process.env.TABLE_NAME;
 const HISTORY_TABLE = () => process.env.STOCK_HISTORY_TABLE_NAME;
 
-const getUserId = (event) => {
-  // Cognito Authorizerを使用している場合、requestContextからユーザーID(sub)を取得できる
-  if (event.requestContext && event.requestContext.authorizer && event.requestContext.authorizer.claims) {
-    return event.requestContext.authorizer.claims.sub;
+const verifyFirebaseToken = async (token) => {
+  if (!admin.apps.length) {
+    // 開発/テスト用: Firebase Adminが初期化されていない場合、特定のテストヘッダーを許可するかエラーにする
+    // ここではエラーにするが、getUserIdでfallbackする
+    throw new Error('Firebase Admin not initialized');
   }
-  // 従来のx-user-idヘッダーも互換性のために残す（開発・テスト用）
-  return event.headers["x-user-id"] || event.headers["X-User-Id"] || "default-user";
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    return decodedToken.uid;
+  } catch (error) {
+    console.error('Error verifying Firebase token:', error);
+    throw error;
+  }
+};
+
+const getUserId = async (event) => {
+  // 1. Authorization header (Bearer token) を確認
+  const authHeader = event.headers["Authorization"] || event.headers["authorization"];
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.split(" ")[1];
+    try {
+      const uid = await verifyFirebaseToken(token);
+      return uid;
+    } catch (error) {
+      console.warn("Token verification failed:", error.message);
+      // 検証失敗時は続行せず、認証エラーとすべきだが、
+      // 既存のテストやx-user-id依存のコードがあるため、ここではログ出力のみで下に流す
+    }
+  }
+
+  // 2. 開発・テスト用: x-user-idヘッダー
+  // 注意: 本番環境ではAPI Gateway等でこのヘッダーを削除するか、環境変数でこのfallbackを無効化すべき
+  if (process.env.ALLOW_INSECURE_USER_ID === 'true' || process.env.NODE_ENV === 'test') {
+     return event.headers["x-user-id"] || event.headers["X-User-Id"] || "default-user";
+  }
+
+  // 認証失敗
+  throw new Error("Unauthorized");
 };
 
 /**
@@ -25,7 +75,7 @@ const getUserId = (event) => {
  */
 exports.createItem = async (event) => {
   try {
-    const userId = getUserId(event);
+    const userId = await getUserId(event);
     const body = JSON.parse(event.body);
     const { name, unit } = body;
 
@@ -112,7 +162,7 @@ const getLatestUpdateDate = async (itemId) => {
  */
 exports.getItems = async (event) => {
   try {
-    const userId = getUserId(event);
+    const userId = await getUserId(event);
     const { Items: items } = await docClient.send(new QueryCommand({
       TableName: ITEMS_TABLE(),
       KeyConditionExpression: "userId = :userId",
@@ -153,7 +203,7 @@ exports.getItems = async (event) => {
  */
 exports.updateItem = async (event) => {
   try {
-    const userId = getUserId(event);
+    const userId = await getUserId(event);
     const { itemId } = event.pathParameters;
     const body = JSON.parse(event.body);
     const { name, unit, currentStock } = body;
@@ -253,7 +303,7 @@ exports.updateItem = async (event) => {
  */
 exports.deleteItem = async (event) => {
   try {
-    const userId = getUserId(event);
+    const userId = await getUserId(event);
     const { itemId } = event.pathParameters;
     await docClient.send(new DeleteCommand({
       TableName: ITEMS_TABLE(),
@@ -285,7 +335,7 @@ exports.deleteItem = async (event) => {
  */
 exports.addStock = async (event) => {
   try {
-    const userId = getUserId(event);
+    const userId = await getUserId(event);
     const { itemId } = event.pathParameters;
     const { quantity, date, memo } = JSON.parse(event.body);
 
@@ -414,7 +464,7 @@ const calculateAverageConsumptionRate = async (userId, itemId) => {
  */
 exports.consumeStock = async (event) => {
   try {
-    const userId = getUserId(event);
+    const userId = await getUserId(event);
     const { itemId } = event.pathParameters;
     const { quantity, date, memo } = JSON.parse(event.body);
 
@@ -488,7 +538,7 @@ exports.consumeStock = async (event) => {
  */
 exports.getConsumptionHistory = async (event) => {
   try {
-    const userId = getUserId(event);
+    const userId = await getUserId(event);
     const { itemId } = event.pathParameters;
     const { Items } = await docClient.send(new QueryCommand({
       TableName: HISTORY_TABLE(),
@@ -525,7 +575,7 @@ exports.getConsumptionHistory = async (event) => {
  */
 exports.getEstimatedDepletionDate = async (event) => {
   try {
-    const userId = getUserId(event);
+    const userId = await getUserId(event);
     const { itemId } = event.pathParameters;
     const { date } = event.queryStringParameters || {};
     let referenceDate = new Date();

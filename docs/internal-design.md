@@ -7,11 +7,11 @@
 ### ユーザー特定ロジック
 バックエンド（`handler.js`）では、以下の優先順位でユーザーID（`userId`）を特定します。
 
-1.  **Cognito Authorizer**: `event.requestContext.authorizer.claims.sub` から取得。本番環境での正当な識別方法。
-2.  **カスタムヘッダー**: `x-user-id` ヘッダー。開発およびローカルテスト環境での利便性のために維持。
+1.  **Firebase ID Token**: `Authorization: Bearer <token>` ヘッダーから取得。`firebase-admin` SDKを使用してトークンを検証し、UIDを取得します。
+2.  **カスタムヘッダー**: `x-user-id` ヘッダー。開発およびローカルテスト環境での利便性のために維持（`ALLOW_INSECURE_USER_ID=true` または `NODE_ENV=test` の場合のみ有効）。
 
 ### セキュリティ上の注意
-API Gateway で Cognito Authorizer を設定することで、有効な JWT を持たないリクエストを拒否します。`x-user-id` による識別は、認証をパスした後のユーザーコンテキスト特定に使用されます。
+本番環境では必ず Firebase ID Token による検証を行います。`FIREBASE_SERVICE_ACCOUNT` 環境変数にサービスアカウントキーを設定する必要があります。
 
 ---
 

@@ -28,7 +28,7 @@
 | <img src="./docs/resources/aws-icons/Asset-Package_07312025.49d3aab7f9e6131e51ade8f7c6c8b961ee7d3bb1/Architecture-Service-Icons_07312025/Arch_Database/32/Arch_Amazon-DynamoDB_32.svg" width="20" height="20" /> | **DynamoDB** | フルマネージドなNoSQLデータベース。品目や在庫情報を格納。 |
 | <img src="./docs/resources/aws-icons/Asset-Package_07312025.49d3aab7f9e6131e51ade8f7c6c8b961ee7d3bb1/Architecture-Service-Icons_07312025/Arch_Compute/32/Arch_AWS-Lambda_32.svg" width="20" height="20" /> | **AWS Lambda** | サーバーレスなイベント駆動型コンピューティングサービス。 |
 | <img src="https://cdn.simpleicons.org/serverless/FD5750" width="20" height="20" /> | **Serverless Framework** | サーバーレスアプリケーションの構成・デプロイを管理するフレームワーク。 |
-| <img src="./docs/resources/aws-icons/Asset-Package_07312025.49d3aab7f9e6131e51ade8f7c6c8b961ee7d3bb1/Architecture-Service-Icons_07312025/Arch_Security-Identity-Compliance/32/Arch_Amazon-Cognito_32.svg" width="20" height="20" /> | **Amazon Cognito** | Google SSO認証を提供するID管理サービス。 |
+| <img src="https://cdn.simpleicons.org/firebase/FFCA28" width="20" height="20" /> | **Firebase Authentication** | Google SSO認証を提供するID管理サービス。 |
 | <img src="./docs/resources/aws-icons/Asset-Package_07312025.49d3aab7f9e6131e51ade8f7c6c8b961ee7d3bb1/Architecture-Service-Icons_07312025/Arch_Artificial-Intelligence/32/Arch_Amazon-Polly_32.svg" width="20" height="20" /> | **Amazon Polly** | テキストをリアルな音声に変換するクラウドサービス。（現時点では利用予定なし、構成は引き継ぐ） |
 | <img src="https://cdn.simpleicons.org/githubactions/2088FF" width="20" height="20" /> | **GitHub Actions** | CI/CD（継続的インテグレーション/継続的デプロイ）を自動化。 |
 | <img src="https://cdn.simpleicons.org/vitest/6E9F18" width="20" height="20" /> | **Vitest** | Viteネイティブで高速なユニットテストフレームワーク。 |
@@ -44,7 +44,7 @@ graph TD
     end
 
     subgraph "Auth"
-        C[Amazon Cognito / Google SSO]
+        C[Firebase Authentication / Google SSO]
     end
 
     subgraph "Backend (AWS)"
@@ -53,7 +53,7 @@ graph TD
     end
 
     I -- Login --> C;
-    I -- API Request with JWT --> J;
+    I -- API Request with ID Token --> J;
 ```
 
 ### Screen Transitions
@@ -81,12 +81,12 @@ graph TD
 
 本アプリは Google アカウントによる SSO（シングルサインオン）認証を採用しています。
 
-- **認証プロバイダー**: Amazon Cognito + Google OAuth 2.0
+- **認証プロバイダー**: Firebase Authentication + Google OAuth 2.0
 - **仕組み**:
   1. ユーザーが Google アカウントでログイン。
-  2. Cognito が JWT（JSON Web Token）を発行。
-  3. フロントエンドは API リクエストの `Authorization` ヘッダーにこのトークンを含めて送信。
-  4. バックエンド（API Gateway / Lambda）でトークンの有効性を検証し、ユーザーID（`sub`）を特定。
+  2. Firebase が ID トークン（JWT）を発行。
+  3. フロントエンドは API リクエストの `Authorization` ヘッダーにこのトークン（Bearer）を含めて送信。
+  4. バックエンド（Lambda）で Firebase Admin SDK を使用してトークンの有効性を検証し、ユーザーID（UID）を特定。
 
 ### Backend API (AWS Lambda)
 
@@ -108,7 +108,7 @@ graph TD
 
 | 属性名 | 型 | キー | 説明 |
 | :--- | :--- | :--- | :--- |
-| userId | String | Partition Key | ログインユーザーID (Cognito sub) |
+| userId | String | Partition Key | ログインユーザーID (Firebase UID) |
 | itemId | String | Sort Key | 品目の一意識別子 (UUID) |
 | name | String | - | 品目名 |
 | unit | String | - | 単位（例: 個, パック, 本） |
@@ -132,6 +132,21 @@ graph TD
 ## 内部設計
 
 詳細なアルゴリズムやシステム構造については、[内部設計書](docs/internal-design.md) を参照してください。
+
+## セットアップ
+
+### 認証の設定 (Firebase)
+認証に Firebase を使用しています。詳細は [認証方式の移行ガイド](docs/auth-migration.md) を参照してください。
+
+### バックエンド
+1. `backend` ディレクトリで `npm install`
+2. 必要に応じて `serverless.yml` の環境変数を設定 (`FIREBASE_SERVICE_ACCOUNT` は必須)
+3. `npx serverless deploy` でデプロイ
+
+### フロントエンド
+1. `frontend` ディレクトリで `npm install`
+2. `.env` ファイルを作成し、Firebase の設定値を入力
+3. `npm run dev` でローカル起動
 
 ## CI/CD Pipeline Specification
 
