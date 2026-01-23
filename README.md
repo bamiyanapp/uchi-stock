@@ -92,14 +92,14 @@ graph TD
 
 | 関数名 | パス | メソッド | 説明 |
 | :--- | :--- | :--- | :--- |
-| createItem | `/items` | POST | 新しい品目を登録する。（管理用） |
-| getItems | `/items` | GET | 登録されているすべての品目を取得する。 |
-| updateItem | `/items/{itemId}` | PUT | 品目情報を更新する。（管理用） |
+| createItem | `/items` | POST | 新しい品目を登録する。 |
+| getItems | `/items` | GET | ユーザーに紐づくすべての品目を取得する。 |
+| updateItem | `/items/{itemId}` | PUT | 品目情報（名称、単位等）を更新する。 |
 | deleteItem | `/items/{itemId}` | DELETE | 品目を削除する。 |
-| addStock | `/items/{itemId}/stock` | POST | 品目の在庫を追加する。 |
-| consumeStock | `/items/{itemId}/consume` | POST | 品目の在庫を消費する。 |
-| getConsumptionHistory | `/items/{itemId}/history` | GET | 品目の消費履歴を取得する。 |
-| getEstimatedDepletionDate | `/items/{itemId}/estimate` | GET | 品目の在庫切れ推定日を取得する。 |
+| addStock | `/items/{itemId}/stock` | POST | 在庫を追加（購入）し、現在の在庫数を増加させる。 |
+| consumeStock | `/items/{itemId}/consume` | POST | 在庫を消費し、現在の在庫数を減少させる。同時に平均消費ペースを再計算する。 |
+| getConsumptionHistory | `/items/{itemId}/history` | GET | 品目の履歴（作成・購入・消費・更新）を取得する。 |
+| getEstimatedDepletionDate | `/items/{itemId}/estimate` | GET | 現在の在庫数と消費ペースに基づき、在庫切れ推定日を計算して取得する。 |
 
 ### Database (DynamoDB)
 
@@ -128,6 +128,10 @@ graph TD
 | type | String | - | 履歴の種類（"purchase", "consumption"） |
 | quantity | Number | - | 数量 |
 | memo | String | - | メモ (任意) |
+
+## 内部設計
+
+詳細なアルゴリズムやシステム構造については、[内部設計書](docs/internal-design.md) を参照してください。
 
 ## CI/CD Pipeline Specification
 
@@ -171,9 +175,12 @@ GitHub Actions を介さずにローカル環境からリリースノートの�
 本システムでは、データの保護と可用性向上のため、以下のバックアップ体制をとっています。
 
 - **DynamoDB Point-in-Time Recovery (PITR)**:
-  - すべてのテーブル（`household-items`, `stock-history`, `polly-cache`）において PITR を有効化しています。
+  - 主要なテーブル（`household-items`, `stock-history`）において PITR を有効化しています。
   - 過去 35 日間の任意の時点にデータを復旧することが可能です。
   - 意図しないデータ削除や更新ミスが発生した際の保険として機能します。
+- **自動バックアップと保護**:
+  - CDパイプラインによるデプロイ直前に、DynamoDB データのスナップショットと JSON へのダンプを自動実行しています。
+  - デプロイ時にはテーブル構造の破壊的変更を自動検知し、不用意なデータ消失を防止します。詳細は [CI/CD Pipeline Specification](docs/cicd-pipeline-specification.md) を参照してください。
 
 ## メンテナンス
 
