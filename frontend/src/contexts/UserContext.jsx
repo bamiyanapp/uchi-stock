@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { GoogleAuthProvider, signInWithRedirect, signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 
+const isE2E = import.meta.env.MODE === 'test';
+const isDev = import.meta.env.MODE === 'development';
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const UserContext = createContext();
 
@@ -12,9 +15,13 @@ export const UserProvider = ({ children }) => {
   const [userId, setUserId] = useState('test-user');
   const [user, setUser] = useState(null);
   const [idToken, setIdToken] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isE2E);
 
   useEffect(() => {
+    if (isE2E || isDev || !auth.config?.apiKey || auth.config.apiKey === "mock-api-key") {
+      setLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setLoading(true);
       if (currentUser) {

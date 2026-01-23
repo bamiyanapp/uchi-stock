@@ -12,7 +12,8 @@ const ItemDetail = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [estimate, setEstimate] = useState(null);
-  const { userId, idToken } = useUser();
+  const authContext = useUser() || {};
+  const { userId = 'test-user', idToken = null } = authContext;
 
   const getHeaders = useCallback(() => {
     const headers = {
