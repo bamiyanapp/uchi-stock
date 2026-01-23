@@ -43,29 +43,68 @@ const verifyFirebaseToken = async (token) => {
   }
 };
 
+class HttpError extends Error {
+  constructor(statusCode, message) {
+    super(message);
+    this.statusCode = statusCode;
+    this.name = "HttpError";
+  }
+}
+
 const getUserId = async (event) => {
+  if (!event.headers) {
+    throw new HttpError(401, "Missing headers");
+  }
+
   // 1. Authorization header (Bearer token) を確認
   const authHeader = event.headers["Authorization"] || event.headers["authorization"];
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.split(" ")[1];
-    try {
-      const uid = await verifyFirebaseToken(token);
-      return uid;
-    } catch (error) {
-      console.warn("Token verification failed:", error.message);
-      // 検証失敗時は続行せず、認証エラーとすべきだが、
-      // 既存のテストやx-user-id依存のコードがあるため、ここではログ出力のみで下に流す
+    if (token && token !== "null" && token !== "undefined") {
+      try {
+        const uid = await verifyFirebaseToken(token);
+        return uid;
+      } catch (error) {
+        console.warn("Token verification failed:", error.message);
+        // トークンが提供されているが検証に失敗した場合は、401を投げても良いが
+        // 既存の挙動（x-user-idへのフォールバック）を維持しつつ、
+        // 明確なトークンエラーがある場合はここで止める選択肢もある。
+        // ここではフォールバックを許容する。
+      }
     }
   }
 
   // 2. 開発・テスト用: x-user-idヘッダー
   // 注意: 本番環境ではAPI Gateway等でこのヘッダーを削除するか、環境変数でこのfallbackを無効化すべき
   if (process.env.ALLOW_INSECURE_USER_ID === 'true' || process.env.NODE_ENV === 'test') {
-     return event.headers["x-user-id"] || event.headers["X-User-Id"] || "default-user";
+     const userId = event.headers["x-user-id"] || event.headers["X-User-Id"] || "default-user";
+     return userId;
   }
 
   // 認証失敗
-  throw new Error("Unauthorized");
+  throw new HttpError(401, "Unauthorized");
+};
+
+/**
+ * 共通のエラーレスポンス生成
+ */
+const errorResponse = (error, context = "") => {
+  console.error(`Error in ${context}:`, error);
+  const statusCode = error instanceof HttpError ? error.statusCode : 500;
+  const message = statusCode === 500 ? "Internal Server Error" : error.message;
+  
+  return {
+    statusCode,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Credentials": true,
+    },
+    body: JSON.stringify({ 
+      message, 
+      error: error.message,
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+    }),
+  };
 };
 
 /**
@@ -76,18 +115,21 @@ const getUserId = async (event) => {
 exports.createItem = async (event) => {
   try {
     const userId = await getUserId(event);
-    const body = JSON.parse(event.body);
+    if (!event.body) {
+      throw new HttpError(400, "Request body is missing");
+    }
+    
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch (e) {
+      throw new HttpError(400, "Invalid JSON in request body");
+    }
+
     const { name, unit } = body;
 
     if (!name || !unit) {
-      return {
-        statusCode: 400,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Credentials": true,
-        },
-        body: JSON.stringify({ message: "Name and unit are required" }),
-      };
+      throw new HttpError(400, "Name and unit are required");
     }
 
     const itemId = crypto.randomUUID();
@@ -131,15 +173,7 @@ exports.createItem = async (event) => {
       body: JSON.stringify(item),
     };
   } catch (error) {
-    console.error("Error in createItem:", error);
-    return {
-      statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
-    };
+    return errorResponse(error, "createItem");
   }
 };
 
@@ -147,14 +181,19 @@ exports.createItem = async (event) => {
  * 各アイテムの最新の履歴日時を取得する。
  */
 const getLatestUpdateDate = async (itemId) => {
-  const { Items } = await docClient.send(new QueryCommand({
-    TableName: HISTORY_TABLE(),
-    KeyConditionExpression: "itemId = :itemId",
-    ScanIndexForward: false,
-    Limit: 1,
-    ExpressionAttributeValues: { ":itemId": itemId },
-  }));
-  return Items && Items.length > 0 ? Items[0].date : null;
+  try {
+    const { Items } = await docClient.send(new QueryCommand({
+      TableName: HISTORY_TABLE(),
+      KeyConditionExpression: "itemId = :itemId",
+      ScanIndexForward: false,
+      Limit: 1,
+      ExpressionAttributeValues: { ":itemId": itemId },
+    }));
+    return Items && Items.length > 0 ? Items[0].date : null;
+  } catch (error) {
+    console.error(`Error fetching latest update date for item ${itemId}:`, error);
+    return null;
+  }
 };
 
 /**
@@ -186,15 +225,7 @@ exports.getItems = async (event) => {
       body: JSON.stringify(itemsWithUpdatedAt),
     };
   } catch (error) {
-    console.error("Error in getItems:", error);
-    return {
-      statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
-    };
+    return errorResponse(error, "getItems");
   }
 };
 
@@ -204,12 +235,25 @@ exports.getItems = async (event) => {
 exports.updateItem = async (event) => {
   try {
     const userId = await getUserId(event);
-    const { itemId } = event.pathParameters;
-    const body = JSON.parse(event.body);
+    const { itemId } = event.pathParameters || {};
+    if (!itemId) {
+      throw new HttpError(400, "itemId is required");
+    }
+
+    if (!event.body) {
+      throw new HttpError(400, "Request body is missing");
+    }
+
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch (e) {
+      throw new HttpError(400, "Invalid JSON in request body");
+    }
+
     const { name, unit, currentStock } = body;
 
     const now = new Date().toISOString();
-    let UpdateExpression = "set";
     const ExpressionAttributeValues = {};
     const ExpressionAttributeNames = {};
     let updates = [];
@@ -229,24 +273,13 @@ exports.updateItem = async (event) => {
     }
 
     if (updates.length === 0) {
-      return {
-        statusCode: 400,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Credentials": true,
-        },
-        body: JSON.stringify({ message: "No update parameters provided" }),
-      };
+      throw new HttpError(400, "No update parameters provided");
     }
 
-    UpdateExpression += " " + updates.join(", ");
+    updates.push("updatedAt = :updatedAt");
+    ExpressionAttributeValues[":updatedAt"] = now;
 
-    if (updates.length > 0) {
-      updates.push("updatedAt = :updatedAt");
-      ExpressionAttributeValues[":updatedAt"] = now;
-    }
-
-    UpdateExpression = "set " + updates.join(", ");
+    const UpdateExpression = "set " + updates.join(", ");
 
     const { Attributes } = await docClient.send(new UpdateCommand({
       TableName: ITEMS_TABLE(),
@@ -286,15 +319,7 @@ exports.updateItem = async (event) => {
       body: JSON.stringify(responseItem),
     };
   } catch (error) {
-    console.error("Error in updateItem:", error);
-    return {
-      statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
-    };
+    return errorResponse(error, "updateItem");
   }
 };
 
@@ -304,7 +329,11 @@ exports.updateItem = async (event) => {
 exports.deleteItem = async (event) => {
   try {
     const userId = await getUserId(event);
-    const { itemId } = event.pathParameters;
+    const { itemId } = event.pathParameters || {};
+    if (!itemId) {
+      throw new HttpError(400, "itemId is required");
+    }
+
     await docClient.send(new DeleteCommand({
       TableName: ITEMS_TABLE(),
       Key: { userId, itemId },
@@ -318,15 +347,7 @@ exports.deleteItem = async (event) => {
       body: "",
     };
   } catch (error) {
-    console.error("Error in deleteItem:", error);
-    return {
-      statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
-    };
+    return errorResponse(error, "deleteItem");
   }
 };
 
@@ -336,18 +357,26 @@ exports.deleteItem = async (event) => {
 exports.addStock = async (event) => {
   try {
     const userId = await getUserId(event);
-    const { itemId } = event.pathParameters;
-    const { quantity, date, memo } = JSON.parse(event.body);
+    const { itemId } = event.pathParameters || {};
+    if (!itemId) {
+      throw new HttpError(400, "itemId is required");
+    }
+
+    if (!event.body) {
+      throw new HttpError(400, "Request body is missing");
+    }
+
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch (e) {
+      throw new HttpError(400, "Invalid JSON in request body");
+    }
+
+    const { quantity, date, memo } = body;
 
     if (!quantity || quantity <= 0) {
-      return {
-        statusCode: 400,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Credentials": true,
-        },
-        body: JSON.stringify({ message: "Positive quantity is required" }),
-      };
+      throw new HttpError(400, "Positive quantity is required");
     }
 
     const now = new Date().toISOString();
@@ -388,15 +417,7 @@ exports.addStock = async (event) => {
       body: JSON.stringify({ ...Attributes, updatedAt: now }),
     };
   } catch (error) {
-    console.error("Error in addStock:", error);
-    return {
-      statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
-    };
+    return errorResponse(error, "addStock");
   }
 };
 
@@ -431,18 +452,26 @@ const calculateAverageConsumptionRate = async (userId, itemId) => {
 exports.consumeStock = async (event) => {
   try {
     const userId = await getUserId(event);
-    const { itemId } = event.pathParameters;
-    const { quantity, date, memo } = JSON.parse(event.body);
+    const { itemId } = event.pathParameters || {};
+    if (!itemId) {
+      throw new HttpError(400, "itemId is required");
+    }
+
+    if (!event.body) {
+      throw new HttpError(400, "Request body is missing");
+    }
+
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch (e) {
+      throw new HttpError(400, "Invalid JSON in request body");
+    }
+
+    const { quantity, date, memo } = body;
 
     if (!quantity || quantity <= 0) {
-      return {
-        statusCode: 400,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Credentials": true,
-        },
-        body: JSON.stringify({ message: "Positive quantity is required" }),
-      };
+      throw new HttpError(400, "Positive quantity is required");
     }
 
     const now = new Date().toISOString();
@@ -487,15 +516,7 @@ exports.consumeStock = async (event) => {
       body: JSON.stringify({ ...Attributes, updatedAt: now }),
     };
   } catch (error) {
-    console.error("Error in consumeStock:", error);
-    return {
-      statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
-    };
+    return errorResponse(error, "consumeStock");
   }
 };
 
@@ -505,7 +526,11 @@ exports.consumeStock = async (event) => {
 exports.getConsumptionHistory = async (event) => {
   try {
     const userId = await getUserId(event);
-    const { itemId } = event.pathParameters;
+    const { itemId } = event.pathParameters || {};
+    if (!itemId) {
+      throw new HttpError(400, "itemId is required");
+    }
+
     const { Items } = await docClient.send(new QueryCommand({
       TableName: HISTORY_TABLE(),
       KeyConditionExpression: "itemId = :itemId",
@@ -524,15 +549,7 @@ exports.getConsumptionHistory = async (event) => {
       body: JSON.stringify(Items || []),
     };
   } catch (error) {
-    console.error("Error in getConsumptionHistory:", error);
-    return {
-      statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
-    };
+    return errorResponse(error, "getConsumptionHistory");
   }
 };
 
@@ -542,7 +559,11 @@ exports.getConsumptionHistory = async (event) => {
 exports.getEstimatedDepletionDate = async (event) => {
   try {
     const userId = await getUserId(event);
-    const { itemId } = event.pathParameters;
+    const { itemId } = event.pathParameters || {};
+    if (!itemId) {
+      throw new HttpError(400, "itemId is required");
+    }
+
     const { date } = event.queryStringParameters || {};
     let referenceDate = new Date();
     if (date) {
@@ -559,14 +580,7 @@ exports.getEstimatedDepletionDate = async (event) => {
     }));
 
     if (!item) {
-      return {
-        statusCode: 404,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Credentials": true,
-        },
-        body: JSON.stringify({ message: "Item not found" }),
-      };
+      throw new HttpError(404, "Item not found");
     }
 
     // 平均消費ペースが0以下の場合は、履歴を取得せずに早期リターン（最適化・テスト互換性）
@@ -626,14 +640,6 @@ exports.getEstimatedDepletionDate = async (event) => {
       }),
     };
   } catch (error) {
-    console.error("Error in getEstimatedDepletionDate:", error);
-    return {
-      statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify({ message: "Internal Server Error", error: error.message }),
-    };
+    return errorResponse(error, "getEstimatedDepletionDate");
   }
 };

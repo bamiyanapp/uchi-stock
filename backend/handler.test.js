@@ -93,6 +93,38 @@ describe('Household Items API', () => {
       };
       const result = await createItem(event);
       expect(result.statusCode).toBe(500);
+      expect(JSON.parse(result.body).message).toBe('Internal Server Error');
+    });
+
+    it('should return 401 if unauthorized in production', async () => {
+      // 本番環境をシミュレート
+      const oldAllowInsecure = process.env.ALLOW_INSECURE_USER_ID;
+      const oldNodeEnv = process.env.NODE_ENV;
+      process.env.ALLOW_INSECURE_USER_ID = 'false';
+      process.env.NODE_ENV = 'production';
+
+      try {
+        const event = {
+          headers: {}, // No x-user-id, no Authorization
+          body: JSON.stringify({ name: 'Test Item', unit: 'pcs' }),
+        };
+        const result = await createItem(event);
+        expect(result.statusCode).toBe(401);
+        expect(JSON.parse(result.body).message).toBe('Unauthorized');
+      } finally {
+        process.env.ALLOW_INSECURE_USER_ID = oldAllowInsecure;
+        process.env.NODE_ENV = oldNodeEnv;
+      }
+    });
+
+    it('should return 400 if body is missing', async () => {
+      const event = {
+        headers: { 'x-user-id': TEST_USER },
+        body: null
+      };
+      const result = await createItem(event);
+      expect(result.statusCode).toBe(400);
+      expect(JSON.parse(result.body).message).toBe('Request body is missing');
     });
   });
 
