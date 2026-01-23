@@ -104,7 +104,6 @@ test.describe('Home Page', () => {
   });
 
   test('should display past history date when it is not a prediction', async ({ page }) => {
-    const pastDate = '2026-01-10';
     const pastDateTime = '2026-01-10T12:00:00Z';
     
     // Mock items with a past updatedAt
