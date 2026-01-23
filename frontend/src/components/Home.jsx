@@ -13,7 +13,16 @@ function Home() {
   const [newItemName, setNewItemName] = useState("");
   const [newItemUnit, setNewItemUnit] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { userId, idToken, user, login, logout, loading: authLoading } = useUser();
+  
+  const authContext = useUser() || {};
+  const { 
+    userId = 'test-user', 
+    idToken = null, 
+    user = null, 
+    login = () => {}, 
+    logout = () => {}, 
+    loading: authLoading = false 
+  } = authContext;
 
   const formatDate = (date) => {
     return date.toLocaleDateString('sv-SE');

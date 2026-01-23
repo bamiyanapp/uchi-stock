@@ -1,113 +1,23 @@
 # 内部設計書 (Internal Design)
 
-本ドキュメントでは、`uchi-stock` のシステム構成、画面設計、データベース設計、およびバックエンドにおける主要なロジックについて詳述します。
+本ドキュメントでは、`uchi-stock` のバックエンドにおける主要なロジックおよび設計判断について詳述します。
 
-## 1. システム構成 (Architecture)
+## 1. ユーザー識別とセキュリティ
 
-### システム構成図
-
-```mermaid
-graph TD
-    subgraph "Frontend (GitHub Pages)"
-        I[React + Vite]
-    end
-
-    subgraph "Auth"
-        C[Firebase Authentication / Google SSO]
-    end
-
-    subgraph "Backend (AWS)"
-        J[API Gateway] --> K[AWS Lambda];
-        K --> L[DynamoDB];
-    end
-
-    I -- Login --> C;
-    I -- API Request with ID Token --> J;
-```
-
-### ユーザー識別とセキュリティ
-
-本アプリは Google アカウントによる SSO（シングルサインオン）認証を採用しています。
-
--   **認証プロバイダー**: Firebase Authentication + Google OAuth 2.0
--   **仕組み**:
-    1.  ユーザーが Google アカウントでログイン。
-    2.  Firebase が ID トークン（JWT）を発行。
-    3.  フロントエンドは API リクエストの `Authorization` ヘッダーにこのトークン（Bearer）を含めて送信。
-    4.  バックエンド（Lambda）で Firebase Admin SDK を使用してトークンの有効性を検証し、ユーザーID（UID）を特定。
-
-#### ユーザー特定ロジック
+### ユーザー特定ロジック
 バックエンド（`handler.js`）では、以下の優先順位でユーザーID（`userId`）を特定します。
 
 1.  **Firebase ID Token**: `Authorization: Bearer <token>` ヘッダーから取得。`firebase-admin` SDKを使用してトークンを検証し、UIDを取得します。
 2.  **カスタムヘッダー**: `x-user-id` ヘッダー。開発およびローカルテスト環境での利便性のために維持（`ALLOW_INSECURE_USER_ID=true` または `NODE_ENV=test` の場合のみ有効）。
 
-#### セキュリティ上の注意
+### セキュリティ上の注意
 本番環境では必ず Firebase ID Token による検証を行います。`FIREBASE_SERVICE_ACCOUNT` 環境変数にサービスアカウントキーを設定する必要があります。
 
 ---
 
-## 2. 画面設計 (UI Design)
+## 2. 在庫予測アルゴリズム
 
-### 画面遷移図
-
-```mermaid
-graph TD
-    Login[Google ログイン画面] --> |ログイン成功| Home[在庫一覧画面]
-    Home --> |品目名をクリック| Detail[品目詳細・履歴画面]
-    Home --> |「在庫を更新する」をクリック| Update[在庫更新画面]
-    Detail --> |「在庫を更新する」をクリック| Update
-    Update --> |「更新を保存する」をクリック| Detail
-    Detail --> |「在庫一覧へ戻る」をクリック| Home
-    Home --> |ログアウト| Login
-```
-
-### 画面一覧
-
-| 画面名 | パス | 説明 |
-| :--- | :--- | :--- |
-| 在庫一覧 | `/` | 登録されている品目の一覧、現在の在庫数、および在庫切れ予想日を表示します。 |
-| 品目詳細・履歴 | `/item/{itemId}` | 特定の品目の詳細情報と、これまでの在庫変動履歴（購入・消費）を表示します。 |
-| 在庫更新 | `/item/{itemId}/update` | 在庫数の追加（購入）や消費を記録し、現在の在庫数を更新します。 |
-
----
-
-## 3. データベース設計 (Database Design)
-
-### DynamoDB テーブル設計
-
-#### 1. household-items
-家庭用品の品目情報を格納するテーブル。
-
-| 属性名 | 型 | キー | 説明 |
-| :--- | :--- | :--- | :--- |
-| userId | String | Partition Key | ログインユーザーID (Firebase UID) |
-| itemId | String | Sort Key | 品目の一意識別子 (UUID) |
-| name | String | - | 品目名 |
-| unit | String | - | 単位（例: 個, パック, 本） |
-| currentStock | Number | - | 現在の在庫数 |
-| averageConsumptionRate | Number | - | 平均消費ペース（キャッシュ値） |
-| createdAt | String | - | 作成日時 (ISO8601) |
-| updatedAt | String | - | 更新日時 (ISO8601) |
-
-#### 2. stock-history
-品目の購入・消費履歴を格納するテーブル。
-
-| 属性名 | 型 | キー | 説明 |
-| :--- | :--- | :--- | :--- |
-| itemId | String | Partition Key | 品目ID |
-| date | String | Sort Key | 日付 (ISO8601) |
-| userId | String | - | ログインユーザーID |
-| historyId | String | - | 履歴の一意識別子 (UUID) |
-| type | String | - | 履歴の種類（"purchase", "consumption", "creation", "update"） |
-| quantity | Number | - | 数量 |
-| memo | String | - | メモ (任意) |
-
----
-
-## 4. 在庫予測アルゴリズム
-
-在庫切れ予測は、過去の消費実績に基づき、現在の在庫がいつ枯渇するかを推定します。詳細はコード内のコメントも参照してください。
+在庫切れ予測は、過去の消費実績に基づき、現在の在庫がいつ枯渇するかを推定します。
 
 ### 平均消費ペースの算出 (`calculateAverageConsumptionRate`)
 消費イベント（`consumption`）の履歴から日次平均消費量を計算します。
@@ -133,7 +43,7 @@ APIリクエスト時の「基準日（デフォルトは現在）」におけ�
 
 ---
 
-## 5. データベース整合性
+## 3. データベース整合性
 
 ### 在庫更新の原子性
 在庫の追加（`addStock`）や消費（`consumeStock`）は、以下の2ステップで行われますが、現状は個別のSDKコールとなっています。
@@ -144,7 +54,7 @@ APIリクエスト時の「基準日（デフォルトは現在）」におけ�
 
 ---
 
-## 6. 履歴の種類と定義
+## 4. 履歴の種類と定義
 
 | 種類 (type) | 発生タイミング | 用途 |
 | :--- | :--- | :--- |

@@ -8,7 +8,8 @@ const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.co
 const StockUpdate = () => {
   const { itemId } = useParams();
   const navigate = useNavigate();
-  const { userId, idToken } = useUser();
+  const authContext = useUser() || {};
+  const { userId = 'test-user', idToken = null } = authContext;
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);

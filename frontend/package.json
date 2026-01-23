@@ -14,7 +14,7 @@
     "deploy": "npx gh-pages -d dist"
   },
   "dependencies": {
-    "aws-amplify": "^6.15.9",
+    "firebase": "^12.8.0",
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
