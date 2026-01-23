@@ -50,6 +50,7 @@ exports.createItem = async (event) => {
       unit,
       currentStock: 0,
       createdAt: now,
+      updatedAt: now,
     };
 
     await docClient.send(new PutCommand({
@@ -190,6 +191,13 @@ exports.updateItem = async (event) => {
 
     UpdateExpression += " " + updates.join(", ");
 
+    if (updates.length > 0) {
+      updates.push("updatedAt = :updatedAt");
+      ExpressionAttributeValues[":updatedAt"] = now;
+    }
+
+    UpdateExpression = "set " + updates.join(", ");
+
     const { Attributes } = await docClient.send(new UpdateCommand({
       TableName: ITEMS_TABLE(),
       Key: { userId, itemId },
@@ -313,8 +321,11 @@ exports.addStock = async (event) => {
     const { Attributes } = await docClient.send(new UpdateCommand({
       TableName: ITEMS_TABLE(),
       Key: { userId, itemId },
-      UpdateExpression: "set currentStock = currentStock + :q",
-      ExpressionAttributeValues: { ":q": quantity },
+      UpdateExpression: "set currentStock = currentStock + :q, updatedAt = :updatedAt",
+      ExpressionAttributeValues: {
+        ":q": quantity,
+        ":updatedAt": now
+      },
       ReturnValues: "ALL_NEW",
     }));
 
@@ -442,10 +453,11 @@ exports.consumeStock = async (event) => {
     const { Attributes } = await docClient.send(new UpdateCommand({
       TableName: ITEMS_TABLE(),
       Key: { userId, itemId },
-      UpdateExpression: "set currentStock = currentStock - :q, averageConsumptionRate = :rate",
+      UpdateExpression: "set currentStock = currentStock - :q, averageConsumptionRate = :rate, updatedAt = :updatedAt",
       ExpressionAttributeValues: {
         ":q": quantity,
-        ":rate": averageConsumptionRate
+        ":rate": averageConsumptionRate,
+        ":updatedAt": now
       },
       ReturnValues: "ALL_NEW",
     }));
