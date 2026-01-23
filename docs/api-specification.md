@@ -16,8 +16,17 @@
 | getEstimatedDepletionDate | `/items/{itemId}/estimate` | GET | 現在の在庫数と消費ペースに基づき、在庫切れ推定日を計算して取得する。 |
 
 ## 認証
-すべての API リクエストには、`Authorization: Bearer <ID_TOKEN>` ヘッダーが必要です。
-開発およびテスト環境では、環境変数 `ALLOW_INSECURE_USER_ID=true` を設定することで、`x-user-id` ヘッダーによる簡易認証が可能です。
+原則として、すべての API リクエストには `Authorization: Bearer <ID_TOKEN>` ヘッダーが必要です。
+
+### テストモード（ログイン未済の場合）
+ログインせずにアプリを試用できる「テストモード」を提供しています。
+以下の条件を満たす場合、認証なしで API を利用できます。
+
+-   `x-user-id` ヘッダーに `test-user` が指定されていること。
+-   この場合、データは共有のテストユーザー領域に保存されます。
+
+### 開発・テスト環境
+開発およびテスト環境では、環境変数 `ALLOW_INSECURE_USER_ID=true` を設定することで、任意の `x-user-id` ヘッダーによる簡易認証が可能です。
 
 詳細については [内部設計書](internal-design.md) の「ユーザー識別とセキュリティ」を参照してください。
 

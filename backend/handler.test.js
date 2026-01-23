@@ -75,6 +75,53 @@ describe('Household Items API', () => {
       expect(body.userId).toBe('default-user');
     });
 
+    it('should allow test-user even if NODE_ENV is not test', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      const originalAllowInsecure = process.env.ALLOW_INSECURE_USER_ID;
+      
+      try {
+        process.env.NODE_ENV = 'production';
+        process.env.ALLOW_INSECURE_USER_ID = 'false';
+        
+        const event = {
+          headers: { 'x-user-id': 'test-user' },
+          body: JSON.stringify({ name: 'Test Item', unit: 'pcs' }),
+        };
+        
+        ddbMock.on(PutCommand).resolves({});
+        
+        const result = await createItem(event);
+        expect(result.statusCode).toBe(201);
+        const body = JSON.parse(result.body);
+        expect(body.userId).toBe('test-user');
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+        process.env.ALLOW_INSECURE_USER_ID = originalAllowInsecure;
+      }
+    });
+
+    it('should return 401 if unauthorized and not test-user in production', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      const originalAllowInsecure = process.env.ALLOW_INSECURE_USER_ID;
+      
+      try {
+        process.env.NODE_ENV = 'production';
+        process.env.ALLOW_INSECURE_USER_ID = 'false';
+        
+        const event = {
+          headers: { 'x-user-id': 'other-user' },
+          body: JSON.stringify({ name: 'Test Item', unit: 'pcs' }),
+        };
+        
+        const result = await createItem(event);
+        expect(result.statusCode).toBe(401);
+        expect(JSON.parse(result.body).error).toBe('Unauthorized');
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+        process.env.ALLOW_INSECURE_USER_ID = originalAllowInsecure;
+      }
+    });
+
     it('should return 400 if name or unit is missing', async () => {
       const event = {
         headers: { 'x-user-id': TEST_USER },
