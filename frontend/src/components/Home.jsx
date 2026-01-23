@@ -283,11 +283,35 @@ function Home() {
                         </div>
                         
                         <div className="mb-4">
-                          <div className="d-flex align-items-center gap-2 mb-3">
+                          <div className="d-flex align-items-center gap-2 mb-1">
                             <span className="display-6 fw-bold">
                               {item.estimate?.predictedStock !== undefined ? item.estimate.predictedStock : item.currentStock}
                             </span>
                             <span className="text-muted">{item.unit}</span>
+                          </div>
+                          <div className="mb-3">
+                            {(() => {
+                              const predictedStock = item.estimate?.predictedStock;
+                              const currentStock = item.currentStock;
+                              const updatedAt = new Date(item.updatedAt);
+                              const selected = new Date(selectedDate);
+                              
+                              // 日付のみを比較
+                              const updatedAtDate = new Date(updatedAt.getFullYear(), updatedAt.getMonth(), updatedAt.getDate());
+                              const selectedDateOnly = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate());
+                              
+                              const isPrediction = predictedStock !== undefined && predictedStock !== currentStock;
+                              const isPastHistory = !isPrediction && updatedAtDate < selectedDateOnly;
+
+                              if (isPastHistory) {
+                                return (
+                                  <small className="text-muted">
+                                    {updatedAt.toLocaleDateString()} 時点の情報
+                                  </small>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
 
                           {daysRemaining !== null ? (
