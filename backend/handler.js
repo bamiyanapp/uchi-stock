@@ -74,11 +74,17 @@ const getUserId = async (event) => {
     }
   }
 
-  // 2. 開発・テスト用: x-user-idヘッダー
+  const requestedUserId = event.headers["x-user-id"] || event.headers["X-User-Id"];
+
+  // 2. テストユーザーの場合は認証なしで許可（ログイン未済の利用者が使う「テストモード」用）
+  if (requestedUserId === 'test-user') {
+    return 'test-user';
+  }
+
+  // 3. 開発・テスト用: x-user-idヘッダー
   // 注意: 本番環境ではAPI Gateway等でこのヘッダーを削除するか、環境変数でこのfallbackを無効化すべき
   if (process.env.ALLOW_INSECURE_USER_ID === 'true' || process.env.NODE_ENV === 'test') {
-     const userId = event.headers["x-user-id"] || event.headers["X-User-Id"] || "default-user";
-     return userId;
+     return requestedUserId || "default-user";
   }
 
   // 認証失敗

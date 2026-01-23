@@ -8,7 +8,8 @@
 バックエンド（`handler.js`）では、以下の優先順位でユーザーID（`userId`）を特定します。
 
 1.  **Firebase ID Token**: `Authorization: Bearer <token>` ヘッダーから取得。`firebase-admin` SDKを使用してトークンを検証し、UIDを取得します。
-2.  **カスタムヘッダー**: `x-user-id` ヘッダー。開発およびローカルテスト環境での利便性のために維持（`ALLOW_INSECURE_USER_ID=true` または `NODE_ENV=test` の場合のみ有効）。
+2.  **テストモード**: `x-user-id: test-user` が指定されている場合、認証なしでアクセスを許可します。これはログイン未済のユーザーが試用するための仕様です。
+3.  **開発用 fallback**: `x-user-id` ヘッダー。開発およびローカルテスト環境での利便性のために維持（`ALLOW_INSECURE_USER_ID=true` または `NODE_ENV=test` の場合のみ有効）。
 
 ### セキュリティ上の注意
 本番環境では必ず Firebase ID Token による検証を行います。`FIREBASE_SERVICE_ACCOUNT` 環境変数にサービスアカウントキーを設定する必要があります。
