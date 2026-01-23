@@ -1,8 +1,8 @@
-
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand, QueryCommand } = require("@aws-sdk/lib-dynamodb");
 const crypto = require("crypto");
 const admin = require('firebase-admin');
+const stockLogic = require("./stock-logic");
 
 // Firebase Admin SDKの初期化
 if (!admin.apps.length) {
@@ -409,50 +409,16 @@ exports.addStock = async (event) => {
  */
 const calculateAverageConsumptionRate = async (userId, itemId) => {
   try {
-    // 消費履歴を取得（消費タイプのみ）
+    // 全履歴を取得
     const { Items: historyData } = await docClient.send(new QueryCommand({
       TableName: HISTORY_TABLE(),
       KeyConditionExpression: "itemId = :itemId",
-      FilterExpression: "#t = :type AND #u = :userId",
-      ExpressionAttributeNames: { "#t": "type", "#u": "userId" },
-      ExpressionAttributeValues: { ":itemId": itemId, ":type": "consumption", ":userId": userId }
+      FilterExpression: "#u = :userId",
+      ExpressionAttributeNames: { "#u": "userId" },
+      ExpressionAttributeValues: { ":itemId": itemId, ":userId": userId }
     }));
 
-    const history = historyData || [];
-
-    // 最低2件の履歴が必要
-    if (history.length < 2) {
-      return 0;
-    }
-
-    // 日付順にソートし、有効な日付のみを抽出
-    const validHistory = history
-      .filter(h => h.date && !isNaN(new Date(h.date).getTime()))
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    if (validHistory.length < 2) {
-      return 0;
-    }
-
-    // 期間を計算（最初の記録から現在まで）
-    const firstDate = new Date(validHistory[0].date);
-    const now = new Date();
-
-    // 観測期間：最初の記録から現在まで（最低1日）
-    const observationPeriodDays = Math.max(1, (now - firstDate) / (1000 * 60 * 60 * 24));
-
-    // 総消費量（最後の消費記録は含めない。期間の最後が「現在」であるため、最後の消費から現在までの期間も考慮した平均を出すため、全消費量を期間で割る）
-    const totalConsumed = validHistory.reduce((sum, h) => sum + h.quantity, 0);
-
-    // 日次平均消費量
-    const dailyConsumption = totalConsumed / observationPeriodDays;
-
-    // 無効な値の場合は0を返す
-    if (dailyConsumption <= 0 || isNaN(dailyConsumption) || !isFinite(dailyConsumption)) {
-      return 0;
-    }
-
-    return dailyConsumption;
+    return stockLogic.calculateAverageConsumptionRate(historyData || [], new Date());
   } catch (error) {
     console.error("Error in calculateAverageConsumptionRate:", error);
     return 0;
@@ -603,10 +569,8 @@ exports.getEstimatedDepletionDate = async (event) => {
       };
     }
 
-    // 平均消費ペースを取得（すでに計算済みの値を使用）
-    const dailyConsumption = item.averageConsumptionRate || 0;
-
-    if (dailyConsumption <= 0) {
+    // 平均消費ペースが0以下の場合は、履歴を取得せずに早期リターン（最適化・テスト互換性）
+    if (!item.averageConsumptionRate || item.averageConsumptionRate <= 0) {
       return {
         statusCode: 200,
         headers: {
@@ -616,100 +580,38 @@ exports.getEstimatedDepletionDate = async (event) => {
         body: JSON.stringify({
           estimatedDepletionDate: null,
           dailyConsumption: 0,
+          currentStock: item.currentStock,
           message: "No consumption data available"
         }),
       };
     }
 
-    // 最後に在庫が確定した履歴（作成、購入、更新、消費）を取得
-    let latestHistory = [];
-    try {
-      const result = await docClient.send(new QueryCommand({
-        TableName: HISTORY_TABLE(),
-        KeyConditionExpression: "itemId = :itemId",
-        FilterExpression: "#u = :userId AND (#t = :purchase OR #t = :update OR #t = :creation OR #t = :consumption)",
-        ExpressionAttributeNames: { "#u": "userId", "#t": "type" },
-        ExpressionAttributeValues: {
-          ":itemId": itemId,
-          ":userId": userId,
-          ":purchase": "purchase",
-          ":update": "update",
-          ":creation": "creation",
-          ":consumption": "consumption"
-        },
-        ScanIndexForward: false, // 降順（新しい順）
-        Limit: 1
-      }));
-      latestHistory = result.Items || [];
-    } catch (e) {
-      console.error("Error fetching latest history:", e);
-      // フォールバック
-    }
-
-    const lastUpdateDateStr = latestHistory.length > 0
-      ? latestHistory[0].date
-      : item.createdAt;
-    const lastUpdateDate = new Date(lastUpdateDateStr);
-
-    const daysSinceLastUpdate = Math.max(0, (referenceDate - lastUpdateDate) / (1000 * 60 * 60 * 24));
-    const predictedStock = Math.max(0, item.currentStock - (dailyConsumption * daysSinceLastUpdate));
-    
-    const daysRemainingFromCurrent = predictedStock / dailyConsumption;
-    const estimatedDate = new Date(referenceDate.getTime() + daysRemainingFromCurrent * 24 * 60 * 60 * 1000);
-
-    // 最後に購入した際の数量を取得
-    const { Items: purchaseHistory } = await docClient.send(new QueryCommand({
+    // 全履歴を取得
+    const { Items: historyData } = await docClient.send(new QueryCommand({
       TableName: HISTORY_TABLE(),
       KeyConditionExpression: "itemId = :itemId",
-      FilterExpression: "#t = :type AND #u = :userId",
-      ExpressionAttributeNames: { "#t": "type", "#u": "userId" },
-      ExpressionAttributeValues: { ":itemId": itemId, ":type": "purchase", ":userId": userId },
-      ScanIndexForward: false, // 降順（新しい順）
-      Limit: 1
+      FilterExpression: "#u = :userId",
+      ExpressionAttributeNames: { "#u": "userId" },
+      ExpressionAttributeValues: { ":itemId": itemId, ":userId": userId },
     }));
 
-    let baselineQuantity = purchaseHistory && purchaseHistory.length > 0 ? purchaseHistory[0].quantity : null;
+    const result = stockLogic.calculateEstimatedDepletion(item, historyData || [], referenceDate);
 
-    // 購入履歴がない場合は、直近の更新（Update/Creation）を基準にする
-    if (!baselineQuantity) {
-      try {
-        const { Items: historyItems } = await docClient.send(new QueryCommand({
-          TableName: HISTORY_TABLE(),
-          KeyConditionExpression: "itemId = :itemId",
-          FilterExpression: "#u = :userId",
-          ExpressionAttributeNames: { "#u": "userId" },
-          ExpressionAttributeValues: { ":itemId": itemId, ":userId": userId },
-          ScanIndexForward: false, // 降順（新しい順）
-          Limit: 50 // 直近50件まで遡る
-        }));
-        
-        if (historyItems && historyItems.length > 0) {
-          let tempStock = item.currentStock;
-          
-          for (const h of historyItems) {
-            // 将来的な拡張や並列更新を考慮し、処理済みより未来の日付の履歴はスキップすべきだが、
-            // ここでは簡易的に降順で処理する
-            
-            if (h.type === 'purchase') {
-              baselineQuantity = h.quantity;
-              break;
-            } else if (h.type === 'update' || h.type === 'creation') {
-              // Update/Creationはその時点での在庫数を「設定」するイベントなので
-              // 計算上の tempStock がその時点の在庫数（基準値）となる
-              baselineQuantity = tempStock;
-              break;
-            } else if (h.type === 'consumption') {
-              // 消費イベントの場合、消費前の在庫数に戻す
-              tempStock += h.quantity;
-            }
-          }
-        }
-      } catch (e) {
-        console.error("Error calculating baseline stock:", e);
-      }
+    if (!result.estimatedDepletionDate) {
+      return {
+        statusCode: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Credentials": true,
+        },
+        body: JSON.stringify({
+          estimatedDepletionDate: null,
+          dailyConsumption: 0,
+          currentStock: item.currentStock,
+          message: "No consumption data available"
+        }),
+      };
     }
-
-    const stockPercentage = baselineQuantity ? Math.min(100, Math.round((predictedStock / baselineQuantity) * 100)) : null;
 
     return {
       statusCode: 200,
@@ -718,12 +620,9 @@ exports.getEstimatedDepletionDate = async (event) => {
         "Access-Control-Allow-Credentials": true,
       },
       body: JSON.stringify({
-        estimatedDepletionDate: estimatedDate.toISOString(),
-        dailyConsumption: dailyConsumption.toFixed(2),
-        currentStock: item.currentStock,
-        predictedStock: Number(predictedStock.toFixed(2)),
-        lastPurchaseQuantity: baselineQuantity,
-        stockPercentage
+        ...result,
+        dailyConsumption: result.dailyConsumption.toFixed(2),
+        currentStock: item.currentStock
       }),
     };
   } catch (error) {
