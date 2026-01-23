@@ -13,6 +13,10 @@ const TABLE_NAME = "karuta-phrases";
 async function seed() {
   try {
     // 1. CSVファイルを読み込んでパース
+    if (!fs.existsSync(CSV_FILE_PATH)) {
+      console.log(`CSV file not found at ${CSV_FILE_PATH}. Skipping seeding.`);
+      return;
+    }
     const fileContent = fs.readFileSync(CSV_FILE_PATH, "utf-8");
     const records = parse(fileContent, {
       columns: true,
@@ -59,18 +63,23 @@ async function seed() {
       });
     }
 
-    // 3. 不要なデータを削除
+    // 3. 不要なデータを削除（引数 --clear がある場合のみ）
+    const shouldClear = process.argv.includes("--clear");
     let deleteCount = 0;
-    for (const existingItem of existingItemsMap.values()) {
-      if (!newItemsMap.has(`${existingItem.category}-${existingItem.id}`)) {
-        await docClient.send(new DeleteCommand({
-          TableName: TABLE_NAME,
-          Key: { category: existingItem.category, id: existingItem.id },
-        }));
-        deleteCount++;
+    if (shouldClear) {
+      for (const existingItem of existingItemsMap.values()) {
+        if (!newItemsMap.has(`${existingItem.category}-${existingItem.id}`)) {
+          await docClient.send(new DeleteCommand({
+            TableName: TABLE_NAME,
+            Key: { category: existingItem.category, id: existingItem.id },
+          }));
+          deleteCount++;
+        }
       }
+      if (deleteCount > 0) console.log(`Deleted ${deleteCount} obsolete records.`);
+    } else {
+      console.log("Skip deleting obsolete records. Use --clear to enable.");
     }
-    if (deleteCount > 0) console.log(`Deleted ${deleteCount} obsolete records.`);
 
     // 4. 新しいデータを投入・更新（Upsert方式）
     let upsertCount = 0;
