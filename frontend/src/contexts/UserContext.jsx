@@ -15,11 +15,14 @@ export const UserProvider = ({ children }) => {
   const [userId, setUserId] = useState('test-user');
   const [user, setUser] = useState(null);
   const [idToken, setIdToken] = useState(null);
-  const [loading, setLoading] = useState(!isE2E);
+  const [loading, setLoading] = useState(() => {
+    const isSkipAuth = (isE2E || isDev || !auth.config?.apiKey || auth.config.apiKey === "mock-api-key") && import.meta.env.MODE !== 'test';
+    return !isSkipAuth;
+  });
 
   useEffect(() => {
-    if (isE2E || isDev || !auth.config?.apiKey || auth.config.apiKey === "mock-api-key") {
-      setLoading(false);
+    const isSkipAuth = (isE2E || isDev || !auth.config?.apiKey || auth.config.apiKey === "mock-api-key") && import.meta.env.MODE !== 'test';
+    if (isSkipAuth) {
       return;
     }
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {

@@ -1,9 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
-const isE2E = import.meta.env.MODE === 'test';
-const isDev = import.meta.env.MODE === 'development';
-
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "mock-api-key",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "mock-auth-domain",
