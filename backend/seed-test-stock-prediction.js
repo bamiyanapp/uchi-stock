@@ -158,9 +158,10 @@ async function clearTestData() {
 
 async function seedTestData(dryRun = false) {
   try {
-    if (!dryRun) {
+    const shouldClear = process.argv.includes("--clear");
+    if (!dryRun && shouldClear) {
       await clearTestData();
-    } else {
+    } else if (dryRun) {
       console.log("Dry run mode: No data will be written to DynamoDB.");
     }
 

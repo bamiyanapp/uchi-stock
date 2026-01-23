@@ -6,6 +6,13 @@ on:
     workflows: ["CI"]
     types:
       - completed
+  workflow_dispatch:
+    inputs:
+      force_seed:
+        description: 'Force seeding of data'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -203,14 +210,16 @@ jobs:
         working-directory: backend
         run: npm ci
       - name: 🌱 Seed Database
+        if: ${{ inputs.force_seed == true || github.event.inputs.force_seed == 'true' }}
         working-directory: backend
-        run: node seed.js
+        run: node seed.js --clear
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       - name: 🧪 Seed Test Data for Stock Prediction
+        if: ${{ inputs.force_seed == true || github.event.inputs.force_seed == 'true' }}
         working-directory: backend
-        run: node seed-test-stock-prediction.js
+        run: node seed-test-stock-prediction.js --clear
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
