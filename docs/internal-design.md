@@ -2,6 +2,16 @@
 
 本ドキュメントでは、「うちストック」のバックエンドにおける主要なロジックおよび設計判断について詳述します。
 
+## 目次
+- [1. ユーザー識別とセキュリティ](#1-ユーザー識別とセキュリティ)
+- [2. 在庫予測アルゴリズム](#2-在庫予測アルゴリズム)
+- [3. データベース整合性](#3-データベース整合性)
+- [4. 履歴の種類と定義](#4-履歴の種類と定義)
+- [5. システム構成 (Architecture)](#5-システム構成-architecture)
+- [6. データベース設計 (Database Design)](#6-データベース設計-database-design)
+
+---
+
 ## 1. ユーザー識別とセキュリティ
 
 ### ユーザー特定ロジック
@@ -63,3 +73,79 @@ APIリクエスト時の「基準日（デフォルトは現在）」におけ�
 | `purchase` | 在庫の追加時 | 在庫割合の基準値として使用 |
 | `consumption` | 在庫の消費時 | 消費ペース計算の母集団 |
 | `update` | 在庫数の直接編集時 | 在庫数の強制同期 |
+
+---
+
+## 5. システム構成 (Architecture)
+
+### システム構成図
+
+```mermaid
+graph TD
+    subgraph "Frontend (GitHub Pages)"
+        I[React + Vite]
+    end
+
+    subgraph "Auth"
+        C[Firebase Authentication / Google SSO]
+    end
+
+    subgraph "Backend (AWS)"
+        J[API Gateway] --> K[AWS Lambda];
+        K --> L[DynamoDB];
+    end
+
+    I -- Login --> C;
+    I -- API Request with ID Token --> J;
+```
+
+### 画面遷移図
+
+```mermaid
+graph TD
+    Login[Google ログイン画面] --> |ログイン成功| Home[在庫一覧画面]
+    Home --> |品目名をクリック| Detail[品目詳細・履歴画面]
+    Home --> |「在庫を更新する」をクリック| Update[在庫更新画面]
+    Detail --> |「在庫を更新する」をクリック| Update
+    Update --> |「更新を保存する」をクリック| Detail
+    Detail --> |「在庫一覧へ戻る」をクリック| Home
+    Home --> |ログアウト| Login
+```
+
+### 画面一覧
+
+| 画面名 | パス | 説明 |
+| :--- | :--- | :--- |
+| 在庫一覧 | `/` | 登録されている品目の一覧、現在の在庫数、および在庫切れ予想日を表示します。 |
+| 品目詳細・履歴 | `/item/{itemId}` | 特定の品目の詳細情報と、これまでの在庫変動履歴（購入・消費）を表示します。 |
+| 在庫更新 | `/item/{itemId}/update` | 在庫数の追加（購入）や消費を記録し、現在の在庫数を更新します。 |
+
+---
+
+## 6. データベース設計 (Database Design)
+
+### 1. household-items
+家庭用品の品目情報を格納するテーブル。
+
+| 属性名 | 型 | キー | 説明 |
+| :--- | :--- | :--- | :--- |
+| userId | String | Partition Key | ログインユーザーID (Firebase UID) |
+| itemId | String | Sort Key | 品目の一意識別子 (UUID) |
+| name | String | - | 品目名 |
+| unit | String | - | 単位（例: 個, パック, 本） |
+| currentStock | Number | - | 現在の在庫数 |
+| createdAt | String | - | 作成日時 (ISO8601) |
+| updatedAt | String | - | 更新日時 (ISO8601) |
+
+### 2. stock-history
+品目の購入・消費履歴を格納するテーブル。
+
+| 属性名 | 型 | キー | 説明 |
+| :--- | :--- | :--- | :--- |
+| itemId | String | Partition Key | 品目ID |
+| date | String | Sort Key | 日付 (ISO8601) |
+| userId | String | - | ログインユーザーID |
+| historyId | String | - | 履歴の一意識別子 (UUID) |
+| type | String | - | 履歴の種類（"purchase", "consumption"） |
+| quantity | Number | - | 数量 |
+| memo | String | - | メモ (任意) |
