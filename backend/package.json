@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "vitest",
+    "test": "vitest run && npx serverless package --stage local-test",
     "deploy": "npx serverless deploy"
   },
   "keywords": [],
