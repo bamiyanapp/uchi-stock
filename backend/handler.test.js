@@ -115,7 +115,7 @@ describe('うちストック API', () => {
         
         const result = await createItem(event);
         expect(result.statusCode).toBe(401);
-        expect(JSON.parse(result.body).error).toBe('Unauthorized');
+        expect(JSON.parse(result.body).error).toBe('Authorization header is missing.');
       } finally {
         process.env.NODE_ENV = originalEnv;
         process.env.ALLOW_INSECURE_USER_ID = originalAllowInsecure;
@@ -157,7 +157,7 @@ describe('うちストック API', () => {
         };
         const result = await createItem(event);
         expect(result.statusCode).toBe(401);
-        expect(JSON.parse(result.body).message).toBe('Unauthorized');
+        expect(JSON.parse(result.body).error).toBe('Authorization header is missing.');
       } finally {
         process.env.ALLOW_INSECURE_USER_ID = oldAllowInsecure;
         process.env.NODE_ENV = oldNodeEnv;

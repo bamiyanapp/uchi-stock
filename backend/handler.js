@@ -7,18 +7,31 @@ const stockLogic = require("./stock-logic");
 // Firebase Admin SDKの初期化
 if (!admin.apps.length) {
   try {
-    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) : null;
+    let saValue = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (saValue && !saValue.trim().startsWith('{')) {
+      try {
+        const decoded = Buffer.from(saValue, 'base64').toString('utf-8');
+        if (decoded.trim().startsWith('{')) {
+          saValue = decoded;
+          console.log('[FirebaseInit] Service Account decoded from Base64');
+        }
+      } catch {
+        console.warn('[FirebaseInit] Failed to decode potential Base64 Service Account');
+      }
+    }
+
+    const serviceAccount = saValue ? JSON.parse(saValue) : null;
     
     if (serviceAccount) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
       });
-      console.log('Firebase Admin initialized successfully');
+      console.log('[FirebaseInit] Firebase Admin initialized successfully');
     } else {
-      console.warn('FIREBASE_SERVICE_ACCOUNT environment variable is not set. Token verification will fail unless in test mode.');
+      console.warn('[FirebaseInit] FIREBASE_SERVICE_ACCOUNT environment variable is not set or empty.');
     }
   } catch (error) {
-    console.error('Failed to initialize Firebase Admin:', error);
+    console.error('[FirebaseInit] Failed to initialize Firebase Admin:', error.message);
   }
 }
 
@@ -30,74 +43,79 @@ const HISTORY_TABLE = () => process.env.STOCK_HISTORY_TABLE_NAME;
 
 const verifyFirebaseToken = async (token) => {
   if (!admin.apps.length) {
-    // 開発/テスト用: Firebase Adminが初期化されていない場合、特定のテストヘッダーを許可するかエラーにする
-    // ここではエラーにするが、getUserIdでfallbackする
     throw new Error('Firebase Admin not initialized');
   }
   try {
     const decodedToken = await admin.auth().verifyIdToken(token);
     return decodedToken.uid;
   } catch (error) {
-    console.error('Error verifying Firebase token:', error);
+    console.error('[verifyFirebaseToken] Error:', error.message);
     throw error;
   }
 };
 
 class HttpError extends Error {
-  constructor(statusCode, message) {
+  constructor(statusCode, message, detail = null) {
     super(message);
     this.statusCode = statusCode;
     this.name = "HttpError";
+    this.detail = detail;
   }
 }
 
 const getUserId = async (event) => {
-  if (!event.headers) {
+  if (!event || !event.headers) {
     throw new HttpError(401, "Missing headers");
   }
 
+  const normalizedHeaders = Object.keys(event.headers).reduce((acc, key) => {
+    acc[key.toLowerCase()] = event.headers[key];
+    return acc;
+  }, {});
+
+  const authHeader = normalizedHeaders["authorization"];
+  const xUserIdHeader = normalizedHeaders["x-user-id"];
+  
   // 1. Authorization header (Bearer token) を確認
-  const authHeader = event.headers["Authorization"] || event.headers["authorization"];
-  if (authHeader && authHeader.startsWith("Bearer ")) {
+  if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
     const token = authHeader.split(" ")[1];
     if (token && token !== "null" && token !== "undefined") {
       try {
         const uid = await verifyFirebaseToken(token);
-        return uid;
+        if (uid) return uid;
       } catch (error) {
-        console.warn("Token verification failed:", error.message);
-        // トークンが提供されているが検証に失敗した場合は、401を投げても良いが
-        // 既存の挙動（x-user-idへのフォールバック）を維持しつつ、
-        // 明確なトークンエラーがある場合はここで止める選択肢もある。
-        // ここではフォールバックを許容する。
+        if (error.message === 'Firebase Admin not initialized') {
+          // サービスアカウントが未設定の場合の特別なエラー
+          throw new HttpError(401, "Authentication Error", "Firebase Service Account is not configured on the server. Please set FIREBASE_SERVICE_ACCOUNT environment variable.");
+        }
+        throw new HttpError(401, "Invalid Token", error.message);
       }
     }
   }
 
-  const requestedUserId = event.headers["x-user-id"] || event.headers["X-User-Id"];
-
-  // 2. テストユーザーの場合は認証なしで許可（ログイン未済の利用者が使う「テストモード」用）
-  if (requestedUserId === 'test-user') {
+  // 2. テストユーザーの場合は認証なしで許可
+  if (xUserIdHeader === 'test-user') {
     return 'test-user';
   }
 
-  // 3. 開発・テスト用: x-user-idヘッダー
-  // 注意: 本番環境ではAPI Gateway等でこのヘッダーを削除するか、環境変数でこのfallbackを無効化すべき
+  // 3. 開発・テスト用: x-user-idヘッダーによるフォールバック
   if (process.env.ALLOW_INSECURE_USER_ID === 'true' || process.env.NODE_ENV === 'test') {
-     return requestedUserId || "default-user";
+     return xUserIdHeader || "default-user";
   }
 
   // 認証失敗
-  throw new HttpError(401, "Unauthorized");
+  const detail = authHeader ? "Token verification failed and insecure fallback is disabled." : "Authorization header is missing.";
+  throw new HttpError(401, "Unauthorized", detail);
 };
 
 /**
  * 共通のエラーレスポンス生成
  */
 const errorResponse = (error, context = "") => {
-  console.error(`Error in ${context}:`, error);
+  console.error(`[errorResponse] ${context}:`, error);
   const statusCode = error instanceof HttpError ? error.statusCode : 500;
-  const message = statusCode === 500 ? "Internal Server Error" : error.message;
+  const message = error instanceof HttpError ? error.message : "Internal Server Error";
+  const detail = error.detail || error.message;
   
   return {
     statusCode,
@@ -107,7 +125,8 @@ const errorResponse = (error, context = "") => {
     },
     body: JSON.stringify({ 
       message, 
-      error: error.message,
+      error: detail,
+      context,
       ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
     }),
   };
@@ -115,8 +134,6 @@ const errorResponse = (error, context = "") => {
 
 /**
  * 新しい品目を登録する。
- * @param {object} event - API Gatewayイベント
- * @returns {object} HTTPレスポンス
  */
 exports.createItem = async (event) => {
   try {
@@ -128,7 +145,7 @@ exports.createItem = async (event) => {
     let body;
     try {
       body = JSON.parse(event.body);
-    } catch (e) {
+    } catch {
       throw new HttpError(400, "Invalid JSON in request body");
     }
 
@@ -253,7 +270,7 @@ exports.updateItem = async (event) => {
     let body;
     try {
       body = JSON.parse(event.body);
-    } catch (e) {
+    } catch {
       throw new HttpError(400, "Invalid JSON in request body");
     }
 
@@ -375,7 +392,7 @@ exports.addStock = async (event) => {
     let body;
     try {
       body = JSON.parse(event.body);
-    } catch (e) {
+    } catch {
       throw new HttpError(400, "Invalid JSON in request body");
     }
 
@@ -429,10 +446,6 @@ exports.addStock = async (event) => {
 
 /**
  * 平均消費ペースを計算する。
- * 消費履歴から日次平均消費量を算出する。
- * @param {string} userId - ユーザーID
- * @param {string} itemId - アイテムID
- * @returns {number} 日次平均消費量（個/日）、計算できない場合は0
  */
 const calculateAverageConsumptionRate = async (userId, itemId) => {
   try {
@@ -470,7 +483,7 @@ exports.consumeStock = async (event) => {
     let body;
     try {
       body = JSON.parse(event.body);
-    } catch (e) {
+    } catch {
       throw new HttpError(400, "Invalid JSON in request body");
     }
 
@@ -589,7 +602,7 @@ exports.getEstimatedDepletionDate = async (event) => {
       throw new HttpError(404, "Item not found");
     }
 
-    // 平均消費ペースが0以下の場合は、履歴を取得せずに早期リターン（最適化・テスト互換性）
+    // 平均消費ペースが0以下の場合は、履歴を取得せずに早期リターン
     if (!item.averageConsumptionRate || item.averageConsumptionRate <= 0) {
       return {
         statusCode: 200,
