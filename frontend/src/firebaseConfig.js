@@ -2,12 +2,14 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "mock-api-key",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "mock-auth-domain",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "mock-project-id",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "mock-storage-bucket",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "mock-sender-id",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "mock-app-id"
+  apiKey: "AIzaSyDueBlD-LhxQRllxE4F1Ppjp61CN7xPvhg",
+  authDomain: "my-project-6e9a3.firebaseapp.com",
+  databaseURL: "https://my-project-6e9a3.firebaseio.com",
+  projectId: "my-project-6e9a3",
+  storageBucket: "my-project-6e9a3.firebasestorage.app",
+  messagingSenderId: "69834300881",
+  appId: "1:69834300881:web:1adcb0972347c00f9014f0",
+  measurementId: "G-5RY3MFWJVD"
 };
 
 // Initialize Firebase only if we have what looks like real config or we are in E2E/Dev

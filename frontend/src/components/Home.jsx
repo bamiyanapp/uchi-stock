@@ -140,7 +140,7 @@ function Home() {
             <div className="spinner-border spinner-border-sm text-secondary" role="status"></div>
           ) : user ? (
             <div className="d-flex align-items-center gap-2">
-              <span className="small text-muted d-none d-md-inline">{user.username || user.userId}</span>
+              <span className="small text-muted d-none d-md-inline">{user.displayName || user.email || user.uid}</span>
               <button onClick={logout} className="btn btn-sm btn-outline-secondary">ログアウト</button>
             </div>
           ) : (

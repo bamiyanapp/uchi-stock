@@ -1,12 +1,16 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { UserProvider, useUser } from './UserContext';
+import { UserProvider } from './UserProvider';
+import { useUser } from './UserContext';
 import * as firebaseAuth from 'firebase/auth';
 
 // Mock firebase/auth
 vi.mock('firebase/auth', () => ({
   getAuth: vi.fn(),
-  GoogleAuthProvider: vi.fn(),
+  GoogleAuthProvider: vi.fn(() => ({
+    setCustomParameters: vi.fn(),
+  })),
+  signInWithPopup: vi.fn(),
   signInWithRedirect: vi.fn(),
   signOut: vi.fn(),
   onAuthStateChanged: vi.fn(),
@@ -78,7 +82,7 @@ describe('UserContext', () => {
   });
 
   it('handles login failure', async () => {
-    firebaseAuth.signInWithRedirect.mockRejectedValue(new Error('Auth failed'));
+    firebaseAuth.signInWithPopup.mockRejectedValue(new Error('Auth failed'));
     
     // Setup initial state as logged out
     firebaseAuth.onAuthStateChanged.mockImplementation((auth, callback) => {
@@ -98,7 +102,7 @@ describe('UserContext', () => {
       screen.getByText('Login').click();
     });
 
-    expect(console.error).toHaveBeenCalledWith('Error signing in:', expect.any(Error));
+    expect(console.error).toHaveBeenCalledWith('[UserProvider] login error:', expect.any(Error));
   });
 
   it('handles logout', async () => {
