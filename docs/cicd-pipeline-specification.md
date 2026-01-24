@@ -2,7 +2,18 @@
 
 本プロジェクトでは GitHub Actions を利用して CI/CD パイプラインを構築しています。
 
-## Architecture
+## 目次
+- [1. パイプライン概要](#1-パイプライン概要)
+- [2. CI ワークフロー (ci.yml)](#2-ci-ワークフロー-ciyml)
+- [3. CD ワークフロー (cd.yml)](#3-cd-ワークフロー-cdyml)
+- [4. リリース運用](#4-リリース運用)
+- [5. 環境変数](#5-環境変数)
+- [6. Release → Main 自動同期](#6-release--main-自動同期)
+- [7. GitHub ブランチ保護ルール](#7-github-ブランチ保護ルール)
+
+---
+
+## 1. パイプライン概要
 
 ```mermaid
 graph TD
@@ -15,61 +26,41 @@ graph TD
     F --> H[Deploy Backend to AWS];
 ```
 
-## 1. CI ワークフロー (`ci.yml`)
+---
+
+## 2. CI ワークフロー (`ci.yml`)
 - **トリガー**:
   - `main` または `release` ブランチへのプッシュ
   - 全てのプルリクエスト
 - **実行内容**:
-  - `commitlint`: コミットメッセージが Conventional Commits 形式に従っているか検証。**ルールに準拠していない場合は CI が失敗します。**
+  - `commitlint`: コミットメッセージが Conventional Commits 形式に従っているか検証。
   - `frontend-test`: フロントエンドの Lint、ビルド、および Vitest によるテスト
   - `backend-test`: バックエンドの Vitest によるテスト
   - `merge`: PR の場合、テスト成功後に `main` ブランチへ自動マージ（Squash merge）
 
-## 2. CD ワークフロー (`cd.yml`)
+---
+
+## 3. CD ワークフロー (`cd.yml`)
 - **トリガー**:
   - `main` または `release` ブランチへのプッシュ
-  - CI ワークフローの成功完了（`workflow_run`）
+  - CI ワークフローの成功完了
 - **実行内容**:
   - `release`: `semantic-release` によるバージョン自動採番、タグ付け、および `CHANGELOG.md` の更新
   - `build-and-deploy-frontend`: フロントエンドをビルドし、GitHub Pages へデプロイ
   - `deploy-backend`: バックエンドを Serverless Framework を使用して AWS Lambda へデプロイ
-    - デプロイ前に、DynamoDB テーブルの定義に破壊的変更（テーブル名の変更、キー構成の変更、削除など）がないか自動チェックします。
-    - デプロイ直前に、現在の DynamoDB データのバックアップ（AWS Native Backup および JSON へのダンプ）を自動実行します。
-    - 破壊的変更が検出された場合、デプロイは中断されます。意図的な変更の場合は `FORCE_DEPLOY=true` を設定して続行可能です。
-    - デプロイ後のデータ投入（シード）は、通常デプロイではデータの永続性を保つために実行されません。
-    - 意図的にデータを初期化して再投入したい場合は、Workflow Dispatch で `force_seed: true` を指定して実行します。
+    - デプロイ前に DynamoDB の破壊的変更チェックと自動バックアップを実行します。
 
-## 3. リリース運用
+---
+
+## 4. リリース運用
 - **リリース条件**:
   - `semantic-release` による実際のタグ付けとデプロイは、**`release` ブランチへのマージ（プッシュ）時にのみ**実行されます。
-  - `main` ブランチは開発用であり、保護設定による権限エラーを避けるため、自動リリースはスキップされます。
 - **コミットメッセージのルール (Conventional Commits)**:
-  - 本プロジェクトでは、自動リリースと `CHANGELOG.md` の自動生成のために [Conventional Commits](https://www.conventionalcommits.org/) を採用しています。
-  - コミットメッセージは以下の形式で記述する必要があります：
-    ```text
-    <type>(<scope>): <description>
+  - 自動リリースと `CHANGELOG.md` 生成のため、ルールを厳守してください。
 
-    [optional body]
+---
 
-    [optional footer(s)]
-    ```
-  - 主要な `type`:
-    - `feat`: 新機能（マイナーバージョンアップ）
-    - `fix`: バグ修正（パッチバージョンアップ）
-    - `docs`: ドキュメントのみの変更
-    - `style`: コードの意味に影響を与えない変更（ホワイトスペース、フォーマット等）
-    - `refactor`: バグ修正も新機能追加も行わないコード変更
-    - `perf`: パフォーマンス向上
-    - `test`: テストの追加や既存テストの修正
-    - `chore`: ビルドプロセスやドキュメント生成などの補助ツール、ライブラリの変更
-  - 破壊的変更（メジャーバージョンアップ）がある場合は、`type` の後に `!` を付けるか、footer に `BREAKING CHANGE:` と記述します。
-- **リリースの手順**:
-  1. 通常の開発は `main` ブランチに対して行い、PR を作成してマージします。この際、コミットメッセージがルールに準拠していることを確認してください。
-  2. リリースの準備ができたら、`main` ブランチを `release` ブランチにマージします。
-  3. `release` ブランチでの CI 成功後、自動的にリリースおよびデプロイが行われます。
-
-## 環境変数
-CI/CDパイプラインで使用される環境変数を以下に示します。
+## 5. 環境変数
 
 | 変数名 | 説明 | 例 |
 |---|---|---|
@@ -78,111 +69,23 @@ CI/CDパイプラインで使用される環境変数を以下に示します。
 | `GITHUB_TOKEN` | GitHub APIへのアクセスに使用されるトークン | `ghp_**********************************` |
 | `GEMINI_API_KEY` | 自動コーディングに用いるGeminiのトークン | `*********************************` |
 
+---
 
-# Release → Main 自動同期 PR（CI スキップ運用）について
+## 6. Release → Main 自動同期
 
-このリポジトリでは、`release` ブランチと `main` ブランチの差分を  
-**GitHub Actions により自動で Pull Request 作成 → 自動マージ** しています。
-
-この PR は **コードレビューや CI を目的としない「同期専用 PR」** です。
-
-そのため、通常の開発 PR とは異なるブランチ保護ルールが必要になります。
+`release` ブランチでのリリース作業を `main` に安全に反映するため、GitHub Actions により自動で Pull Request 作成 → 自動マージを行っています。
 
 ---
 
-## 目的
-
-- `release` ブランチでのリリース作業を `main` に安全に反映する
-- semantic-release によるタグ管理を壊さない
-- CI を走らせずに即時マージする
-- Bot による完全自動運用を可能にする
-
----
-
-## 前提
-
-- `release` → `main` の PR は **GitHub Actions（Bot）** が作成
-- 人間によるレビュー・修正は想定しない
-- CI が不要、または `[skip ci]` が付与される
-
----
-
-## 1. Auto-merge を有効化
-
-**Settings → General → Pull Requests**
-
-- ✅ Allow auto-merge
-
----
-## GitHub Branch Protection Rules (`main` ブランチ)
-
-**Settings → Rules → Rulesets**
+## 7. GitHub ブランチ保護ルール
 
 `main` ブランチに対して、以下のルールを設定してください。
 
----
+### Pull Request マージの必須化
+- main への直接 push を防ぎ、必ず PR 経由にします。
 
-### 1. Pull Request マージの必須化
+### ステータスチェック（CI）
+- 同期 PR の円滑なマージのため、Bot によるバイパス設定を推奨します。
 
-✅ **ON**
-
-> main への直接 push を防ぎ、必ず PR 経由にする
-
----
-
-### 2. レビュー関連（すべて OFF）
-
-| 項目 | 設定 |
-|---|---|
-| Required approvals | **0** |
-| Dismiss stale pull request approvals | OFF |
-| Require review from specific teams | OFF |
-| Require review from Code Owners | OFF |
-| Require approval of the most recent reviewable push | OFF |
-| Require conversation resolution before merging | OFF |
-
-#### 理由
-
-- Bot PR に人間レビューを要求すると **自動マージ不能**
-- 同期目的のためレビュー自体が不要
-
----
-
-### 3. ステータスチェック（CI）
-
-❌ **Require status checks to pass** → OFF
-
-#### 理由
-
-- 同期 PR は CI を目的としない
-- CI が存在しない / skip されるケースを許容するため
-
----
-
-### 4. マージ方法の許可
-
-✅ **Allow squash merging（推奨）**
-
-❌ Allow merge commits  
-❌ Allow rebase merging  
-
-#### 理由
-
-- `main` に不要な履歴を残さない
-- 「同期」という意図が 1 コミットで明確になる
-- semantic-release の解析が安定する
-
----
-
-### 5. バイパスリスト（重要）
-
-#### 推奨設定
-
-以下のいずれかを **Bypass list** に追加してください。
-
-- `github-actions[bot]`
-- または 使用している GitHub App / Bot
-
-#### 理由
-
-- ブランチ制限を Bot が回避できないと PR 作成・マージに失敗する
+### マージ方法
+- **Allow squash merging** を推奨。

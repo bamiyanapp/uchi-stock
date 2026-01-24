@@ -1,205 +1,71 @@
-# 名称
-うちストック - 家庭用品在庫管理アプリ
+# うちストック (uchi-stock) - 家庭用品在庫管理アプリ
 
-## 目的
 家庭の日用品の在庫を効率的に管理し、無くなる日を予測することで、買い忘れや買いすぎを防ぎます。
 
-## Features
+## 目次
+- [1. 主な機能 (Features)](#1-主な機能-features)
+- [2. 技術スタック (Tech Stack)](#2-技術スタック-tech-stack)
+- [3. ドキュメント一覧 (Documentation)](#3-ドキュメント一覧-documentation)
+- [4. クイックスタート (Quick Start)](#4-クイックスタート-quick-start)
 
-- **品目管理**:
-  - ユーザーが自由に品目を追加・編集・削除できます。
-  - 各品目に対して、購入単位（個、パック、本など）を自由に設定できます。
-- **在庫記録**:
-  - 現在の在庫数を記録・更新できます。
-  - 追加購入した品目の数量と購入日を記録できます。
-- **消費状況の可視化**:
-  - 品目ごとの消費履歴をグラフなどで確認できます。
-- **在庫切れ予測**:
-  - 消費状況に基づいて、在庫が無くなる日を推定し、ユーザーに提示します。
-- **通知機能**:
-  - 在庫切れが近づいた品目について、通知（検討中）を行うことができます。
+---
 
-## Tech Stack
+## 1. 主な機能 (Features)
+
+- **品目管理**: ユーザーが自由に品目を追加・編集・削除、購入単位の設定が可能。
+- **在庫記録**: 現在の在庫数、追加購入の数量と購入日を記録。
+- **消費状況の可視化**: 品目ごとの消費履歴をグラフなどで確認。
+- **在庫切れ予測**: 消費ペースに基づき、在庫が無くなる日を推定。
+
+---
+
+## 2. 技術スタック (Tech Stack)
 
 | 技術 | 名称 | 説明 |
 | :---: | :--- | :--- |
-| <img src="https://cdn.simpleicons.org/react/61DAFB" width="20" height="20" /> | **React** | ユーザーインターフェース構築のためのJavaScriptライブラリ。最新のv19を使用。 |
-| <img src="https://cdn.simpleicons.org/vite/646CFF" width="20" height="20" /> | **Vite** | 高速なビルドツールおよび開発サーバー。 |
-| <img src="./docs/resources/aws-icons/Asset-Package_07312025.49d3aab7f9e6131e51ade8f7c6c8b961ee7d3bb1/Architecture-Service-Icons_07312025/Arch_Database/32/Arch_Amazon-DynamoDB_32.svg" width="20" height="20" /> | **DynamoDB** | フルマネージドなNoSQLデータベース。品目や在庫情報を格納。 |
-| <img src="./docs/resources/aws-icons/Asset-Package_07312025.49d3aab7f9e6131e51ade8f7c6c8b961ee7d3bb1/Architecture-Service-Icons_07312025/Arch_Compute/32/Arch_AWS-Lambda_32.svg" width="20" height="20" /> | **AWS Lambda** | サーバーレスなイベント駆動型コンピューティングサービス。 |
-| <img src="https://cdn.simpleicons.org/serverless/FD5750" width="20" height="20" /> | **Serverless Framework** | サーバーレスアプリケーションの構成・デプロイを管理するフレームワーク。 |
-| <img src="https://cdn.simpleicons.org/firebase/FFCA28" width="20" height="20" /> | **Firebase Authentication** | Google SSO認証を提供するID管理サービス。 |
-| <img src="https://cdn.simpleicons.org/githubactions/2088FF" width="20" height="20" /> | **GitHub Actions** | CI/CD（継続的インテグレーション/継続的デプロイ）を自動化。 |
-| <img src="https://cdn.simpleicons.org/vitest/6E9F18" width="20" height="20" /> | **Vitest** | Viteネイティブで高速なユニットテストフレームワーク。 |
+| <img src="https://cdn.simpleicons.org/react/61DAFB" width="20" height="20" /> | **React** | UI構築ライブラリ (v19) |
+| <img src="https://cdn.simpleicons.org/vite/646CFF" width="20" height="20" /> | **Vite** | 高速ビルドツール & 開発サーバー |
+| <img src="./docs/resources/aws-icons/Asset-Package_07312025.49d3aab7f9e6131e51ade8f7c6c8b961ee7d3bb1/Architecture-Service-Icons_07312025/Arch_Database/32/Arch_Amazon-DynamoDB_32.svg" width="20" height="20" /> | **DynamoDB** | フルマネージド NoSQL データベース |
+| <img src="./docs/resources/aws-icons/Asset-Package_07312025.49d3aab7f9e6131e51ade8f7c6c8b961ee7d3bb1/Architecture-Service-Icons_07312025/Arch_Compute/32/Arch_AWS-Lambda_32.svg" width="20" height="20" /> | **AWS Lambda** | サーバーレス・コンピューティング |
+| <img src="https://cdn.simpleicons.org/firebase/FFCA28" width="20" height="20" /> | **Firebase Auth** | Google SSO 認証 |
 
-## Architecture
+---
 
-### System Architecture
+## 3. ドキュメント一覧 (Documentation)
 
-```mermaid
-graph TD
-    subgraph "Frontend (GitHub Pages)"
-        I[React + Vite]
-    end
+プロジェクトの詳細については、以下のドキュメントを参照してください。
 
-    subgraph "Auth"
-        C[Firebase Authentication / Google SSO]
-    end
+### 設計・仕様
+- [内部設計書](docs/internal-design.md): アーキテクチャ、アルゴリズム、データベース設計
+- [API仕様書](docs/api-specification.md): バックエンド API のエンドポイント詳細
+- [テスト戦略](docs/test-strategy.md): テスト方針とカバレッジ
 
-    subgraph "Backend (AWS)"
-        J[API Gateway] --> K[AWS Lambda];
-        K --> L[DynamoDB];
-    end
+### 開発・ガイド
+- [セットアップガイド](docs/setup-guide.md): ローカル開発環境の構築手順
+- [認証移行ガイド](docs/auth-migration.md): Firebase Auth への移行に関する詳細
+- [CI/CD パイプライン仕様](docs/cicd-pipeline-specification.md): GitHub Actions による自動化
 
-    I -- Login --> C;
-    I -- API Request with ID Token --> J;
-```
+### 運用・管理
+- [運用ガイド](docs/operations-guide.md): バックアップ、復旧、監視手順
+- [リリースガイド](docs/release-guide.md): バージョン管理とリリース手順
+- [メンテナンス記録](docs/maintenance.md): 定期的な保守作業のログ
 
-### Screen Transitions
+---
 
-```mermaid
-graph TD
-    Login[Google ログイン画面] --> |ログイン成功| Home[在庫一覧画面]
-    Home --> |品目名をクリック| Detail[品目詳細・履歴画面]
-    Home --> |「在庫を更新する」をクリック| Update[在庫更新画面]
-    Detail --> |「在庫を更新する」をクリック| Update
-    Update --> |「更新を保存する」をクリック| Detail
-    Detail --> |「在庫一覧へ戻る」をクリック| Home
-    Home --> |ログアウト| Login
-```
+## 4. クイックスタート (Quick Start)
 
-### 画面一覧
-
-| 画面名 | パス | 説明 |
-| :--- | :--- | :--- |
-| 在庫一覧 | `/` | 登録されている品目の一覧、現在の在庫数、および在庫切れ予想日を表示します。 |
-| 品目詳細・履歴 | `/item/{itemId}` | 特定の品目の詳細情報と、これまでの在庫変動履歴（購入・消費）を表示します。 |
-| 在庫更新 | `/item/{itemId}/update` | 在庫数の追加（購入）や消費を記録し、現在の在庫数を更新します。 |
-
-### Authentication
-
-本アプリは Google アカウントによる SSO（シングルサインオン）認証を採用しています。
-
-- **認証プロバイダー**: Firebase Authentication + Google OAuth 2.0
-- **仕組み**:
-  1. ユーザーが Google アカウントでログイン。
-  2. Firebase が ID トークン（JWT）を発行。
-  3. フロントエンドは API リクエストの `Authorization` ヘッダーにこのトークン（Bearer）を含めて送信。
-  4. バックエンド（Lambda）で Firebase Admin SDK を使用してトークンの有効性を検証し、ユーザーID（UID）を特定。
-
-### Backend API (AWS Lambda)
-
-| 関数名 | パス | メソッド | 説明 |
-| :--- | :--- | :--- | :--- |
-| createItem | `/items` | POST | 新しい品目を登録する。 |
-| getItems | `/items` | GET | ユーザーに紐づくすべての品目を取得する。 |
-| updateItem | `/items/{itemId}` | PUT | 品目情報（名称、単位等）を更新する。 |
-| deleteItem | `/items/{itemId}` | DELETE | 品目を削除する。 |
-| addStock | `/items/{itemId}/stock` | POST | 在庫を追加（購入）し、現在の在庫数を増加させる。 |
-| consumeStock | `/items/{itemId}/consume` | POST | 在庫を消費し、現在の在庫数を減少させる。同時に平均消費ペースを再計算する。 |
-| getConsumptionHistory | `/items/{itemId}/history` | GET | 品目の履歴（作成・購入・消費・更新）を取得する。 |
-| getEstimatedDepletionDate | `/items/{itemId}/estimate` | GET | 現在の在庫数と消費ペースに基づき、在庫切れ推定日を計算して取得する。 |
-
-### Database (DynamoDB)
-
-#### 1. household-items
-家庭用品の品目情報を格納するテーブル。
-
-| 属性名 | 型 | キー | 説明 |
-| :--- | :--- | :--- | :--- |
-| userId | String | Partition Key | ログインユーザーID (Firebase UID) |
-| itemId | String | Sort Key | 品目の一意識別子 (UUID) |
-| name | String | - | 品目名 |
-| unit | String | - | 単位（例: 個, パック, 本） |
-| currentStock | Number | - | 現在の在庫数 |
-| createdAt | String | - | 作成日時 (ISO8601) |
-| updatedAt | String | - | 更新日時 (ISO8601) |
-
-#### 2. stock-history
-品目の購入・消費履歴を格納するテーブル。
-
-| 属性名 | 型 | キー | 説明 |
-| :--- | :--- | :--- | :--- |
-| itemId | String | Partition Key | 品目ID |
-| date | String | Sort Key | 日付 (ISO8601) |
-| userId | String | - | ログインユーザーID |
-| historyId | String | - | 履歴の一意識別子 (UUID) |
-| type | String | - | 履歴の種類（"purchase", "consumption"） |
-| quantity | Number | - | 数量 |
-| memo | String | - | メモ (任意) |
-
-## 内部設計
-
-詳細なアルゴリズムやシステム構造については、[内部設計書](docs/internal-design.md) を参照してください。
-
-## セットアップ
-
-### 認証の設定 (Firebase)
-認証に Firebase を使用しています。詳細は [認証方式の移行ガイド](docs/auth-migration.md) を参照してください。
+詳細な手順は [セットアップガイド](docs/setup-guide.md) を参照してください。
 
 ### バックエンド
-1. `backend` ディレクトリで `npm install`
-2. 必要に応じて `serverless.yml` の環境変数を設定 (`FIREBASE_SERVICE_ACCOUNT` は必須)
-3. `npx serverless deploy` でデプロイ
+```bash
+cd backend
+npm install
+npx serverless deploy
+```
 
 ### フロントエンド
-1. `frontend` ディレクトリで `npm install`
-2. `.env` ファイルを作成し、Firebase の設定値を入力
-3. `npm run dev` でローカル起動
-
-## CI/CD Pipeline Specification
-
-詳細な CI/CD パイプラインの仕様については、[CI/CD Pipeline Specification](docs/cicd-pipeline-specification.md) を参照してください。
-
-## テスト戦略
-
-詳細なテスト戦略については、[テスト戦略](docs/test-strategy.md) を参照してください。
-
-## リリース
-
-このプロジェクトは `semantic-release` を使用して自動リリース管理を行っています。
-
-### ローカルでのリリース実行
-
-GitHub Actions を介さずにローカル環境からリリースノートの作成とプッシュを行うことができます。
-
-#### 準備
-1. GitHub で Personal Access Token (classic) を作成します。
-   - スコープ: `repo` が必要です。
-2. プロジェクトルートに `.env` ファイルを作成し、トークンを設定します。
-   ```env
-   GITHUB_TOKEN=ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-   ```
-
-#### 実行
-1. リリースの内容を事前に確認する（ドライラン）:
-   ```bash
-   npm run release:local -- --dry-run
-   ```
-2. 実際にリリースを実行する:
-   ```bash
-   npm run release:local
-   ```
-   ※ このコマンドにより、タグの作成、GitHub Release の作成、`CHANGELOG.md` の更新、およびそれらのプッシュが自動的に行われます。
-
-## 運用
-
-### バックアップと復旧
-
-本システムでは、データの保護と可用性向上のため、以下のバックアップ体制をとっています。
-
-- **DynamoDB Point-in-Time Recovery (PITR)**:
-  - 主要なテーブル（`household-items`, `stock-history`）において PITR を有効化しています。
-  - 過去 35 日間の任意の時点にデータを復旧することが可能です。
-  - 意図しないデータ削除や更新ミスが発生した際の保険として機能します。
-- **自動バックアップと保護**:
-  - CDパイプラインによるデプロイ直前に、DynamoDB データのスナップショットと JSON へのダンプを自動実行しています。
-  - デプロイ時にはテーブル構造の破壊的変更を自動検知し、不用意なデータ消失を防止します。詳細は [CI/CD Pipeline Specification](docs/cicd-pipeline-specification.md) を参照してください。
-
-## メンテナンス
-
-定期的なリポジトリの整理とメンテナンスを行っています。
-
-- **2026-01-16**: ローカルブランチの整理を実施。
-  - マージ済みのブランチを削除。
-  - 最終更新から4日以上経過した未マージの古いブランチを削除。
+```bash
+cd frontend
+npm install
+npm run dev
+```
