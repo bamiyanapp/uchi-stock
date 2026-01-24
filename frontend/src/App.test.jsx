@@ -51,7 +51,7 @@ describe('App', () => {
       render(<App />);
     });
 
-    expect(screen.getByText('家庭用品在庫管理')).toBeInTheDocument();
+    expect(screen.getByText('うちストック')).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByText('Toilet Paper')).toBeInTheDocument();
     });

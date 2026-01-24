@@ -147,8 +147,8 @@ function Home() {
             <button onClick={login} className="btn btn-sm btn-primary">Googleでログイン</button>
           )}
         </div>
-        <h1 className="display-4 fw-bold">家庭用品在庫管理</h1>
-        <p className="text-muted">気が向いた時に在庫をチェック</p>
+        <h1 className="display-4 fw-bold">うちストック</h1>
+        <p className="text-muted">家庭用品在庫管理</p>
       </header>
 
       <main>

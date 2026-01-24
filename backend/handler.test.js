@@ -20,7 +20,7 @@ vi.spyOn(crypto, 'randomUUID').mockReturnValue('mock-id');
 // console.error をモック化してテストログを汚さないようにする
 vi.spyOn(console, 'error').mockImplementation(() => {});
 
-describe('Household Items API', () => {
+describe('うちストック API', () => {
   const ITEMS_TABLE = 'uchi-stock-app-items';
   const HISTORY_TABLE = 'uchi-stock-app-stock-history';
   const TEST_USER = 'test-user';

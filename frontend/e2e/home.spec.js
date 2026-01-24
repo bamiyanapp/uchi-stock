@@ -36,7 +36,7 @@ test.describe('Home Page', () => {
   });
 
   test('should display item list', async ({ page }) => {
-    await expect(page.getByText('家庭用品在庫管理')).toBeVisible();
+    await expect(page.getByText('うちストック')).toBeVisible();
     
     const itemCard = page.locator('.card').filter({ hasText: 'トイレットペーパー' });
     await expect(itemCard).toBeVisible();
