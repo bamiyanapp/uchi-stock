@@ -1,6 +1,7 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { UserProvider, useUser } from './UserContext';
+import { UserProvider } from './UserProvider';
+import { useUser } from './UserContext';
 import * as firebaseAuth from 'firebase/auth';
 
 // Mock firebase/auth

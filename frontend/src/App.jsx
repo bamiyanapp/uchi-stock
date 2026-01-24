@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./components/Home";
 import ItemDetail from "./components/ItemDetail";
 import StockUpdate from "./components/StockUpdate";
-import { UserProvider } from "./contexts/UserContext";
+import { UserProvider } from "./contexts/UserProvider";
 import "./App.css";
 
 function App() {

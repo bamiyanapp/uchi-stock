@@ -1,15 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
+import { UserContext } from './UserContext';
 
 const isE2E = import.meta.env.MODE === 'test';
 const isDev = import.meta.env.MODE === 'development';
-
-/* eslint-disable react-refresh/only-export-components */
-export const UserContext = createContext();
-
-export const useUser = () => useContext(UserContext);
-/* eslint-enable react-refresh/only-export-components */
 
 export const UserProvider = ({ children }) => {
   const [userId, setUserId] = useState('test-user');
