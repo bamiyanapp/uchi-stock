@@ -1,31 +1,33 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { GoogleAuthProvider, signInWithRedirect, signOut, onAuthStateChanged } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 
 const isE2E = import.meta.env.MODE === 'test';
 const isDev = import.meta.env.MODE === 'development';
 
-// eslint-disable-next-line react-refresh/only-export-components
+/* eslint-disable react-refresh/only-export-components */
 export const UserContext = createContext();
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useUser = () => useContext(UserContext);
+/* eslint-enable react-refresh/only-export-components */
 
 export const UserProvider = ({ children }) => {
   const [userId, setUserId] = useState('test-user');
   const [user, setUser] = useState(null);
   const [idToken, setIdToken] = useState(null);
-  const [loading, setLoading] = useState(() => {
-    const isSkipAuth = (isE2E || isDev || !auth.config?.apiKey || auth.config.apiKey === "mock-api-key") && import.meta.env.MODE !== 'test';
-    return !isSkipAuth;
-  });
+  
+  const hasApiKey = !!auth.config?.apiKey && auth.config.apiKey !== "mock-api-key";
+  const isSkipAuth = (isE2E || !hasApiKey) && import.meta.env.MODE !== 'test' && !isDev;
+  
+  const [loading, setLoading] = useState(!isSkipAuth);
 
   useEffect(() => {
-    const isSkipAuth = (isE2E || isDev || !auth.config?.apiKey || auth.config.apiKey === "mock-api-key") && import.meta.env.MODE !== 'test';
     if (isSkipAuth) {
       return;
     }
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      console.log('[UserProvider] State changed:', currentUser ? `User ${currentUser.uid}` : 'No user');
       setLoading(true);
       if (currentUser) {
         setUser(currentUser);
@@ -34,7 +36,7 @@ export const UserProvider = ({ children }) => {
           const token = await currentUser.getIdToken();
           setIdToken(token);
         } catch (error) {
-          console.error('Error getting ID token:', error);
+          console.error('[UserProvider] Token error:', error);
         }
       } else {
         setUser(null);
@@ -45,14 +47,16 @@ export const UserProvider = ({ children }) => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [isSkipAuth]);
 
   const login = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithRedirect(auth, provider);
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const result = await signInWithPopup(auth, provider);
+      console.log('[UserProvider] Popup login success:', result.user.displayName);
     } catch (error) {
-      console.error('Error signing in:', error);
+      console.error('[UserProvider] login error:', error);
     }
   };
 
@@ -61,9 +65,9 @@ export const UserProvider = ({ children }) => {
       await signOut(auth);
       setUser(null);
       setIdToken(null);
-      setUserId('test-user'); // Reset to default or handle as needed
+      setUserId('test-user');
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('[UserProvider] logout error:', error);
     }
   };
 

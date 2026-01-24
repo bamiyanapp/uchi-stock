@@ -197,4 +197,24 @@ describe("Home Component", () => {
       expect(screen.queryByText(`${pastDate.toLocaleDateString()} 時点の情報`)).not.toBeInTheDocument();
     });
   });
+
+  it("displays login user name when logged in", async () => {
+    const loggedInUserContext = {
+      ...mockUserContext,
+      user: { displayName: "Logged In User", email: "user@example.com", uid: "uid123" },
+      userId: "uid123",
+    };
+
+    render(
+      <UserContext.Provider value={loggedInUserContext}>
+        <BrowserRouter>
+          <Home />
+        </BrowserRouter>
+      </UserContext.Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Logged In User")).toBeInTheDocument();
+    });
+  });
 });
