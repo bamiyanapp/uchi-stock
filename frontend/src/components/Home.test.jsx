@@ -244,6 +244,39 @@ describe("Home Component", () => {
     });
   });
 
+  it("sends no authorization header when viewing demo-user even if logged in", async () => {
+    const loggedInUserContext = {
+      ...mockUserContext,
+      userId: "real-user-uid",
+      idToken: "real-user-token",
+      user: { uid: "real-user-uid" },
+    };
+
+    // Use memory router to simulate /test-user path
+    const { MemoryRouter, Routes, Route } = await import("react-router-dom");
+
+    render(
+      <UserContext.Provider value={loggedInUserContext}>
+        <MemoryRouter initialEntries={["/test-user"]}>
+          <Routes>
+            <Route path="/:userId" element={<Home />} />
+          </Routes>
+        </MemoryRouter>
+      </UserContext.Provider>
+    );
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/items"),
+        expect.objectContaining({
+          headers: expect.not.objectContaining({
+            Authorization: expect.any(String),
+          }),
+        })
+      );
+    });
+  });
+
   it("displays fallback icon when photoURL is not available", async () => {
     const userWithoutPhoto = {
       ...mockUserContext,
