@@ -51,7 +51,11 @@ describe('App', () => {
       render(<App />);
     });
 
-    expect(screen.getByText('うちストック')).toBeInTheDocument();
+    // 認証状態の解決を待つ
+    await waitFor(() => {
+      expect(screen.getByText('うちストック')).toBeInTheDocument();
+    }, { timeout: 2000 });
+
     await waitFor(() => {
       expect(screen.getByText('Toilet Paper')).toBeInTheDocument();
     });
@@ -72,6 +76,9 @@ describe('App', () => {
     await act(async () => {
       render(<App />);
     });
+
+    // 認証状態の解決を待つ
+    await screen.findByText('うちストック');
 
     // Home 画面の「在庫を更新する」ボタン
     const updateLinks = await screen.findAllByText('在庫を更新する');

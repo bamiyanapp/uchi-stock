@@ -13,9 +13,10 @@ const ItemDetail = () => {
   const [loading, setLoading] = useState(true);
   const [estimate, setEstimate] = useState(null);
   const authContext = useUser() || {};
-  const { userId = 'test-user', idToken = null } = authContext;
+  const { userId = 'pending', idToken = null, user = null } = authContext;
 
   const getHeaders = useCallback(() => {
+    if (userId === 'pending') return null;
     const headers = {
       "x-user-id": userId,
     };
@@ -26,17 +27,23 @@ const ItemDetail = () => {
   }, [userId, idToken]);
 
   const fetchData = useCallback(async () => {
+    if (user && !idToken) return;
+
     const headers = getHeaders();
+    if (!headers) return;
 
     // アイテム情報の取得
     try {
       const itemRes = await fetch(`${API_BASE_URL}/items`, { headers });
       if (itemRes.ok) {
-        const itemsData = await itemRes.ok ? await itemRes.json() : [];
+        const itemsData = await itemRes.json();
         if (Array.isArray(itemsData)) {
           const currentItem = itemsData.find((i) => i.itemId === itemId);
           setItem(currentItem);
         }
+      } else {
+        const data = await itemRes.json().catch(() => ({}));
+        console.error("Failed to fetch item:", data.error);
       }
     } catch (error) {
       console.error("Error fetching item:", error);
@@ -63,7 +70,7 @@ const ItemDetail = () => {
     } catch (error) {
       console.error("Error fetching estimate:", error);
     }
-  }, [itemId, getHeaders]);
+  }, [itemId, getHeaders, user, idToken]);
 
   useEffect(() => {
     const initialFetch = async () => {
@@ -80,20 +87,18 @@ const ItemDetail = () => {
     if (!item || !history) return [];
 
     let current = item.currentStock;
-    // historyは降順（新しい順）で届くことを想定
     return history.map((h) => {
       const stockLevelAtThatTime = current;
       const quantity = parseFloat(h.quantity) || 0;
       if (h.type === "consumption") {
-        current += quantity; // 消費した分を戻す
+        current += quantity;
       } else if (h.type === "purchase") {
-        current -= quantity; // 購入した分を引く
+        current -= quantity;
       }
       return { ...h, stockLevel: stockLevelAtThatTime };
     });
   }, [item, history]);
 
-  // グラフ用データの整形
   const chartData = React.useMemo(() => {
     if (!item || !historyWithStockLevel) return [];
 
@@ -116,7 +121,7 @@ const ItemDetail = () => {
     return trend.reverse();
   }, [item, historyWithStockLevel, estimate]);
 
-  if (loading) {
+  if (userId === 'pending' || loading) {
     return (
       <div className="container py-5 text-center">
         <div className="spinner-border text-primary" role="status">
@@ -167,7 +172,6 @@ const ItemDetail = () => {
       </header>
 
       <div className="row g-4">
-        {/* 在庫推定カード */}
         <div className="col-md-4">
           <div className="card h-100 shadow-sm border-0 bg-light">
             <div className="card-body">
@@ -197,7 +201,6 @@ const ItemDetail = () => {
           </div>
         </div>
 
-        {/* グラフカード */}
         <div className="col-md-8">
           <div className="card h-100 shadow-sm border-0">
             <div className="card-body">
@@ -226,7 +229,6 @@ const ItemDetail = () => {
           </div>
         </div>
 
-        {/* 履歴一覧 */}
         <div className="col-12">
           <div className="card shadow-sm border-0">
             <div className="card-body">
