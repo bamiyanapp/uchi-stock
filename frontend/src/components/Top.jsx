@@ -22,6 +22,12 @@ function Top() {
     }
   };
 
+  useEffect(() => {
+    if (!authLoading && userId && userId !== 'test-user' && userId !== 'pending') {
+      navigate(`/${userId}`, { replace: true });
+    }
+  }, [userId, authLoading, navigate]);
+
   const handleDemo = () => {
     navigate("/test-user");
   };

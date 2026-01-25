@@ -55,37 +55,43 @@ function Home() {
   }, [getHeaders]);
 
   useEffect(() => {
-    if (userId && userId !== 'pending' && userId !== 'test-user') {
-      // URLで test-user が指定されている場合はそちらを優先（デモモード）
+    if (userId && userId !== 'pending') {
+      // デモモード（test-user）が指定されている場合は、ログイン状態に関わらずデモモードとして振る舞う
       if (urlUserId === 'test-user') {
         setSelectedUserId('test-user');
-      } else {
+      } else if (userId !== 'test-user') {
         setSelectedUserId(userId);
+        fetchFamilies();
       }
-      fetchFamilies();
     }
   }, [userId, urlUserId, fetchFamilies]);
 
   // URLのユーザーIDとログイン中のユーザーIDが異なる場合、正しいURLにリダイレクト
   useEffect(() => {
     if (!authLoading && userId !== 'pending') {
+      // デモモード（test-user）へのアクセスは常に許可する
+      if (urlUserId === 'test-user') {
+        return;
+      }
+
       if (userId !== 'test-user') {
-        // デモモード（test-user）へのアクセスは許可する
-        if (urlUserId === 'test-user') {
-          return;
-        }
-        // userIdがURLに含まれていない（トップページなど）場合はリダイレクトしない
+        // ログイン済みの場合、自分以外のID（かつデモIDでない）へのアクセスなら自分のページへリダイレクト
+        // ただし、将来的に家族の在庫を見る機能があるため、ここでは「urlUserIdが存在し、かつ自分でもデモでもない」場合のみチェック
         if (urlUserId && urlUserId !== userId) {
-          navigate(`/${userId}`, { replace: true });
+          // fetchFamiliesで家族一覧を取得しているはずなので、家族のIDであればリダイレクトしない
+          const isFamilyMember = families.some(f => f.userId === urlUserId);
+          if (!isFamilyMember) {
+            navigate(`/${userId}`, { replace: true });
+          }
         }
       } else {
-        // 未ログイン状態で /uchi-stock/:userId にアクセスした場合はトップへ
+        // 未ログイン状態で /uchi-stock/:userId にアクセスした場合はトップへ（デモモード以外）
         if (urlUserId) {
           navigate("/", { replace: true });
         }
       }
     }
-  }, [userId, urlUserId, navigate, authLoading]);
+  }, [userId, urlUserId, navigate, authLoading, families]);
 
   const formatDate = (date) => {
     return date.toLocaleDateString('sv-SE');
