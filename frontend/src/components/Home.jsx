@@ -66,7 +66,8 @@ function Home() {
   useEffect(() => {
     if (!authLoading && userId !== 'pending') {
       if (userId !== 'test-user') {
-        if (urlUserId !== userId) {
+        // userIdがURLに含まれていない（トップページなど）場合はリダイレクトしない
+        if (urlUserId && urlUserId !== userId) {
           navigate(`/${userId}`, { replace: true });
         }
       } else {
