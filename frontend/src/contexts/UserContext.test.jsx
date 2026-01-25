@@ -24,10 +24,17 @@ vi.mock('../firebaseConfig', () => ({
 
 const TestComponent = () => {
   const { userId, login, logout } = useUser();
+  const handleLogin = async () => {
+    try {
+      await login();
+    } catch {
+      // Ignore in test component
+    }
+  };
   return (
     <div>
       <div data-testid="user-id">{userId}</div>
-      <button onClick={() => login()}>Login</button>
+      <button onClick={handleLogin}>Login</button>
       <button onClick={() => logout()}>Logout</button>
     </div>
   );

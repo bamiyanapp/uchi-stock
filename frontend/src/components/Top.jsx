@@ -14,19 +14,20 @@ function Top() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (userId && userId !== 'test-user' && userId !== 'pending') {
       navigate(`/${userId}`);
     } else {
-      login();
+      try {
+        const loggedInUser = await login();
+        if (loggedInUser) {
+          navigate(`/${loggedInUser.uid}`, { replace: true });
+        }
+      } catch (error) {
+        console.error("Login failed:", error);
+      }
     }
   };
-
-  useEffect(() => {
-    if (!authLoading && userId && userId !== 'test-user' && userId !== 'pending') {
-      navigate(`/${userId}`, { replace: true });
-    }
-  }, [userId, authLoading, navigate]);
 
   const handleDemo = () => {
     navigate("/test-user");
