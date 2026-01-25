@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { ArrowLeft, History as HistoryIcon, TrendingDown, Edit } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
 
-const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
 
 const ItemDetail = () => {
   const { itemId } = useParams();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const targetUserId = queryParams.get("userId");
+
   const [item, setItem] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +40,11 @@ const ItemDetail = () => {
 
     // アイテム情報の取得
     try {
-      const itemRes = await fetch(`${API_BASE_URL}/items`, { headers });
+      const url = new URL(`${API_BASE_URL}/items`);
+      if (targetUserId) {
+        url.searchParams.append("userId", targetUserId);
+      }
+      const itemRes = await fetch(url.toString(), { headers });
       if (itemRes.ok) {
         const itemsData = await itemRes.json();
         if (Array.isArray(itemsData)) {
@@ -53,7 +61,11 @@ const ItemDetail = () => {
 
     // 履歴の取得
     try {
-      const historyRes = await fetch(`${API_BASE_URL}/items/${itemId}/history`, { headers });
+      const url = new URL(`${API_BASE_URL}/items/${itemId}/history`);
+      if (targetUserId) {
+        url.searchParams.append("userId", targetUserId);
+      }
+      const historyRes = await fetch(url.toString(), { headers });
       if (historyRes.ok) {
         const historyData = await historyRes.json();
         setHistory(Array.isArray(historyData) ? historyData : []);
@@ -64,7 +76,11 @@ const ItemDetail = () => {
 
     // 推定データの取得
     try {
-      const estimateRes = await fetch(`${API_BASE_URL}/items/${itemId}/estimate`, { headers });
+      const url = new URL(`${API_BASE_URL}/items/${itemId}/estimate`);
+      if (targetUserId) {
+        url.searchParams.append("userId", targetUserId);
+      }
+      const estimateRes = await fetch(url.toString(), { headers });
       if (estimateRes.ok) {
         const estimateData = await estimateRes.json();
         setEstimate(estimateData);
@@ -72,7 +88,7 @@ const ItemDetail = () => {
     } catch (error) {
       console.error("Error fetching estimate:", error);
     }
-  }, [itemId, getHeaders, user, idToken]);
+  }, [itemId, getHeaders, user, idToken, targetUserId]);
 
   useEffect(() => {
     const initialFetch = async () => {
@@ -165,7 +181,10 @@ const ItemDetail = () => {
           </div>
           <div className="col-md-6">
             <div className="d-flex gap-2 justify-content-md-end">
-              <Link to={`/item/${itemId}/update`} className="btn btn-primary d-inline-flex align-items-center px-4 py-2">
+              <Link 
+                to={`/item/${itemId}/update${targetUserId ? `?userId=${targetUserId}` : ''}`} 
+                className="btn btn-primary d-inline-flex align-items-center px-4 py-2"
+              >
                 <Edit size={20} className="me-2" /> 在庫を更新する
               </Link>
             </div>

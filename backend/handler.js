@@ -41,6 +41,8 @@ const docClient = DynamoDBDocumentClient.from(dynamoClient);
 const ITEMS_TABLE = () => process.env.TABLE_NAME;
 const HISTORY_TABLE = () => process.env.STOCK_HISTORY_TABLE_NAME;
 const USERS_TABLE = () => process.env.USERS_TABLE_NAME;
+const FAMILIES_TABLE = () => process.env.FAMILIES_TABLE_NAME;
+const INVITATIONS_TABLE = () => process.env.INVITATIONS_TABLE_NAME;
 
 const verifyFirebaseToken = async (token) => {
   if (!admin.apps.length) {
@@ -137,6 +139,25 @@ const getUserId = async (event) => {
   // 認証失敗
   const detail = authHeader ? "Token verification failed and insecure fallback is disabled." : "Authorization header is missing.";
   throw new HttpError(401, "Unauthorized", detail);
+};
+
+/**
+ * 指定されたユーザーがターゲットユーザーの家族かどうかを検証する。
+ */
+const checkFamilyPermission = async (userId, targetUserId) => {
+  if (userId === targetUserId) return true;
+  if (userId === 'test-user') return false;
+
+  try {
+    const { Item } = await docClient.send(new GetCommand({
+      TableName: FAMILIES_TABLE(),
+      Key: { userId, familyUserId: targetUserId }
+    }));
+    return !!Item;
+  } catch (error) {
+    console.error(`[checkFamilyPermission] Error:`, error.message);
+    return false;
+  }
 };
 
 /**
@@ -256,10 +277,18 @@ const getLatestUpdateDate = async (itemId) => {
 exports.getItems = async (event) => {
   try {
     const userId = await getUserId(event);
+    const targetUserId = event.queryStringParameters?.userId || userId;
+
+    // 権限チェック
+    const hasPermission = await checkFamilyPermission(userId, targetUserId);
+    if (!hasPermission) {
+      throw new HttpError(403, "You do not have permission to access these items.");
+    }
+
     const { Items: items } = await docClient.send(new QueryCommand({
       TableName: ITEMS_TABLE(),
       KeyConditionExpression: "userId = :userId",
-      ExpressionAttributeValues: { ":userId": userId },
+      ExpressionAttributeValues: { ":userId": targetUserId },
     }));
 
     const itemsWithUpdatedAt = await Promise.all((items || []).map(async (item) => {
@@ -289,6 +318,14 @@ exports.getItems = async (event) => {
 exports.updateItem = async (event) => {
   try {
     const userId = await getUserId(event);
+    const targetUserId = event.queryStringParameters?.userId || userId;
+
+    // 権限チェック
+    const hasPermission = await checkFamilyPermission(userId, targetUserId);
+    if (!hasPermission) {
+      throw new HttpError(403, "You do not have permission to update this item.");
+    }
+
     const { itemId } = event.pathParameters || {};
     if (!itemId) {
       throw new HttpError(400, "itemId is required");
@@ -337,7 +374,7 @@ exports.updateItem = async (event) => {
 
     const { Attributes } = await docClient.send(new UpdateCommand({
       TableName: ITEMS_TABLE(),
-      Key: { userId, itemId },
+      Key: { userId: targetUserId, itemId },
       UpdateExpression,
       ExpressionAttributeValues,
       ExpressionAttributeNames: Object.keys(ExpressionAttributeNames).length > 0 ? ExpressionAttributeNames : undefined,
@@ -411,6 +448,14 @@ exports.deleteItem = async (event) => {
 exports.addStock = async (event) => {
   try {
     const userId = await getUserId(event);
+    const targetUserId = event.queryStringParameters?.userId || userId;
+
+    // 権限チェック
+    const hasPermission = await checkFamilyPermission(userId, targetUserId);
+    if (!hasPermission) {
+      throw new HttpError(403, "You do not have permission to add stock.");
+    }
+
     const { itemId } = event.pathParameters || {};
     if (!itemId) {
       throw new HttpError(400, "itemId is required");
@@ -453,7 +498,7 @@ exports.addStock = async (event) => {
     // 品目の在庫数更新
     const { Attributes } = await docClient.send(new UpdateCommand({
       TableName: ITEMS_TABLE(),
-      Key: { userId, itemId },
+      Key: { userId: targetUserId, itemId },
       UpdateExpression: "set currentStock = currentStock + :q, updatedAt = :updatedAt",
       ExpressionAttributeValues: {
         ":q": quantity,
@@ -502,6 +547,14 @@ const calculateAverageConsumptionRate = async (userId, itemId) => {
 exports.consumeStock = async (event) => {
   try {
     const userId = await getUserId(event);
+    const targetUserId = event.queryStringParameters?.userId || userId;
+
+    // 権限チェック
+    const hasPermission = await checkFamilyPermission(userId, targetUserId);
+    if (!hasPermission) {
+      throw new HttpError(403, "You do not have permission to consume stock.");
+    }
+
     const { itemId } = event.pathParameters || {};
     if (!itemId) {
       throw new HttpError(400, "itemId is required");
@@ -542,12 +595,12 @@ exports.consumeStock = async (event) => {
     }));
 
     // 平均消費ペースを再計算
-    const averageConsumptionRate = await calculateAverageConsumptionRate(userId, itemId);
+    const averageConsumptionRate = await calculateAverageConsumptionRate(targetUserId, itemId);
 
     // 品目の在庫数と平均消費ペースを更新
     const { Attributes } = await docClient.send(new UpdateCommand({
       TableName: ITEMS_TABLE(),
-      Key: { userId, itemId },
+      Key: { userId: targetUserId, itemId },
       UpdateExpression: "set currentStock = currentStock - :q, averageConsumptionRate = :rate, updatedAt = :updatedAt",
       ExpressionAttributeValues: {
         ":q": quantity,
@@ -576,6 +629,14 @@ exports.consumeStock = async (event) => {
 exports.getConsumptionHistory = async (event) => {
   try {
     const userId = await getUserId(event);
+    const targetUserId = event.queryStringParameters?.userId || userId;
+
+    // 権限チェック
+    const hasPermission = await checkFamilyPermission(userId, targetUserId);
+    if (!hasPermission) {
+      throw new HttpError(403, "You do not have permission to access history.");
+    }
+
     const { itemId } = event.pathParameters || {};
     if (!itemId) {
       throw new HttpError(400, "itemId is required");
@@ -586,7 +647,7 @@ exports.getConsumptionHistory = async (event) => {
       KeyConditionExpression: "itemId = :itemId",
       FilterExpression: "#u = :userId",
       ExpressionAttributeNames: { "#u": "userId" },
-      ExpressionAttributeValues: { ":itemId": itemId, ":userId": userId },
+      ExpressionAttributeValues: { ":itemId": itemId, ":userId": targetUserId },
       ScanIndexForward: false, // 降順（新しい順）
     }));
 
@@ -609,6 +670,14 @@ exports.getConsumptionHistory = async (event) => {
 exports.getEstimatedDepletionDate = async (event) => {
   try {
     const userId = await getUserId(event);
+    const targetUserId = event.queryStringParameters?.userId || userId;
+
+    // 権限チェック
+    const hasPermission = await checkFamilyPermission(userId, targetUserId);
+    if (!hasPermission) {
+      throw new HttpError(403, "You do not have permission to access this estimate.");
+    }
+
     const { itemId } = event.pathParameters || {};
     if (!itemId) {
       throw new HttpError(400, "itemId is required");
@@ -626,7 +695,7 @@ exports.getEstimatedDepletionDate = async (event) => {
     // 品目情報を取得
     const { Item: item } = await docClient.send(new GetCommand({
       TableName: ITEMS_TABLE(),
-      Key: { userId, itemId },
+      Key: { userId: targetUserId, itemId },
     }));
 
     if (!item) {
@@ -656,7 +725,7 @@ exports.getEstimatedDepletionDate = async (event) => {
       KeyConditionExpression: "itemId = :itemId",
       FilterExpression: "#u = :userId",
       ExpressionAttributeNames: { "#u": "userId" },
-      ExpressionAttributeValues: { ":itemId": itemId, ":userId": userId },
+      ExpressionAttributeValues: { ":itemId": itemId, ":userId": targetUserId },
     }));
 
     const result = stockLogic.calculateEstimatedDepletion(item, historyData || [], referenceDate);
@@ -691,5 +760,158 @@ exports.getEstimatedDepletionDate = async (event) => {
     };
   } catch (error) {
     return errorResponse(error, "getEstimatedDepletionDate");
+  }
+};
+
+/**
+ * 招待URL用のトークンを発行する。
+ */
+exports.createInvitation = async (event) => {
+  try {
+    const userId = await getUserId(event);
+    const invitationToken = crypto.randomUUID();
+    const now = new Date();
+    const expiresAt = Math.floor(now.getTime() / 1000) + (24 * 60 * 60); // 24時間後
+
+    await docClient.send(new PutCommand({
+      TableName: INVITATIONS_TABLE(),
+      Item: {
+        invitationToken,
+        inviterUserId: userId,
+        expiresAt,
+        createdAt: now.toISOString(),
+      },
+    }));
+
+    return {
+      statusCode: 201,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
+      body: JSON.stringify({ invitationToken, expiresAt }),
+    };
+  } catch (error) {
+    return errorResponse(error, "createInvitation");
+  }
+};
+
+/**
+ * 招待を受諾し、家族登録を行う。
+ */
+exports.acceptInvitation = async (event) => {
+  try {
+    const userId = await getUserId(event);
+    if (!event.body) {
+      throw new HttpError(400, "Request body is missing");
+    }
+
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch {
+      throw new HttpError(400, "Invalid JSON in request body");
+    }
+
+    const { invitationToken } = body;
+    if (!invitationToken) {
+      throw new HttpError(400, "invitationToken is required");
+    }
+
+    // 招待情報の取得
+    const { Item: invitation } = await docClient.send(new GetCommand({
+      TableName: INVITATIONS_TABLE(),
+      Key: { invitationToken },
+    }));
+
+    if (!invitation) {
+      throw new HttpError(404, "Invitation not found or expired");
+    }
+
+    const inviterUserId = invitation.inviterUserId;
+    if (inviterUserId === userId) {
+      throw new HttpError(400, "You cannot invite yourself");
+    }
+
+    const now = new Date().toISOString();
+
+    // 双方向の家族関係を登録
+    // TODO: DynamoDB Transactionsを使用するのが望ましい
+    await docClient.send(new PutCommand({
+      TableName: FAMILIES_TABLE(),
+      Item: {
+        userId: userId,
+        familyUserId: inviterUserId,
+        relationType: "member",
+        createdAt: now,
+      },
+    }));
+
+    await docClient.send(new PutCommand({
+      TableName: FAMILIES_TABLE(),
+      Item: {
+        userId: inviterUserId,
+        familyUserId: userId,
+        relationType: "member",
+        createdAt: now,
+      },
+    }));
+
+    // 招待情報の削除
+    await docClient.send(new DeleteCommand({
+      TableName: INVITATIONS_TABLE(),
+      Key: { invitationToken },
+    }));
+
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
+      body: JSON.stringify({ message: "Family registration successful", familyUserId: inviterUserId }),
+    };
+  } catch (error) {
+    return errorResponse(error, "acceptInvitation");
+  }
+};
+
+/**
+ * 家族一覧を取得する。
+ */
+exports.getFamilies = async (event) => {
+  try {
+    const userId = await getUserId(event);
+
+    const { Items: families } = await docClient.send(new QueryCommand({
+      TableName: FAMILIES_TABLE(),
+      KeyConditionExpression: "userId = :userId",
+      ExpressionAttributeValues: { ":userId": userId },
+    }));
+
+    // 家族のプロフィール情報を取得
+    const familyMembers = await Promise.all((families || []).map(async (family) => {
+      const { Item: user } = await docClient.send(new GetCommand({
+        TableName: USERS_TABLE(),
+        Key: { userId: family.familyUserId },
+      }));
+      return {
+        userId: family.familyUserId,
+        displayName: user?.displayName || "Unknown User",
+        photoURL: user?.photoURL || null,
+        email: user?.email || null,
+      };
+    }));
+
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
+      body: JSON.stringify(familyMembers),
+    };
+  } catch (error) {
+    return errorResponse(error, "getFamilies");
   }
 };
