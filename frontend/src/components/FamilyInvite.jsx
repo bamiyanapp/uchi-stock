@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
+import { ArrowLeft, Copy, Check, RefreshCw } from "lucide-react";
 
 const FamilyInvite = () => {
   const { userId, getIdToken } = useUser();
@@ -48,7 +49,14 @@ const FamilyInvite = () => {
       });
 
       if (!response.ok) {
-        throw new Error("招待URLの発行に失敗しました");
+        let errorMessage = "招待URLの発行に失敗しました";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.error("Failed to parse error response", e);
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -61,7 +69,7 @@ const FamilyInvite = () => {
   };
 
   const invitationUrl = invitationToken 
-    ? `${window.location.origin}${import.meta.env.BASE_URL}invite/${invitationToken}`
+    ? `${window.location.origin}${import.meta.env.BASE_URL || "/"}invite/${invitationToken}`
     : "";
 
   const copyToClipboard = () => {
@@ -73,13 +81,14 @@ const FamilyInvite = () => {
   return (
     <div className="container py-4">
       <div className="d-flex align-items-center mb-4">
-        <Link to="/" className="btn btn-outline-secondary me-3">
-          <i className="bi bi-arrow-left"></i>
+        <Link to="/" className="btn btn-outline-secondary d-flex align-items-center gap-2 me-3">
+          <ArrowLeft size={18} />
+          戻る
         </Link>
         <h1 className="h3 mb-0">家族を招待・管理</h1>
       </div>
 
-      <div className="card mb-4">
+      <div className="card mb-4 border-0 shadow-sm">
         <div className="card-body">
           <h2 className="h5 card-title mb-3">家族を招待する</h2>
           <p className="card-text text-muted small">
@@ -88,11 +97,12 @@ const FamilyInvite = () => {
           
           {!invitationToken ? (
             <button 
-              className="btn btn-primary" 
+              className="btn btn-primary d-flex align-items-center gap-2" 
               onClick={createInvitation}
               disabled={loading}
             >
-              {loading ? "発行中..." : "招待URLを発行する"}
+              {loading && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
+              招待URLを発行する
             </button>
           ) : (
             <div>
@@ -104,26 +114,28 @@ const FamilyInvite = () => {
                   readOnly 
                 />
                 <button 
-                  className="btn btn-outline-primary" 
+                  className="btn btn-outline-primary d-flex align-items-center gap-1" 
                   onClick={copyToClipboard}
                 >
+                  {copySuccess ? <Check size={16} /> : <Copy size={16} />}
                   コピー
                 </button>
               </div>
               {copySuccess && <div className="text-success small mb-3">{copySuccess}</div>}
               <button 
-                className="btn btn-link btn-sm p-0" 
+                className="btn btn-link btn-sm p-0 d-flex align-items-center gap-1" 
                 onClick={() => setInvitationToken("")}
               >
+                <RefreshCw size={14} />
                 新しく発行する
               </button>
             </div>
           )}
-          {error && <div className="alert alert-danger mt-3">{error}</div>}
+          {error && <div className="alert alert-danger mt-3 mb-0">{error}</div>}
         </div>
       </div>
 
-      <div className="card">
+      <div className="card border-0 shadow-sm">
         <div className="card-body">
           <h2 className="h5 card-title mb-3">登録済みの家族</h2>
           {families.length === 0 ? (
