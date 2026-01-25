@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Trash2, ExternalLink, AlertTriangle, Clock, Plus, X, Bug } from "lucide-react";
+import { Trash2, ExternalLink, AlertTriangle, Clock, Plus, X, Bug, User as UserIcon } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
 
 const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
@@ -240,6 +240,18 @@ function Home() {
             <div className="spinner-border spinner-border-sm text-secondary" role="status"></div>
           ) : user ? (
             <div className="d-flex align-items-center gap-2">
+              {user.photoURL ? (
+                <img 
+                  src={user.photoURL} 
+                  alt={user.displayName || "User"} 
+                  className="rounded-circle border"
+                  style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                />
+              ) : (
+                <div className="bg-light rounded-circle d-flex align-items-center justify-content-center border" style={{ width: '32px', height: '32px' }}>
+                  <UserIcon size={18} className="text-muted" />
+                </div>
+              )}
               <span className="small text-muted d-none d-md-inline">{user.displayName || user.email || user.uid}</span>
               <button onClick={handleLogout} className="btn btn-sm btn-outline-secondary">ログアウト</button>
             </div>

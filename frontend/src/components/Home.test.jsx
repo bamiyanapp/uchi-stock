@@ -217,4 +217,55 @@ describe("Home Component", () => {
       expect(screen.getByText("Logged In User")).toBeInTheDocument();
     });
   });
+
+  it("displays user icon when photoURL is available", async () => {
+    const userWithPhoto = {
+      ...mockUserContext,
+      user: {
+        displayName: "User With Photo",
+        photoURL: "https://example.com/photo.jpg",
+        uid: "uid123",
+      },
+      userId: "uid123",
+    };
+
+    render(
+      <UserContext.Provider value={userWithPhoto}>
+        <BrowserRouter>
+          <Home />
+        </BrowserRouter>
+      </UserContext.Provider>
+    );
+
+    await waitFor(() => {
+      const img = screen.getByAltText("User With Photo");
+      expect(img).toBeInTheDocument();
+      expect(img).toHaveAttribute("src", "https://example.com/photo.jpg");
+    });
+  });
+
+  it("displays fallback icon when photoURL is not available", async () => {
+    const userWithoutPhoto = {
+      ...mockUserContext,
+      user: {
+        displayName: "User Without Photo",
+        photoURL: null,
+        uid: "uid456",
+      },
+      userId: "uid456",
+    };
+
+    render(
+      <UserContext.Provider value={userWithoutPhoto}>
+        <BrowserRouter>
+          <Home />
+        </BrowserRouter>
+      </UserContext.Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("User Without Photo")).toBeInTheDocument();
+      expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    });
+  });
 });
