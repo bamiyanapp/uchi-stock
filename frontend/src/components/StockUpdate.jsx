@@ -9,7 +9,7 @@ const StockUpdate = () => {
   const { itemId } = useParams();
   const navigate = useNavigate();
   const authContext = useUser() || {};
-  const { userId = 'test-user', idToken = null } = authContext;
+  const { userId = 'pending', idToken = null, user = null } = authContext;
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -19,6 +19,7 @@ const StockUpdate = () => {
   const [memo, setMemo] = useState("");
 
   const getHeaders = useCallback(() => {
+    if (userId === 'pending') return null;
     const headers = {
       "x-user-id": userId
     };
@@ -29,16 +30,26 @@ const StockUpdate = () => {
   }, [userId, idToken]);
 
   const fetchData = useCallback(async () => {
+    if (user && !idToken) return;
+
+    const headers = getHeaders();
+    if (!headers) return;
+
     try {
-      const headers = getHeaders();
       const response = await fetch(`${API_BASE_URL}/items`, { headers });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
       const itemsData = await response.json();
-      const currentItem = itemsData.find(i => i.itemId === itemId);
-      setItem(currentItem);
+      if (Array.isArray(itemsData)) {
+        const currentItem = itemsData.find(i => i.itemId === itemId);
+        setItem(currentItem);
+      }
     } catch (error) {
       console.error("Error fetching item details:", error);
     }
-  }, [itemId, getHeaders]);
+  }, [itemId, getHeaders, user, idToken]);
 
   useEffect(() => {
     const initialFetch = async () => {
@@ -52,6 +63,18 @@ const StockUpdate = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const headers = getHeaders();
+    if (!headers) {
+      alert("認証の準備ができるまでお待ちください。");
+      return;
+    }
+
+    if (user && !idToken) {
+      alert("認証情報の準備中です。少々お待ちください。");
+      return;
+    }
+
     if (consumption === 0 && purchase === 0) {
       alert("消費量または購入数を入力してください。");
       return;
@@ -64,41 +87,47 @@ const StockUpdate = () => {
 
     setSubmitting(true);
     try {
-      const headers = {
-        ...getHeaders(),
+      const fullHeaders = {
+        ...headers,
         "Content-Type": "application/json"
       };
 
       const dateStr = new Date().toISOString();
 
-      // 消費の登録
       if (consumption > 0) {
-        await fetch(`${API_BASE_URL}/items/${itemId}/consume`, {
+        const res = await fetch(`${API_BASE_URL}/items/${itemId}/consume`, {
           method: "POST",
-          headers,
+          headers: fullHeaders,
           body: JSON.stringify({ quantity: consumption, memo, date: dateStr }),
         });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `消費の登録に失敗しました (${res.status})`);
+        }
       }
 
-      // 購入の登録
       if (purchase > 0) {
-        await fetch(`${API_BASE_URL}/items/${itemId}/stock`, {
+        const res = await fetch(`${API_BASE_URL}/items/${itemId}/stock`, {
           method: "POST",
-          headers,
+          headers: fullHeaders,
           body: JSON.stringify({ quantity: purchase, memo, date: dateStr }),
         });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `購入の登録に失敗しました (${res.status})`);
+        }
       }
 
       navigate(`/item/${itemId}`);
     } catch (error) {
       console.error("Error updating stock:", error);
-      alert("更新に失敗しました。");
+      alert(error.message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
+  if (userId === 'pending' || loading) {
     return (
       <div className="container py-5 text-center">
         <div className="spinner-border text-primary" role="status">
