@@ -49,7 +49,7 @@ const InviteAccept = () => {
     try {
       await login();
       // login() 成功後、userIdが更新され、useEffectでacceptInvitationが呼ばれる
-    } catch (err) {
+    } catch {
       setError("ログインに失敗しました");
     }
   };
