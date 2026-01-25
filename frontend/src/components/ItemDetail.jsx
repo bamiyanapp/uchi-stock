@@ -175,7 +175,7 @@ const ItemDetail = () => {
         <header className="mb-5">
           <div className="row align-items-center g-3">
             <div className="col-md-6">
-              <h1 className="display-5 fw-bold mb-2">{item.name}</h1>
+              <h1 data-testid="item-name" className="display-5 fw-bold mb-2">{item.name}</h1>
               <div className="d-flex align-items-baseline">
                 <span className="display-6 me-2">
                   {estimate?.predictedStock !== undefined ? estimate.predictedStock : item.currentStock}
