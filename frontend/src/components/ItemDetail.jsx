@@ -15,6 +15,8 @@ const ItemDetail = () => {
   const authContext = useUser() || {};
   const { userId = 'pending', idToken = null, user = null } = authContext;
 
+  const homePath = userId && userId !== 'test-user' && userId !== 'pending' ? `/uchi-stock/${userId}` : "/";
+
   const getHeaders = useCallback(() => {
     if (userId === 'pending') return null;
     const headers = {
@@ -135,7 +137,7 @@ const ItemDetail = () => {
     return (
       <div className="container py-5 text-center">
         <h2>品目が見つかりませんでした。</h2>
-        <Link to="/" className="btn btn-primary mt-3">
+        <Link to={homePath} className="btn btn-primary mt-3">
           戻る
         </Link>
       </div>
@@ -145,7 +147,7 @@ const ItemDetail = () => {
   return (
     <div className="container py-5">
       <div className="mb-4">
-        <Link to="/" className="btn btn-link p-0 text-decoration-none d-inline-flex align-items-center">
+        <Link to={homePath} className="btn btn-link p-0 text-decoration-none d-inline-flex align-items-center">
           <ArrowLeft size={20} className="me-1" /> 在庫一覧へ戻る
         </Link>
       </div>

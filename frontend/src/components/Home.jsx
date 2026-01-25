@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Trash2, ExternalLink, AlertTriangle, Clock, Plus, X, Bug, User as UserIcon } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
 
@@ -15,6 +15,8 @@ function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   
+  const navigate = useNavigate();
+  const { userId: urlUserId } = useParams();
   const authContext = useUser() || {};
   const { 
     userId = 'pending', 
@@ -24,6 +26,22 @@ function Home() {
     logout = () => {}, 
     loading: authLoading = false 
   } = authContext;
+
+  // URLのユーザーIDとログイン中のユーザーIDが異なる場合、正しいURLにリダイレクト
+  useEffect(() => {
+    if (!authLoading && userId !== 'pending') {
+      if (userId !== 'test-user') {
+        if (urlUserId !== userId) {
+          navigate(`/uchi-stock/${userId}`, { replace: true });
+        }
+      } else {
+        // 未ログイン状態で /uchi-stock/:userId にアクセスした場合はトップへ
+        if (urlUserId) {
+          navigate("/", { replace: true });
+        }
+      }
+    }
+  }, [userId, urlUserId, navigate, authLoading]);
 
   const formatDate = (date) => {
     return date.toLocaleDateString('sv-SE');
@@ -169,6 +187,16 @@ function Home() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      console.log('[Home] handleLogout called');
+      await logout();
+      navigate("/", { replace: true });
+    } catch (error) {
+      console.error('[Home] logout error:', error);
+    }
+  };
+
   if (userId === 'pending') {
     return (
       <div className="container py-5 text-center">
@@ -225,10 +253,13 @@ function Home() {
                 </div>
               )}
               <span className="small text-muted d-none d-md-inline">{user.displayName || user.email || user.uid}</span>
-              <button onClick={logout} className="btn btn-sm btn-outline-secondary">ログアウト</button>
+              <button onClick={handleLogout} className="btn btn-sm btn-outline-secondary">ログアウト</button>
             </div>
           ) : (
-            <button onClick={login} className="btn btn-sm btn-primary">Googleでログイン</button>
+            <div className="d-flex align-items-center gap-2">
+              <span className="small text-muted d-none d-md-inline">ゲスト利用中</span>
+              <button onClick={login} className="btn btn-sm btn-primary">Googleでログイン</button>
+            </div>
           )}
         </div>
         <h1 className="display-4 fw-bold">うちストック</h1>
