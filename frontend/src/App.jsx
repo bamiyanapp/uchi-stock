@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./components/Home";
 import Top from "./components/Top";
+import UserGuide from "./components/UserGuide";
 import ItemDetail from "./components/ItemDetail";
 import StockUpdate from "./components/StockUpdate";
 import FamilyInvite from "./components/FamilyInvite";
@@ -25,6 +26,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={userId && userId !== 'test-user' && userId !== 'pending' ? <Navigate to={`/uchi-stock/${userId}`} replace /> : <Top />} />
+      <Route path="/guide" element={<UserGuide />} />
       <Route path="/uchi-stock/test-user" element={<Home />} />
       <Route path="/uchi-stock/:userId" element={<Home />} />
       <Route path="/item/:itemId" element={<ItemDetail />} />

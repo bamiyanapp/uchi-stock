@@ -27,7 +27,7 @@ function Top() {
   };
 
   const handleGuide = () => {
-    window.open("https://github.com/bamiyanapp/uchi-stock/blob/main/docs/operations-guide.md", "_blank");
+    navigate("/guide");
   };
 
   return (
