@@ -54,7 +54,9 @@ describe('UserContext', () => {
       );
     });
 
-    expect(screen.getByTestId('user-id').textContent).toBe('test-user');
+    await waitFor(() => {
+      expect(screen.getByTestId('user-id').textContent).toBe('test-user');
+    });
   });
 
   it('provides user id when signed in', async () => {
@@ -134,11 +136,9 @@ describe('UserContext', () => {
     });
 
     expect(firebaseAuth.signOut).toHaveBeenCalled();
-    // In a real app, onAuthStateChanged would fire again with null, updating the state.
-    // Since we mock it to call once, the state update relies on the component logic if it manually resets
-    // or waits for the listener. UserContext logic:
-    // logout() calls signOut, then setUser(null), setUserId('test-user') manually.
     
-    expect(screen.getByTestId('user-id').textContent).toBe('test-user');
+    await waitFor(() => {
+      expect(screen.getByTestId('user-id').textContent).toBe('test-user');
+    });
   });
 });
