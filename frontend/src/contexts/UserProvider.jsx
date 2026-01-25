@@ -62,8 +62,10 @@ export const UserProvider = ({ children }) => {
       provider.setCustomParameters({ prompt: 'select_account' });
       const result = await signInWithPopup(auth, provider);
       console.log('[UserProvider] Popup login success:', result.user.displayName);
+      return result.user;
     } catch (error) {
       console.error('[UserProvider] login error:', error);
+      throw error;
     }
   };
 
