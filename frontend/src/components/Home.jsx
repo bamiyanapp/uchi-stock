@@ -232,11 +232,15 @@ function Home() {
         const data = await response.json();
         console.error('[Home] handleAddItem: Error', data);
         const detail = data.error ? `\n詳細: ${data.error}` : "";
-        alert(`エラー (${response.status}): ${data.message}${detail}`);
+        if (typeof window !== 'undefined' && window.alert) {
+          alert(`エラー (${response.status}): ${data.message}${detail}`);
+        }
       }
     } catch (error) {
       console.error("[Home] handleAddItem exception:", error);
-      alert("エラーが発生しました: " + error.message);
+      if (typeof window !== 'undefined' && window.alert) {
+        alert("エラーが発生しました: " + error.message);
+      }
     } finally {
       setIsSubmitting(false);
     }
