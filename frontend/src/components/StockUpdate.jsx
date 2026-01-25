@@ -137,14 +137,17 @@ const StockUpdate = () => {
     );
   }
 
+  const homePath = userId && userId !== 'test-user' && userId !== 'pending' ? `/uchi-stock/${userId}` : "/";
+
   if (!item) {
     return (
       <div className="container py-5 text-center">
         <h2>品目が見つかりませんでした。</h2>
-        <Link to="/" className="btn btn-primary mt-3">戻る</Link>
+        <Link to={homePath} className="btn btn-primary mt-3">戻る</Link>
       </div>
     );
   }
+
 
   const daysSinceUpdate = Math.floor((new Date() - new Date(item.updatedAt)) / (1000 * 60 * 60 * 24));
 
