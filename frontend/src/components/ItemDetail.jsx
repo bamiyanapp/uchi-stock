@@ -3,6 +3,7 @@ import { useParams, Link, useLocation } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { ArrowLeft, History as HistoryIcon, TrendingDown, Edit } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
+import Header from "./Header";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
 
@@ -161,149 +162,153 @@ const ItemDetail = () => {
   }
 
   return (
-    <div className="container py-5">
-      <div className="mb-4">
-        <Link to={homePath} className="btn btn-link p-0 text-decoration-none d-inline-flex align-items-center">
-          <ArrowLeft size={20} className="me-1" /> 在庫一覧へ戻る
-        </Link>
-      </div>
-
-      <header className="mb-5">
-        <div className="row align-items-center g-3">
-          <div className="col-md-6">
-            <h1 className="display-5 fw-bold mb-2">{item.name}</h1>
-            <div className="d-flex align-items-baseline">
-              <span className="display-6 me-2">
-                {estimate?.predictedStock !== undefined ? estimate.predictedStock : item.currentStock}
-              </span>
-              <span className="text-muted fs-4">{item.unit}</span>
-            </div>
-          </div>
-          <div className="col-md-6">
-            <div className="d-flex gap-2 justify-content-md-end">
-              <Link 
-                to={`/item/${itemId}/update${targetUserId ? `?userId=${targetUserId}` : ''}`} 
-                className="btn btn-primary d-inline-flex align-items-center px-4 py-2"
-              >
-                <Edit size={20} className="me-2" /> 在庫を更新する
-              </Link>
-            </div>
-          </div>
+    <>
+      <Header />
+      <div className="container py-5">
+        <div className="header-spacer mb-4"></div>
+        <div className="mb-4">
+          <Link to={homePath} className="btn btn-link p-0 text-decoration-none d-inline-flex align-items-center">
+            <ArrowLeft size={20} className="me-1" /> 在庫一覧へ戻る
+          </Link>
         </div>
-      </header>
 
-      <div className="row g-4">
-        <div className="col-md-4">
-          <div className="card h-100 shadow-sm border-0 bg-light">
-            <div className="card-body">
-              <h2 className="h5 card-title mb-4 d-flex align-items-center">
-                <TrendingDown size={20} className="me-2 text-primary" />
-                在庫推定
-              </h2>
-              {estimate && estimate.estimatedDepletionDate ? (
-                <div>
-                  <div className="mb-2">
-                    <small className="text-muted d-block">在庫切れ予想日</small>
-                    <span className="fs-4 fw-bold text-danger">
-                      {new Date(estimate.estimatedDepletionDate).toLocaleDateString()}
-                    </span>
-                  </div>
+        <header className="mb-5">
+          <div className="row align-items-center g-3">
+            <div className="col-md-6">
+              <h1 className="display-5 fw-bold mb-2">{item.name}</h1>
+              <div className="d-flex align-items-baseline">
+                <span className="display-6 me-2">
+                  {estimate?.predictedStock !== undefined ? estimate.predictedStock : item.currentStock}
+                </span>
+                <span className="text-muted fs-4">{item.unit}</span>
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="d-flex gap-2 justify-content-md-end">
+                <Link 
+                  to={`/item/${itemId}/update${targetUserId ? `?userId=${targetUserId}` : ''}`} 
+                  className="btn btn-primary d-inline-flex align-items-center px-4 py-2"
+                >
+                  <Edit size={20} className="me-2" /> 在庫を更新する
+                </Link>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="row g-4">
+          <div className="col-md-4">
+            <div className="card h-100 shadow-sm border-0 bg-light">
+              <div className="card-body">
+                <h2 className="h5 card-title mb-4 d-flex align-items-center">
+                  <TrendingDown size={20} className="me-2 text-primary" />
+                  在庫推定
+                </h2>
+                {estimate && estimate.estimatedDepletionDate ? (
                   <div>
-                    <small className="text-muted d-block">1日あたりの平均消費量</small>
-                    <span className="fs-5">
-                      {estimate.dailyConsumption} {item.unit} / 日
-                    </span>
+                    <div className="mb-2">
+                      <small className="text-muted d-block">在庫切れ予想日</small>
+                      <span className="fs-4 fw-bold text-danger">
+                        {new Date(estimate.estimatedDepletionDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div>
+                      <small className="text-muted d-block">1日あたりの平均消費量</small>
+                      <span className="fs-5">
+                        {estimate.dailyConsumption} {item.unit} / 日
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <p className="text-muted">データが不足しているため推定できません。</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-8">
-          <div className="card h-100 shadow-sm border-0">
-            <div className="card-body">
-              <h2 className="h5 card-title mb-4">在庫数推移</h2>
-              <div style={{ width: "100%", height: 300 }}>
-                <ResponsiveContainer>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="displayDate" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line
-                      type="stepAfter"
-                      dataKey="stock"
-                      name="在庫数"
-                      stroke="#0d6efd"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 8 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                ) : (
+                  <p className="text-muted">データが不足しているため推定できません。</p>
+                )}
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="col-12">
-          <div className="card shadow-sm border-0">
-            <div className="card-body">
-              <h2 className="h5 card-title mb-4 d-flex align-items-center">
-                <HistoryIcon size={20} className="me-2 text-primary" />
-                履歴詳細
-              </h2>
-              <div className="table-responsive">
-                <table className="table table-hover">
-                  <thead className="table-light">
-                    <tr>
-                      <th>日付</th>
-                      <th>種別</th>
-                      <th>数量</th>
-                      <th>残量</th>
-                      <th>メモ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {historyWithStockLevel.length > 0 ? (
-                      historyWithStockLevel.map((h) => (
-                        <tr key={h.historyId}>
-                          <td>{new Date(h.date).toLocaleString()}</td>
-                          <td>
-                            <span
-                              className={`badge ${h.type === "consumption" ? "bg-warning text-dark" : "bg-success"}`}
-                            >
-                              {h.type === "consumption" ? "消費" : "購入"}
-                            </span>
-                          </td>
-                          <td>
-                            {h.quantity} {item.unit}
-                          </td>
-                          <td className="fw-bold">
-                            {h.stockLevel} {item.unit}
-                          </td>
-                          <td className="text-muted">{h.memo || "-"}</td>
-                        </tr>
-                      ))
-                    ) : (
+          <div className="col-md-8">
+            <div className="card h-100 shadow-sm border-0">
+              <div className="card-body">
+                <h2 className="h5 card-title mb-4">在庫数推移</h2>
+                <div style={{ width: "100%", height: 300 }}>
+                  <ResponsiveContainer>
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="displayDate" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="stepAfter"
+                        dataKey="stock"
+                        name="在庫数"
+                        stroke="#0d6efd"
+                        strokeWidth={2}
+                        dot={{ r: 4 }}
+                        activeDot={{ r: 8 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-12">
+            <div className="card shadow-sm border-0">
+              <div className="card-body">
+                <h2 className="h5 card-title mb-4 d-flex align-items-center">
+                  <HistoryIcon size={20} className="me-2 text-primary" />
+                  履歴詳細
+                </h2>
+                <div className="table-responsive">
+                  <table className="table table-hover">
+                    <thead className="table-light">
                       <tr>
-                        <td colSpan="5" className="text-center py-4 text-muted">
-                          履歴がありません
-                        </td>
+                        <th>日付</th>
+                        <th>種別</th>
+                        <th>数量</th>
+                        <th>残量</th>
+                        <th>メモ</th>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {historyWithStockLevel.length > 0 ? (
+                        historyWithStockLevel.map((h) => (
+                          <tr key={h.historyId}>
+                            <td>{new Date(h.date).toLocaleString()}</td>
+                            <td>
+                              <span
+                                className={`badge ${h.type === "consumption" ? "bg-warning text-dark" : "bg-success"}`}
+                              >
+                                {h.type === "consumption" ? "消費" : "購入"}
+                              </span>
+                            </td>
+                            <td>
+                              {h.quantity} {item.unit}
+                            </td>
+                            <td className="fw-bold">
+                              {h.stockLevel} {item.unit}
+                            </td>
+                            <td className="text-muted">{h.memo || "-"}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="5" className="text-center py-4 text-muted">
+                            履歴がありません
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

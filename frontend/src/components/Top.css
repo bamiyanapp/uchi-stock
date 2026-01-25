@@ -16,6 +16,47 @@
   color: var(--text-dark);
 }
 
+/* 共通ヘッダー */
+.main-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  border-bottom: 1px solid #eee;
+}
+
+/* ヘッダーの高さ分、コンテンツを下げるためのスペーサー */
+.header-spacer {
+  margin-top: 60px; /* ヘッダーの高さに合わせて調整 */
+}
+
+/* ユーザー情報エリアのスタイリング */
+.user-info {
+  max-width: 150px;
+}
+
+.header-left, .header-right {
+  flex: 1;
+}
+
+.header-center {
+  flex: 2;
+  text-align: center;
+}
+
+.header-left {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.header-right {
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* ヒーローセクション */
 .hero-section {
   position: relative;
