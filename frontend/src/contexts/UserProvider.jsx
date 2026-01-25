@@ -79,11 +79,22 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  const getIdTokenFunc = async () => {
+    if (auth.currentUser) {
+      return await auth.currentUser.getIdToken();
+    }
+    if (isSkipAuth || isTest) {
+      return 'test-token';
+    }
+    return idToken;
+  };
+
   const value = {
     userId,
     setUserId,
     user,
     idToken,
+    getIdToken: getIdTokenFunc,
     loading,
     login,
     logout,

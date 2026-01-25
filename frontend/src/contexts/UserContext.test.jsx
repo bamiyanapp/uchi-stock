@@ -1,3 +1,4 @@
+import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UserProvider } from './UserProvider';
@@ -140,5 +141,48 @@ describe('UserContext', () => {
     await waitFor(() => {
       expect(screen.getByTestId('user-id').textContent).toBe('test-user');
     });
+  });
+
+  it('provides getIdToken function that returns id token', async () => {
+    const mockUser = {
+      uid: 'real-user-uuid',
+      getIdToken: vi.fn().mockResolvedValue('mock-id-token')
+    };
+
+    firebaseAuth.onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(mockUser);
+      return () => {};
+    });
+
+    let capturedContext;
+    const TokenTestComponent = () => {
+      const userContext = useUser();
+      React.useEffect(() => {
+        capturedContext = userContext;
+      }, [userContext]);
+      return <div data-testid="user-id">{userContext.userId}</div>;
+    };
+
+    await act(async () => {
+      render(
+        <UserProvider>
+          <TokenTestComponent />
+        </UserProvider>
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user-id').textContent).toBe('real-user-uuid');
+    });
+
+    expect(typeof capturedContext.getIdToken).toBe('function');
+    
+    // Mock the current user in firebaseAuth
+    const { auth } = await import('../firebaseConfig');
+    auth.currentUser = mockUser;
+
+    const token = await capturedContext.getIdToken();
+    expect(token).toBe('mock-id-token');
+    expect(mockUser.getIdToken).toHaveBeenCalled();
   });
 });
