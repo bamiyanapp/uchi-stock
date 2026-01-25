@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 
@@ -12,11 +12,7 @@ const FamilyInvite = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || "https://u8ix9o2m78.execute-api.ap-northeast-1.amazonaws.com/dev";
 
-  useEffect(() => {
-    fetchFamilies();
-  }, [userId]);
-
-  const fetchFamilies = async () => {
+  const fetchFamilies = useCallback(async () => {
     if (!userId || userId === 'pending') return;
     try {
       const token = await getIdToken();
@@ -32,7 +28,11 @@ const FamilyInvite = () => {
     } catch (err) {
       console.error("Failed to fetch families", err);
     }
-  };
+  }, [userId, getIdToken, API_URL]);
+
+  useEffect(() => {
+    fetchFamilies();
+  }, [fetchFamilies]);
 
   const createInvitation = async () => {
     setLoading(true);

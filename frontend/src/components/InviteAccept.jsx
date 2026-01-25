@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 
@@ -11,13 +11,7 @@ const InviteAccept = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || "https://u8ix9o2m78.execute-api.ap-northeast-1.amazonaws.com/dev";
 
-  useEffect(() => {
-    if (userId && userId !== 'pending' && userId !== 'test-user') {
-      acceptInvitation();
-    }
-  }, [userId]);
-
-  const acceptInvitation = async () => {
+  const acceptInvitation = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -43,13 +37,19 @@ const InviteAccept = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, getIdToken, API_URL, navigate]);
+
+  useEffect(() => {
+    if (userId && userId !== 'pending' && userId !== 'test-user') {
+      acceptInvitation();
+    }
+  }, [userId, acceptInvitation]);
 
   const handleLogin = async () => {
     try {
       await login();
       // login() 成功後、userIdが更新され、useEffectでacceptInvitationが呼ばれる
-    } catch (err) {
+    } catch {
       setError("ログインに失敗しました");
     }
   };
