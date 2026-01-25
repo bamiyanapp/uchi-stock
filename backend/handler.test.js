@@ -23,12 +23,14 @@ vi.spyOn(console, 'error').mockImplementation(() => {});
 describe('うちストック API', () => {
   const ITEMS_TABLE = 'uchi-stock-app-items';
   const HISTORY_TABLE = 'uchi-stock-app-stock-history';
+  const USERS_TABLE = 'uchi-stock-app-users';
   const TEST_USER = 'test-user';
 
   beforeEach(() => {
     ddbMock.reset();
     process.env.TABLE_NAME = ITEMS_TABLE;
     process.env.STOCK_HISTORY_TABLE_NAME = HISTORY_TABLE;
+    process.env.USERS_TABLE_NAME = USERS_TABLE;
     // 日時を固定
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2023-01-01T12:00:00Z'));
@@ -172,6 +174,45 @@ describe('うちストック API', () => {
       const result = await createItem(event);
       expect(result.statusCode).toBe(400);
       expect(JSON.parse(result.body).message).toBe('Request body is missing');
+    });
+
+    it('should sync user info when Authorization header is present', async () => {
+      // firebase-admin のモックを設定
+      const admin = require('firebase-admin');
+      vi.spyOn(admin, 'apps', 'get').mockReturnValue([{ name: 'mock-app' }]);
+      const verifyIdTokenMock = vi.fn().mockResolvedValue({
+        uid: 'uid123',
+        email: 'test@example.com',
+        name: 'Test User',
+        picture: 'https://example.com/photo.jpg'
+      });
+      vi.spyOn(admin, 'auth').mockReturnValue({
+        verifyIdToken: verifyIdTokenMock
+      });
+
+      const event = {
+        headers: { 'Authorization': 'Bearer mock-token' },
+        body: JSON.stringify({ name: 'Test Item', unit: 'pcs' }),
+      };
+
+      ddbMock.on(PutCommand).resolves({});
+
+      const result = await createItem(event);
+
+      expect(result.statusCode).toBe(201);
+      
+      // users テーブルへの PutCommand が呼ばれたか確認
+      const userSyncCall = ddbMock.calls().find(c => 
+        c.args[0] instanceof PutCommand && 
+        c.args[0].input.TableName === USERS_TABLE
+      );
+      expect(userSyncCall).toBeDefined();
+      expect(userSyncCall.args[0].input.Item).toMatchObject({
+        userId: 'uid123',
+        email: 'test@example.com',
+        displayName: 'Test User',
+        photoURL: 'https://example.com/photo.jpg'
+      });
     });
   });
 

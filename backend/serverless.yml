@@ -9,6 +9,7 @@ provider:
   environment:
     TABLE_NAME: ${self:custom.tableName}
     STOCK_HISTORY_TABLE_NAME: ${self:custom.stockHistoryTableName}
+    USERS_TABLE_NAME: ${self:custom.usersTableName}
     FIREBASE_SERVICE_ACCOUNT: ${env:FIREBASE_SERVICE_ACCOUNT, ''}
     ALLOW_INSECURE_USER_ID: ${env:ALLOW_INSECURE_USER_ID, 'false'}
   iam:
@@ -25,11 +26,13 @@ provider:
           Resource:
             - !GetAtt HouseholdItemsTable.Arn
             - !GetAtt StockHistoryTableV4.Arn
+            - !GetAtt UsersTable.Arn
 
 custom:
   appName: uchi-stock-app
   tableName: ${self:custom.appName}-items-v2
   stockHistoryTableName: ${self:custom.appName}-stock-history-v4
+  usersTableName: ${self:custom.appName}-users-v1
 
 functions:
   createItem:
@@ -177,6 +180,28 @@ resources:
             KeyType: HASH
           - AttributeName: itemId
             KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.usersTableName}
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: EmailIndex
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
         PointInTimeRecoverySpecification:
           PointInTimeRecoveryEnabled: true

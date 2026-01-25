@@ -40,6 +40,7 @@ const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
 const ITEMS_TABLE = () => process.env.TABLE_NAME;
 const HISTORY_TABLE = () => process.env.STOCK_HISTORY_TABLE_NAME;
+const USERS_TABLE = () => process.env.USERS_TABLE_NAME;
 
 const verifyFirebaseToken = async (token) => {
   if (!admin.apps.length) {
@@ -47,7 +48,12 @@ const verifyFirebaseToken = async (token) => {
   }
   try {
     const decodedToken = await admin.auth().verifyIdToken(token);
-    return decodedToken.uid;
+    return {
+      userId: decodedToken.uid,
+      email: decodedToken.email,
+      displayName: decodedToken.name,
+      photoURL: decodedToken.picture
+    };
   } catch (error) {
     console.error('[verifyFirebaseToken] Error:', error.message);
     throw error;
@@ -62,6 +68,28 @@ class HttpError extends Error {
     this.detail = detail;
   }
 }
+
+/**
+ * ユーザー情報を同期する。
+ */
+const syncUserInfo = async (userInfo) => {
+  if (!userInfo || !userInfo.userId) return;
+
+  try {
+    const now = new Date().toISOString();
+    await docClient.send(new PutCommand({
+      TableName: USERS_TABLE(),
+      Item: {
+        ...userInfo,
+        updatedAt: now,
+      },
+    }));
+    console.log(`[syncUserInfo] User synced: ${userInfo.userId} (${userInfo.email || 'N/A'})`);
+  } catch (error) {
+    console.error(`[syncUserInfo] Failed to sync user info for ${userInfo.userId}:`, error.message);
+    // ユーザー同期の失敗はAPI全体の失敗とはしない（可用性優先）
+  }
+};
 
 const getUserId = async (event) => {
   if (!event || !event.headers) {
@@ -81,8 +109,11 @@ const getUserId = async (event) => {
     const token = authHeader.split(" ")[1];
     if (token && token !== "null" && token !== "undefined") {
       try {
-        const uid = await verifyFirebaseToken(token);
-        if (uid) return uid;
+        const userInfo = await verifyFirebaseToken(token);
+        if (userInfo && userInfo.userId) {
+          await syncUserInfo(userInfo);
+          return userInfo.userId;
+        }
       } catch (error) {
         if (error.message === 'Firebase Admin not initialized') {
           // サービスアカウントが未設定の場合の特別なエラー

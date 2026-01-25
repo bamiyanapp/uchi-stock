@@ -17,7 +17,7 @@
 ### ユーザー特定ロジック
 バックエンド（`handler.js`）では、以下の優先順位でユーザーID（`userId`）を特定します。
 
-1.  **Firebase ID Token**: `Authorization: Bearer <token>` ヘッダーから取得。`firebase-admin` SDKを使用してトークンを検証し、UIDを取得します。
+1.  **Firebase ID Token**: `Authorization: Bearer <token>` ヘッダーから取得。`firebase-admin` SDKを使用してトークンを検証し、UIDを取得します。また、この時に取得されるメールアドレスや表示名などのプロフィール情報は、`users` テーブルに自動的に同期されます。
 2.  **テストモード**: `x-user-id: test-user` が指定されている場合、認証なしでアクセスを許可します。これはログイン未済のユーザーが試用するための仕様です。
 3.  **開発用 fallback**: `x-user-id` ヘッダー。開発およびローカルテスト環境での利便性のために維持（`ALLOW_INSECURE_USER_ID=true` または `NODE_ENV=test` の場合のみ有効）。
 
@@ -149,3 +149,14 @@ graph TD
 | type | String | - | 履歴の種類（"purchase", "consumption"） |
 | quantity | Number | - | 数量 |
 | memo | String | - | メモ (任意) |
+
+### 3. users
+ユーザーのプロフィール情報を管理するテーブル。デバッグのしやすさの向上および将来の共有機能（お友達登録）のために使用されます。
+
+| 属性名 | 型 | キー | 説明 |
+| :--- | :--- | :--- | :--- |
+| userId | String | Partition Key | ログインユーザーID (Firebase UID) |
+| email | String | GSI (EmailIndex) | メールアドレス |
+| displayName | String | - | 表示名 |
+| photoURL | String | - | プロフィール画像URL |
+| updatedAt | String | - | 最終同期日時 (ISO8601) |
