@@ -37,6 +37,7 @@ export const UserProvider = ({ children }) => {
           setIdToken(token);
         } catch (error) {
           console.error('[UserProvider] Token error:', error);
+          // ユーザー情報は保持しつつトークンなしで続行（エラーハンドリングは各コンポーネントで行う）
           setUser(currentUser);
           setUserId(currentUser.uid);
           setIdToken(null);
