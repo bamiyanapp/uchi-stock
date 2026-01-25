@@ -25,10 +25,10 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={userId && userId !== 'test-user' && userId !== 'pending' ? <Navigate to={`/uchi-stock/${userId}`} replace /> : <Top />} />
+      <Route path="/" element={userId && userId !== 'test-user' && userId !== 'pending' ? <Navigate to={`${userId}`} replace /> : <Top />} />
       <Route path="/guide" element={<UserGuide />} />
-      <Route path="/uchi-stock/test-user" element={<Home />} />
-      <Route path="/uchi-stock/:userId" element={<Home />} />
+      <Route path="/test-user" element={<Home />} />
+      <Route path="/:userId" element={<Home />} />
       <Route path="/item/:itemId" element={<ItemDetail />} />
       <Route path="/item/:itemId/update" element={<StockUpdate />} />
       <Route path="/invite/manage" element={<FamilyInvite />} />

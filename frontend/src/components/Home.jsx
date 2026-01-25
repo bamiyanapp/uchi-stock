@@ -66,7 +66,7 @@ function Home() {
     if (!authLoading && userId !== 'pending') {
       if (userId !== 'test-user') {
         if (urlUserId !== userId) {
-          navigate(`/uchi-stock/${userId}`, { replace: true });
+          navigate(`/${userId}`, { replace: true });
         }
       } else {
         // 未ログイン状態で /uchi-stock/:userId にアクセスした場合はトップへ
