@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Trash2, ExternalLink, AlertTriangle, Clock, Plus, X, Bug, User as UserIcon } from "lucide-react";
+import { Trash2, ExternalLink, AlertTriangle, Clock, Plus, X, Bug, User as UserIcon, Users } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
 
-const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
 
 function Home() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [families, setFamilies] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isAdding, setIsAdding] = useState(false);
   const [newItemName, setNewItemName] = useState("");
@@ -26,6 +28,39 @@ function Home() {
     logout = () => {}, 
     loading: authLoading = false 
   } = authContext;
+
+  const getHeaders = useCallback(() => {
+    if (userId === 'pending') return null;
+    
+    const headers = {
+      "x-user-id": userId
+    };
+    if (idToken) {
+      headers["Authorization"] = `Bearer ${idToken}`;
+    }
+    return headers;
+  }, [userId, idToken]);
+
+  const fetchFamilies = useCallback(async () => {
+    try {
+      const headers = getHeaders();
+      if (!headers) return;
+      const response = await fetch(`${API_BASE_URL}/families`, { headers });
+      if (response.ok) {
+        const data = await response.json();
+        setFamilies(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch families", err);
+    }
+  }, [getHeaders]);
+
+  useEffect(() => {
+    if (userId && userId !== 'pending' && userId !== 'test-user') {
+      setSelectedUserId(userId);
+      fetchFamilies();
+    }
+  }, [userId, fetchFamilies]);
 
   // URLのユーザーIDとログイン中のユーザーIDが異なる場合、正しいURLにリダイレクト
   useEffect(() => {
@@ -54,18 +89,6 @@ function Home() {
     }
   };
 
-  const getHeaders = useCallback(() => {
-    if (userId === 'pending') return null;
-    
-    const headers = {
-      "x-user-id": userId
-    };
-    if (idToken) {
-      headers["Authorization"] = `Bearer ${idToken}`;
-    }
-    return headers;
-  }, [userId, idToken]);
-
   const fetchItems = useCallback(async () => {
     const headers = getHeaders();
     if (!headers) return;
@@ -77,7 +100,12 @@ function Home() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/items`, {
+      const url = new URL(`${API_BASE_URL}/items`);
+      if (selectedUserId) {
+        url.searchParams.append("userId", selectedUserId);
+      }
+
+      const response = await fetch(url.toString(), {
         headers
       });
       
@@ -93,7 +121,13 @@ function Home() {
       const itemsWithEstimates = await Promise.all(
         itemsList.map(async (item) => {
           try {
-            const estResponse = await fetch(`${API_BASE_URL}/items/${item.itemId}/estimate?date=${selectedDate.toISOString()}`, {
+            const estUrl = new URL(`${API_BASE_URL}/items/${item.itemId}/estimate`);
+            estUrl.searchParams.append("date", selectedDate.toISOString());
+            if (selectedUserId) {
+              estUrl.searchParams.append("userId", selectedUserId);
+            }
+
+            const estResponse = await fetch(estUrl.toString(), {
               headers
             });
             const estData = await estResponse.json();
@@ -111,7 +145,7 @@ function Home() {
     } finally {
       setLoading(false);
     }
-  }, [getHeaders, selectedDate, user, idToken]);
+  }, [getHeaders, selectedDate, user, idToken, selectedUserId]);
 
   useEffect(() => {
     fetchItems();
@@ -122,7 +156,13 @@ function Home() {
     try {
       const headers = getHeaders();
       if (!headers) return;
-      const response = await fetch(`${API_BASE_URL}/items/${itemId}`, {
+
+      const url = new URL(`${API_BASE_URL}/items/${itemId}`);
+      if (selectedUserId) {
+        url.searchParams.append("userId", selectedUserId);
+      }
+
+      const response = await fetch(url.toString(), {
         method: "DELETE",
         headers
       });
@@ -159,7 +199,12 @@ function Home() {
         "Content-Type": "application/json",
       };
       
-      const response = await fetch(`${API_BASE_URL}/items`, {
+      const url = new URL(`${API_BASE_URL}/items`);
+      if (selectedUserId) {
+        url.searchParams.append("userId", selectedUserId);
+      }
+
+      const response = await fetch(url.toString(), {
         method: "POST",
         headers: fullHeaders,
         body: JSON.stringify({
@@ -235,6 +280,14 @@ function Home() {
       )}
 
       <header className="text-center mb-5 position-relative">
+        <div className="position-absolute top-0 start-0 p-2">
+          {user && (
+            <Link to="/invite/manage" className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1">
+              <Users size={16} />
+              家族を招待
+            </Link>
+          )}
+        </div>
         <div className="position-absolute top-0 end-0 p-2">
           {authLoading ? (
             <div className="spinner-border spinner-border-sm text-secondary" role="status"></div>
@@ -267,6 +320,29 @@ function Home() {
       </header>
 
       <main>
+        {families.length > 0 && (
+          <div className="mb-4">
+            <label className="form-label fw-bold">表示する在庫を選択</label>
+            <div className="d-flex gap-2 overflow-auto pb-2">
+              <button
+                className={`btn btn-sm ${selectedUserId === userId ? 'btn-primary' : 'btn-outline-primary'} text-nowrap`}
+                onClick={() => setSelectedUserId(userId)}
+              >
+                自分の在庫
+              </button>
+              {families.map(member => (
+                <button
+                  key={member.userId}
+                  className={`btn btn-sm ${selectedUserId === member.userId ? 'btn-primary' : 'btn-outline-primary'} text-nowrap`}
+                  onClick={() => setSelectedUserId(member.userId)}
+                >
+                  {member.displayName} の在庫
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="row mb-4 g-3">
           <div className="col-md-6">
             <label htmlFor="date-picker" className="form-label fw-bold">基準日付</label>
@@ -393,7 +469,7 @@ function Home() {
                       <div className="card-body">
                         <div className="d-flex justify-content-between align-items-start mb-3">
                           <h3 className="h5 card-title mb-0">
-                            <Link to={`/item/${item.itemId}`} className="text-decoration-none text-dark hover-primary">
+                            <Link to={`/item/${item.itemId}${selectedUserId !== userId ? `?userId=${selectedUserId}` : ''}`} className="text-decoration-none text-dark hover-primary">
                               {item.name} <ExternalLink size={14} className="text-muted" />
                             </Link>
                           </h3>
@@ -452,10 +528,16 @@ function Home() {
                         </div>
 
                         <div className="d-grid gap-2">
-                          <Link to={`/item/${item.itemId}/update`} className="btn btn-primary">
+                          <Link 
+                            to={`/item/${item.itemId}/update${selectedUserId !== userId ? `?userId=${selectedUserId}` : ''}`} 
+                            className="btn btn-primary"
+                          >
                             在庫を更新する
                           </Link>
-                          <Link to={`/item/${item.itemId}`} className="btn btn-outline-secondary btn-sm">
+                          <Link 
+                            to={`/item/${item.itemId}${selectedUserId !== userId ? `?userId=${selectedUserId}` : ''}`} 
+                            className="btn btn-outline-secondary btn-sm"
+                          >
                             詳細・履歴
                           </Link>
                         </div>

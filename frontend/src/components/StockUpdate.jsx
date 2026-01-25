@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Save, Minus, Plus } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
 
-const API_BASE_URL = "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
 
 const StockUpdate = () => {
   const { itemId } = useParams();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const targetUserId = queryParams.get("userId");
+
   const navigate = useNavigate();
   const authContext = useUser() || {};
   const { userId = 'pending', idToken = null, user = null } = authContext;
@@ -36,7 +40,11 @@ const StockUpdate = () => {
     if (!headers) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/items`, { headers });
+      const url = new URL(`${API_BASE_URL}/items`);
+      if (targetUserId) {
+        url.searchParams.append("userId", targetUserId);
+      }
+      const response = await fetch(url.toString(), { headers });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `HTTP ${response.status}`);
@@ -49,7 +57,7 @@ const StockUpdate = () => {
     } catch (error) {
       console.error("Error fetching item details:", error);
     }
-  }, [itemId, getHeaders, user, idToken]);
+  }, [itemId, getHeaders, user, idToken, targetUserId]);
 
   useEffect(() => {
     const initialFetch = async () => {
@@ -95,7 +103,11 @@ const StockUpdate = () => {
       const dateStr = new Date().toISOString();
 
       if (consumption > 0) {
-        const res = await fetch(`${API_BASE_URL}/items/${itemId}/consume`, {
+        const url = new URL(`${API_BASE_URL}/items/${itemId}/consume`);
+        if (targetUserId) {
+          url.searchParams.append("userId", targetUserId);
+        }
+        const res = await fetch(url.toString(), {
           method: "POST",
           headers: fullHeaders,
           body: JSON.stringify({ quantity: consumption, memo, date: dateStr }),
@@ -107,7 +119,11 @@ const StockUpdate = () => {
       }
 
       if (purchase > 0) {
-        const res = await fetch(`${API_BASE_URL}/items/${itemId}/stock`, {
+        const url = new URL(`${API_BASE_URL}/items/${itemId}/stock`);
+        if (targetUserId) {
+          url.searchParams.append("userId", targetUserId);
+        }
+        const res = await fetch(url.toString(), {
           method: "POST",
           headers: fullHeaders,
           body: JSON.stringify({ quantity: purchase, memo, date: dateStr }),
@@ -118,7 +134,7 @@ const StockUpdate = () => {
         }
       }
 
-      navigate(`/item/${itemId}`);
+      navigate(`/item/${itemId}${targetUserId ? `?userId=${targetUserId}` : ''}`);
     } catch (error) {
       console.error("Error updating stock:", error);
       alert(error.message);
@@ -154,7 +170,10 @@ const StockUpdate = () => {
   return (
     <div className="container py-5">
       <div className="mb-4">
-        <Link to={`/item/${itemId}`} className="btn btn-link p-0 text-decoration-none d-inline-flex align-items-center">
+        <Link 
+          to={`/item/${itemId}${targetUserId ? `?userId=${targetUserId}` : ''}`} 
+          className="btn btn-link p-0 text-decoration-none d-inline-flex align-items-center"
+        >
           <ArrowLeft size={20} className="me-1" /> 詳細へ戻る
         </Link>
       </div>
@@ -271,7 +290,10 @@ const StockUpdate = () => {
                     )}
                     更新を保存する
                   </button>
-                  <Link to={`/item/${itemId}`} className="btn btn-outline-secondary">
+                  <Link 
+                    to={`/item/${itemId}${targetUserId ? `?userId=${targetUserId}` : ''}`} 
+                    className="btn btn-outline-secondary"
+                  >
                     キャンセル
                   </Link>
                 </div>

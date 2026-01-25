@@ -10,6 +10,8 @@ provider:
     TABLE_NAME: ${self:custom.tableName}
     STOCK_HISTORY_TABLE_NAME: ${self:custom.stockHistoryTableName}
     USERS_TABLE_NAME: ${self:custom.usersTableName}
+    FAMILIES_TABLE_NAME: ${self:custom.familiesTableName}
+    INVITATIONS_TABLE_NAME: ${self:custom.invitationsTableName}
     FIREBASE_SERVICE_ACCOUNT: ${env:FIREBASE_SERVICE_ACCOUNT, ''}
     ALLOW_INSECURE_USER_ID: ${env:ALLOW_INSECURE_USER_ID, 'false'}
   iam:
@@ -27,12 +29,16 @@ provider:
             - !GetAtt HouseholdItemsTable.Arn
             - !GetAtt StockHistoryTableV4.Arn
             - !GetAtt UsersTable.Arn
+            - !GetAtt FamiliesTable.Arn
+            - !GetAtt InvitationsTable.Arn
 
 custom:
   appName: uchi-stock-app
   tableName: ${self:custom.appName}-items-v2
   stockHistoryTableName: ${self:custom.appName}-stock-history-v4
   usersTableName: ${self:custom.appName}-users-v1
+  familiesTableName: ${self:custom.appName}-families-v1
+  invitationsTableName: ${self:custom.appName}-invitations-v1
 
 functions:
   createItem:
@@ -163,6 +169,54 @@ functions:
               - X-Amz-Security-Token
               - X-Amz-User-Agent
               - x-user-id
+  createInvitation:
+    handler: handler.createInvitation
+    events:
+      - http:
+          path: invitations
+          method: post
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - x-user-id
+  acceptInvitation:
+    handler: handler.acceptInvitation
+    events:
+      - http:
+          path: invitations/accept
+          method: post
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - x-user-id
+  getFamilies:
+    handler: handler.getFamilies
+    events:
+      - http:
+          path: families
+          method: get
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - x-user-id
 
 resources:
   Resources:
@@ -203,6 +257,39 @@ resources:
             Projection:
               ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+    FamiliesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.familiesTableName}
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: familyUserId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: familyUserId
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+    InvitationsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.invitationsTableName}
+        AttributeDefinitions:
+          - AttributeName: invitationToken
+            AttributeType: S
+        KeySchema:
+          - AttributeName: invitationToken
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TimeToLiveSpecification:
+          AttributeName: expiresAt
+          Enabled: true
         PointInTimeRecoverySpecification:
           PointInTimeRecoveryEnabled: true
     StockHistoryTableV4:

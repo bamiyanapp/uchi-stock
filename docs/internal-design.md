@@ -7,10 +7,138 @@
 - [2. 在庫予測アルゴリズム](#2-在庫予測アルゴリズム)
 - [3. データベース整合性](#3-データベース整合性)
 - [4. 履歴の種類と定義](#4-履歴の種類と定義)
-- [5. システム構成 (Architecture)](#5-システム構成-architecture)
-- [6. データベース設計 (Database Design)](#6-データベース設計-database-design)
+- [5. 家族共有機能 (Family Sharing)](#5-家族共有機能-family-sharing)
+- [6. システム構成 (Architecture)](#6-システム構成-architecture)
+- [7. データベース設計 (Database Design)](#7-データベース設計-database-design)
 
 ---
+>>>>>>>------- SEARCH
+---
+
+## 5. システム構成 (Architecture)
+
+### システム構成図
+---
+
+## 5. 家族共有機能 (Family Sharing)
+
+### 概要
+ユーザーが家族を招待し、在庫情報を相互に共有・更新できる機能です。
+
+### 招待フロー
+1.  **招待URL発行**: ユーザー（招待者）がAPIを叩き、一意の `invitationToken` を発行します。
+2.  **送付**: 招待者はURL（例: `https://.../invite/{token}`）をSNS等で相手に送ります。
+3.  **受領・登録**: 相手がURLを開き、ログイン（未ログインの場合）すると、家族関係が `families` テーブルに記録されます。
+
+### 共有モデル
+-   **双方向共有**: AがBを招待して成立した場合、AはBの在庫を、BはAの在庫を参照・更新できるようになります。
+-   **権限**: 家族メンバーは在庫の「参照」「追加」「消費」「編集」が可能です。ただし、品目自体の「削除」は所有者（作成者）のみに制限されます。
+
+### シーケンス
+```mermaid
+sequenceDiagram
+    participant A as 招待者 (User A)
+    participant B as 被招待者 (User B)
+    participant S as Backend / DB
+
+    A->>S: 招待トークン発行リクエスト
+    S-->>A: invitationToken 返却
+    A->>B: 招待URLを送付
+    B->>S: 招待URLアクセス & ログイン
+    B->>S: 招待受諾 (token)
+    S->>S: 家族関係登録 (A <-> B)
+    S-->>B: 登録完了
+    B->>S: Aの在庫一覧リクエスト
+    S-->>B: Aの在庫データを返却
+```
+
+---
+
+## 6. システム構成 (Architecture)
+
+### システム構成図
+>>>>>>>------- SEARCH
+### 画面遷移図
+
+```mermaid
+graph TD
+    Login[Google ログイン画面] --> |ログイン成功| Home[在庫一覧画面: /uchi-stock/userId]
+    Home --> |品目名をクリック| Detail[品目詳細・履歴画面]
+    Home --> |「在庫を更新する」をクリック| Update[在庫更新画面]
+    Detail --> |「在庫を更新する」をクリック| Update
+    Update --> |「更新を保存する」をクリック| Detail
+    Detail --> |「在庫一覧へ戻る」をクリック| Home
+    Home --> |ログアウト| Login[ログイン前トップ: /]
+```
+
+### 画面一覧
+### 画面遷移図
+
+```mermaid
+graph TD
+    Login[Google ログイン画面] --> |ログイン成功| Home[在庫一覧画面: /uchi-stock/userId]
+    Home --> |「家族を招待」をクリック| Invite[招待URL発行画面]
+    Home --> |「家族の在庫を表示」をクリック| HomeShared[在庫一覧画面: 家族選択中]
+    Invite --> |URLコピー| Home
+    LoginAccept[招待URLアクセス/ログイン] --> |受諾成功| Home
+    
+    Home --> |品目名をクリック| Detail[品目詳細・履歴画面]
+    Home --> |「在庫を更新する」をクリック| Update[在庫更新画面]
+    Detail --> |「在庫を更新する」をクリック| Update
+    Update --> |「更新を保存する」をクリック| Detail
+    Detail --> |「在庫一覧へ戻る」をクリック| Home
+    Home --> |ログアウト| Login[ログイン前トップ: /]
+```
+
+### 画面一覧
+>>>>>>>------- SEARCH
+| 画面名 | パス | 説明 |
+| :--- | :--- | :--- |
+| 在庫一覧 (未ログイン) | `/` | ログインを促す、またはアプリの概要を表示します。 |
+| 在庫一覧 (ログイン済) | `/uchi-stock/{userId}` | ログインユーザーに紐づく品目の一覧、現在の在庫数、および在庫切れ予想日を表示します。 |
+| 品目詳細・履歴 | `/item/{itemId}` | 特定の品目の詳細情報と、これまでの在庫変動履歴（購入・消費）を表示します。 |
+| 在庫更新 | `/item/{itemId}/update` | 在庫数の追加（購入）や消費を記録し、現在の在庫数を更新します。 |
+
+---
+
+## 6. データベース設計 (Database Design)
+| 画面名 | パス | 説明 |
+| :--- | :--- | :--- |
+| 在庫一覧 (未ログイン) | `/` | ログインを促す、またはアプリの概要を表示します。 |
+| 在庫一覧 (ログイン済) | `/uchi-stock/{userId}` | ログインユーザーに紐づく品目の一覧、現在の在庫数、および在庫切れ予想日を表示します。家族の在庫への切り替えUIを含みます。 |
+| 家族招待 | `/invite/manage` | 招待URLの発行および現在の家族一覧を表示します。 |
+| 招待受諾 | `/invite/{token}` | 招待URLのランディングページ。ログイン後、家族登録を実行します。 |
+| 品目詳細・履歴 | `/item/{itemId}` | 特定の品目の詳細情報と、これまでの在庫変動履歴（購入・消費）を表示します。 |
+| 在庫更新 | `/item/{itemId}/update` | 在庫数の追加（購入）や消費を記録し、現在の在庫数を更新します。 |
+
+---
+
+## 7. データベース設計 (Database Design)
+>>>>>>>------- SEARCH
+| updatedAt | String | - | 最終同期日時 (ISO8601) |
+| updatedAt | String | - | 最終同期日時 (ISO8601) |
+
+### 4. families
+ユーザー間の家族関係を管理するテーブル。
+
+| 属性名 | 型 | キー | 説明 |
+| :--- | :--- | :--- | :--- |
+| userId | String | Partition Key | ユーザーID (自分) |
+| familyUserId | String | Sort Key | 家族のユーザーID (相手) |
+| relationType | String | - | 関係の種類（"member"） |
+| createdAt | String | - | 登録日時 |
+
+※ AがBを招待した場合、`userId=A, familyUserId=B` と `userId=B, familyUserId=A` の2レコードを作成することで双方向共有を実現します。
+
+### 5. invitations
+未完了の招待情報を管理するテーブル。
+
+| 属性名 | 型 | キー | 説明 |
+| :--- | :--- | :--- | :--- |
+| invitationToken | String | Partition Key | 招待用トークン (UUID) |
+| inviterUserId | String | - | 招待者のユーザーID |
+| expiresAt | Number | - | 有効期限 (TTL用、Unix Timestamp) |
+| createdAt | String | - | 発行日時 |
 
 ## 1. ユーザー識別とセキュリティ
 
