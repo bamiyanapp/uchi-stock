@@ -16,14 +16,14 @@ function Top() {
 
   const handleStart = () => {
     if (userId && userId !== 'test-user') {
-      navigate(`/uchi-stock/${userId}`);
+      navigate(`/${userId}`);
     } else {
       login();
     }
   };
 
   const handleDemo = () => {
-    navigate("/uchi-stock/test-user");
+    navigate("/test-user");
   };
 
   const handleGuide = () => {
