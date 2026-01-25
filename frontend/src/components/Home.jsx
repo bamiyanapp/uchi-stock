@@ -57,15 +57,24 @@ function Home() {
 
   useEffect(() => {
     if (userId && userId !== 'pending' && userId !== 'test-user') {
-      setSelectedUserId(userId);
+      // URLで test-user が指定されている場合はそちらを優先（デモモード）
+      if (urlUserId === 'test-user') {
+        setSelectedUserId('test-user');
+      } else {
+        setSelectedUserId(userId);
+      }
       fetchFamilies();
     }
-  }, [userId, fetchFamilies]);
+  }, [userId, urlUserId, fetchFamilies]);
 
   // URLのユーザーIDとログイン中のユーザーIDが異なる場合、正しいURLにリダイレクト
   useEffect(() => {
     if (!authLoading && userId !== 'pending') {
       if (userId !== 'test-user') {
+        // デモモード（test-user）へのアクセスは許可する
+        if (urlUserId === 'test-user') {
+          return;
+        }
         // userIdがURLに含まれていない（トップページなど）場合はリダイレクトしない
         if (urlUserId && urlUserId !== userId) {
           navigate(`/${userId}`, { replace: true });

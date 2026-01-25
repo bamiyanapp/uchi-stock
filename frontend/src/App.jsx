@@ -11,7 +11,7 @@ import { useUser } from "./contexts/UserContext";
 import "./App.css";
 
 function AppRoutes() {
-  const { loading } = useUser();
+  const { userId, loading } = useUser();
 
   if (loading) {
     return (
@@ -25,7 +25,7 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<Top />} />
+      <Route path="/" element={userId && userId !== 'test-user' && userId !== 'pending' ? <Navigate to={`${userId}`} replace /> : <Top />} />
       <Route path="/guide" element={<UserGuide />} />
       <Route path="/test-user" element={<Home />} />
       <Route path="/:userId" element={<Home />} />
