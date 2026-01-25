@@ -19,7 +19,7 @@ const ItemDetail = () => {
   const authContext = useUser() || {};
   const { userId = 'pending', idToken = null, user = null } = authContext;
 
-  const homePath = userId && userId !== 'test-user' && userId !== 'pending' ? `/uchi-stock/${userId}` : "/";
+  const homePath = userId && userId !== 'test-user' && userId !== 'pending' ? `/${userId}` : "/";
 
   const getHeaders = useCallback(() => {
     if (userId === 'pending') return null;

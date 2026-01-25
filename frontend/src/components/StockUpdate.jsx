@@ -153,7 +153,7 @@ const StockUpdate = () => {
     );
   }
 
-  const homePath = userId && userId !== 'test-user' && userId !== 'pending' ? `/uchi-stock/${userId}` : "/";
+  const homePath = userId && userId !== 'test-user' && userId !== 'pending' ? `/${userId}` : "/";
 
   if (!item) {
     return (
