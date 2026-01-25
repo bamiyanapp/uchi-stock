@@ -31,6 +31,12 @@ function Home() {
   const getHeaders = useCallback(() => {
     if (userId === 'pending') return null;
     
+    // 表示対象がデモユーザー（test-user）の場合は、ログイン状態に関わらず認証ヘッダーを送らない。
+    // これによりバックエンドはリクエストをデモユーザーのものとして処理する。
+    if (urlUserId === 'test-user' || selectedUserId === 'test-user') {
+      return { "x-user-id": "test-user" };
+    }
+
     const headers = {
       "x-user-id": userId
     };
@@ -38,7 +44,7 @@ function Home() {
       headers["Authorization"] = `Bearer ${idToken}`;
     }
     return headers;
-  }, [userId, idToken]);
+  }, [userId, idToken, urlUserId, selectedUserId]);
 
   const fetchFamilies = useCallback(async () => {
     try {

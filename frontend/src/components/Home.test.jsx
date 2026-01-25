@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, MemoryRouter, Routes, Route } from "react-router-dom";
 import Home from "./Home";
 import { UserContext } from "../contexts/UserContext";
 
@@ -241,6 +241,36 @@ describe("Home Component", () => {
       const img = screen.getByAltText("User With Photo");
       expect(img).toBeInTheDocument();
       expect(img).toHaveAttribute("src", "https://example.com/photo.jpg");
+    });
+  });
+
+  it("sends no authorization header when viewing demo-user even if logged in", async () => {
+    const loggedInUserContext = {
+      ...mockUserContext,
+      userId: "real-user-uid",
+      idToken: "real-user-token",
+      user: { uid: "real-user-uid" },
+    };
+
+    render(
+      <UserContext.Provider value={loggedInUserContext}>
+        <MemoryRouter initialEntries={["/test-user"]}>
+          <Routes>
+            <Route path="/:userId" element={<Home />} />
+          </Routes>
+        </MemoryRouter>
+      </UserContext.Provider>
+    );
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/items"),
+        expect.objectContaining({
+          headers: expect.not.objectContaining({
+            Authorization: expect.any(String),
+          }),
+        })
+      );
     });
   });
 
