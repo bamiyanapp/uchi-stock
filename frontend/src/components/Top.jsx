@@ -15,7 +15,7 @@ function Top() {
   }, []);
 
   const handleStart = () => {
-    if (userId && userId !== 'test-user') {
+    if (userId && userId !== 'test-user' && userId !== 'pending') {
       navigate(`/${userId}`);
     } else {
       login();
