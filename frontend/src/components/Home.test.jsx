@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, MemoryRouter, Routes, Route } from "react-router-dom";
 import Home from "./Home";
 import { UserContext } from "../contexts/UserContext";
 
@@ -251,9 +251,6 @@ describe("Home Component", () => {
       idToken: "real-user-token",
       user: { uid: "real-user-uid" },
     };
-
-    // Use memory router to simulate /test-user path
-    const { MemoryRouter, Routes, Route } = await import("react-router-dom");
 
     render(
       <UserContext.Provider value={loggedInUserContext}>
