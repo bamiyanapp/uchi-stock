@@ -9,8 +9,9 @@ const isDev = import.meta.env.MODE === 'development';
 export const UserProvider = ({ children }) => {
   const hasApiKey = !!auth.config?.apiKey && auth.config.apiKey !== "mock-api-key";
   const isSkipAuth = (isE2E || !hasApiKey) && import.meta.env.MODE !== 'test' && !isDev;
+  const isTest = import.meta.env.MODE === 'test';
 
-  const [userId, setUserId] = useState(isSkipAuth ? 'test-user' : 'pending');
+  const [userId, setUserId] = useState(isSkipAuth || isTest ? 'test-user' : 'pending');
   const [user, setUser] = useState(null);
   const [idToken, setIdToken] = useState(null);
   
