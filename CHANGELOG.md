@@ -1,4 +1,4 @@
-## [1.14.0](https://github.com/bamiyanapp/karuta/compare/1.14.1...1.14.0) (2026-01-24)
+## [1.14.0](https://github.com/bamiyanapp/karuta/compare/1.14.1...1.14.0) (2026-01-25)
 
 ### Features
 
