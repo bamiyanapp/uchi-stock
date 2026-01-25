@@ -53,7 +53,8 @@ test.describe('Item Detail Page', () => {
 
   test('should display item details and history', async ({ page }) => {
     // Wait for the page to load and display the item name
-    await expect(page.locator('h1')).toContainText('トイレットペーパー', { timeout: 10000 });
+    // Use data-testid to uniquely identify the item name and avoid conflict with header title
+    await expect(page.getByTestId('item-name')).toContainText('トイレットペーパー', { timeout: 10000 });
     
     // Use specific locators to avoid strict mode violation for common strings/numbers
     await expect(page.locator('.display-6').getByText('5', { exact: true })).toBeVisible();

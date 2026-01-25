@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Save, Minus, Plus } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
+import Header from "./Header";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
 
@@ -168,149 +169,153 @@ const StockUpdate = () => {
   const daysSinceUpdate = Math.floor((new Date() - new Date(item.updatedAt)) / (1000 * 60 * 60 * 24));
 
   return (
-    <div className="container py-5">
-      <div className="mb-4">
-        <Link 
-          to={`/item/${itemId}${targetUserId ? `?userId=${targetUserId}` : ''}`} 
-          className="btn btn-link p-0 text-decoration-none d-inline-flex align-items-center"
-        >
-          <ArrowLeft size={20} className="me-1" /> 詳細へ戻る
-        </Link>
-      </div>
+    <>
+      <Header />
+      <div className="container py-5">
+        <div className="header-spacer mb-4"></div>
+        <div className="mb-4">
+          <Link 
+            to={`/item/${itemId}${targetUserId ? `?userId=${targetUserId}` : ''}`} 
+            className="btn btn-link p-0 text-decoration-none d-inline-flex align-items-center"
+          >
+            <ArrowLeft size={20} className="me-1" /> 詳細へ戻る
+          </Link>
+        </div>
 
-      <header className="mb-5">
-        <h1 className="h2 fw-bold mb-2">在庫を更新する</h1>
-        <p className="text-muted">{item.name}</p>
-      </header>
+        <header className="mb-5">
+          <h1 className="h2 fw-bold mb-2">在庫を更新する</h1>
+          <p className="text-muted">{item.name}</p>
+        </header>
 
-      <div className="row justify-content-center">
-        <div className="col-md-6">
-          <div className="card shadow-sm border-0">
-            <div className="card-body p-4">
-              <div className="mb-4 p-3 bg-light rounded">
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <span className="text-muted small">前回更新からの経過</span>
-                  <span className="fw-bold">{daysSinceUpdate} 日</span>
+        <div className="row justify-content-center">
+          <div className="col-md-6">
+            <div className="card shadow-sm border-0">
+              <div className="card-body p-4">
+                <div className="mb-4 p-3 bg-light rounded">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="text-muted small">前回更新からの経過</span>
+                    <span className="fw-bold">{daysSinceUpdate} 日</span>
+                  </div>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span className="text-muted small">現在の在庫（前回登録分）</span>
+                    <span className="fw-bold">{item.currentStock} {item.unit}</span>
+                  </div>
                 </div>
-                <div className="d-flex justify-content-between align-items-center">
-                  <span className="text-muted small">現在の在庫（前回登録分）</span>
-                  <span className="fw-bold">{item.currentStock} {item.unit}</span>
-                </div>
+
+                <form onSubmit={handleSubmit}>
+                  <div className="mb-4">
+                    <label htmlFor="consumption-input" className="form-label fw-bold d-flex align-items-center">
+                      <Minus size={18} className="me-2 text-warning" />
+                      消費した量 ({item.unit})
+                    </label>
+                    <div className="input-group">
+                      <button 
+                        type="button" 
+                        className="btn btn-outline-secondary"
+                        onClick={() => setConsumption(Math.max(0, consumption - 1))}
+                      >
+                        -1
+                      </button>
+                      <input 
+                        id="consumption-input"
+                        type="number" 
+                        className="form-control text-center fs-5"
+                        value={consumption}
+                        onChange={(e) => setConsumption(Math.max(0, parseFloat(e.target.value) || 0))}
+                        min="0"
+                        max={item.currentStock}
+                        step="any"
+                      />
+                      <button 
+                        type="button" 
+                        className="btn btn-outline-secondary"
+                        onClick={() => setConsumption(consumption + 1)}
+                      >
+                        +1
+                      </button>
+                    </div>
+                    <div className="form-text">前回確認から今日までに消費した量を入力してください。</div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label htmlFor="purchase-input" className="form-label fw-bold d-flex align-items-center">
+                      <Plus size={18} className="me-2 text-primary" />
+                      新しく購入した量 ({item.unit})
+                    </label>
+                    <div className="input-group">
+                      <button 
+                        type="button" 
+                        className="btn btn-outline-secondary"
+                        onClick={() => setPurchase(Math.max(0, purchase - 1))}
+                      >
+                        -1
+                      </button>
+                      <input 
+                        id="purchase-input"
+                        type="number" 
+                        className="form-control text-center fs-5"
+                        value={purchase}
+                        onChange={(e) => setPurchase(Math.max(0, parseFloat(e.target.value) || 0))}
+                        min="0"
+                        step="any"
+                      />
+                      <button 
+                        type="button" 
+                        className="btn btn-outline-secondary"
+                        onClick={() => setPurchase(purchase + 1)}
+                      >
+                        +1
+                      </button>
+                    </div>
+                    <div className="form-text">新しく補充した量がある場合に入力してください。</div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="form-label fw-bold">メモ（任意）</label>
+                    <input 
+                      type="text" 
+                      className="form-control"
+                      value={memo}
+                      onChange={(e) => setMemo(e.target.value)}
+                      placeholder="例: 特売で購入"
+                    />
+                  </div>
+
+                  <div className="d-grid gap-2">
+                    <button 
+                      type="submit" 
+                      className="btn btn-primary btn-lg d-flex align-items-center justify-content-center"
+                      disabled={submitting || (consumption === 0 && purchase === 0)}
+                    >
+                      {submitting ? (
+                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                      ) : (
+                        <Save size={20} className="me-2" />
+                      )}
+                      更新を保存する
+                    </button>
+                    <Link 
+                      to={`/item/${itemId}${targetUserId ? `?userId=${targetUserId}` : ''}`} 
+                      className="btn btn-outline-secondary"
+                    >
+                      キャンセル
+                    </Link>
+                  </div>
+                </form>
               </div>
-
-              <form onSubmit={handleSubmit}>
-                <div className="mb-4">
-                  <label htmlFor="consumption-input" className="form-label fw-bold d-flex align-items-center">
-                    <Minus size={18} className="me-2 text-warning" />
-                    消費した量 ({item.unit})
-                  </label>
-                  <div className="input-group">
-                    <button 
-                      type="button" 
-                      className="btn btn-outline-secondary"
-                      onClick={() => setConsumption(Math.max(0, consumption - 1))}
-                    >
-                      -1
-                    </button>
-                    <input 
-                      id="consumption-input"
-                      type="number" 
-                      className="form-control text-center fs-5"
-                      value={consumption}
-                      onChange={(e) => setConsumption(Math.max(0, parseFloat(e.target.value) || 0))}
-                      min="0"
-                      max={item.currentStock}
-                      step="any"
-                    />
-                    <button 
-                      type="button" 
-                      className="btn btn-outline-secondary"
-                      onClick={() => setConsumption(consumption + 1)}
-                    >
-                      +1
-                    </button>
-                  </div>
-                  <div className="form-text">前回確認から今日までに消費した量を入力してください。</div>
-                </div>
-
-                <div className="mb-4">
-                  <label htmlFor="purchase-input" className="form-label fw-bold d-flex align-items-center">
-                    <Plus size={18} className="me-2 text-primary" />
-                    新しく購入した量 ({item.unit})
-                  </label>
-                  <div className="input-group">
-                    <button 
-                      type="button" 
-                      className="btn btn-outline-secondary"
-                      onClick={() => setPurchase(Math.max(0, purchase - 1))}
-                    >
-                      -1
-                    </button>
-                    <input 
-                      id="purchase-input"
-                      type="number" 
-                      className="form-control text-center fs-5"
-                      value={purchase}
-                      onChange={(e) => setPurchase(Math.max(0, parseFloat(e.target.value) || 0))}
-                      min="0"
-                      step="any"
-                    />
-                    <button 
-                      type="button" 
-                      className="btn btn-outline-secondary"
-                      onClick={() => setPurchase(purchase + 1)}
-                    >
-                      +1
-                    </button>
-                  </div>
-                  <div className="form-text">新しく補充した量がある場合に入力してください。</div>
-                </div>
-
-                <div className="mb-4">
-                  <label className="form-label fw-bold">メモ（任意）</label>
-                  <input 
-                    type="text" 
-                    className="form-control"
-                    value={memo}
-                    onChange={(e) => setMemo(e.target.value)}
-                    placeholder="例: 特売で購入"
-                  />
-                </div>
-
-                <div className="d-grid gap-2">
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary btn-lg d-flex align-items-center justify-content-center"
-                    disabled={submitting || (consumption === 0 && purchase === 0)}
-                  >
-                    {submitting ? (
-                      <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                    ) : (
-                      <Save size={20} className="me-2" />
-                    )}
-                    更新を保存する
-                  </button>
-                  <Link 
-                    to={`/item/${itemId}${targetUserId ? `?userId=${targetUserId}` : ''}`} 
-                    className="btn btn-outline-secondary"
-                  >
-                    キャンセル
-                  </Link>
-                </div>
-              </form>
             </div>
-          </div>
 
-          <div className="mt-4 p-3 bg-info bg-opacity-10 border border-info border-opacity-25 rounded">
-            <h3 className="h6 fw-bold mb-2">在庫計算の仕組み</h3>
-            <p className="small text-muted mb-0">
-              新しい在庫 = (現在の在庫) - (消費した量) + (購入した量) <br />
-              として計算されます。
-            </p>
+            <div className="mt-4 p-3 bg-info bg-opacity-10 border border-info border-opacity-25 rounded">
+              <h3 className="h6 fw-bold mb-2">在庫計算の仕組み</h3>
+              <p className="small text-muted mb-0">
+                新しい在庫 = (現在の在庫) - (消費した量) + (購入した量) <br />
+                として計算されます。
+              </p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
