@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 import Header from "./Header";
@@ -7,7 +7,7 @@ import StockList from "./StockList";
 function Home() {
   const navigate = useNavigate();
   const { userId: urlUserId } = useParams();
-  const { userId, idToken, user, loading: authLoading } = useUser();
+  const { userId, loading: authLoading } = useUser();
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   // URLのユーザーIDとログイン中のユーザーIDが異なる場合、正しいURLにリダイレクト

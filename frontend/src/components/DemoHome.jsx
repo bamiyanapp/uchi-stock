@@ -6,7 +6,7 @@ import StockList from "./StockList";
 
 function DemoHome() {
   const navigate = useNavigate();
-  const { userId } = useUser();
+  const { userId, login } = useUser();
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   const handleStart = async () => {
@@ -14,7 +14,6 @@ function DemoHome() {
       navigate(`/${userId}`);
     } else {
       try {
-        const { login } = useUser();
         const loggedInUser = await login();
         if (loggedInUser) {
           navigate(`/${loggedInUser.uid}`, { replace: true });

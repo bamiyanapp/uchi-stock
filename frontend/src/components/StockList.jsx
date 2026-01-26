@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Trash2, ExternalLink, AlertTriangle, Clock, Plus, X, Bug } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
 
@@ -8,7 +8,6 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "https://b974xlcqia.execute
 function StockList({ 
   userId: propUserId, 
   isDemo = false, 
-  showDebug = false, 
   onDateChange,
   selectedDate 
 }) {
@@ -21,9 +20,7 @@ function StockList({
   const [newItemUnit, setNewItemUnit] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const navigate = useNavigate();
-  const { userId, idToken, user, loading: authLoading } = useUser();
-  const [searchParams] = useSearchParams();
+  const { userId, idToken, user } = useUser();
 
   const getHeaders = useCallback(() => {
     if (isDemo) {
@@ -72,7 +69,6 @@ function StockList({
     const [year, month, day] = e.target.value.split('-').map(Number);
     if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
       const newDate = new Date(year, month - 1, day);
-      setSelectedDate(newDate);
       if (onDateChange) {
         onDateChange(newDate);
       }
@@ -228,32 +224,6 @@ function StockList({
 
   return (
     <div className="container py-5">
-      {/* デバッグボタン */}
-      {showDebug && (
-        <button 
-          className="btn btn-sm btn-link text-muted position-fixed bottom-0 start-0 m-2" 
-          onClick={() => setShowDebug(!showDebug)}
-          title="Debug Info"
-        >
-          <Bug size={16} />
-        </button>
-      )}
-
-      {/* デバッグパネル */}
-      {showDebug && (
-        <div className="alert alert-info small py-2 px-3 mb-4 shadow-sm border-info">
-          <div className="d-flex justify-content-between align-items-center mb-1">
-            <h6 className="m-0 fs-6 fw-bold">Debug Panel</h6>
-            <button className="btn btn-sm p-0" onClick={() => setShowDebug(false)}><X size={14}/></button>
-          </div>
-          <div>userId: <code>{userId}</code></div>
-          <div>token: <code>{idToken ? 'Present (JWT)' : 'None'}</code></div>
-          <div>API URL: <code>{API_BASE_URL}</code></div>
-          <div className="mt-2">
-            <button className="btn btn-xs btn-primary py-0 px-2 fs-7" onClick={() => fetchItems()}>Manual Refresh</button>
-          </div>
-        </div>
-      )}
 
       <div className="header-spacer mb-4 text-center">
         <p className="text-muted small">家庭用品在庫管理</p>
