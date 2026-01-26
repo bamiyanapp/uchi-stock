@@ -101,7 +101,7 @@ test.describe('Home Page', () => {
     await submitButton.click();
 
     // Verify the new item is displayed
-    const newItemCard = page.locator('.card').filter({ hasText: 'ティッシュ' });
+    const newItemCard = page.locator('.card').filter({ hasText: 'ティッシュ' }).first();
     await expect(newItemCard).toBeVisible();
     await expect(newItemCard.getByText('0', { exact: true })).toBeVisible();
     await expect(newItemCard.getByText('箱', { exact: true })).toBeVisible();

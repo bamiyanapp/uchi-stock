@@ -31,7 +31,7 @@ test.describe('Top Page and Demo Mode', () => {
     await demoButton.waitFor({ state: 'visible' });
     await demoButton.click();
     
-    await expect(page).toHaveURL(/\/test-user/);
+    await expect(page).toHaveURL(/\/demo/);
     
     // 2. デモデータが表示されていることを確認
     // 複数の「トイレットペーパー」が存在する可能性があるため first() を使用
