@@ -6,6 +6,7 @@ import ItemDetail from "./components/ItemDetail";
 import StockUpdate from "./components/StockUpdate";
 import FamilyInvite from "./components/FamilyInvite";
 import InviteAccept from "./components/InviteAccept";
+import DemoHome from "./components/DemoHome";
 import { UserProvider } from "./contexts/UserProvider";
 import { useUser } from "./contexts/UserContext";
 import "./App.css";
@@ -27,7 +28,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Top />} />
       <Route path="/guide" element={<UserGuide />} />
-      <Route path="/test-user" element={<Home />} />
+      <Route path="/demo" element={<DemoHome />} />
       <Route path="/:userId" element={<Home />} />
       <Route path="/item/:itemId" element={<ItemDetail />} />
       <Route path="/item/:itemId/update" element={<StockUpdate />} />

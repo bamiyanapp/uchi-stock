@@ -30,7 +30,7 @@ function Top() {
   };
 
   const handleDemo = () => {
-    navigate("/test-user");
+    navigate("/demo");
   };
 
   const handleGuide = () => {
