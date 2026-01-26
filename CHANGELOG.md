@@ -1,4 +1,24 @@
-## [1.14.0](https://github.com/bamiyanapp/karuta/compare/v1.13.0...v1.14.0) (2026-01-14)
+## [1.14.0](https://github.com/bamiyanapp/karuta/compare/1.14.1...1.14.0) (2026-01-26)
+
+### Features
+
+* **db:** stock-historyのパーティションキーをitemIdに変更 ([#51](https://github.com/bamiyanapp/karuta/issues/51)) ([2aabeea](https://github.com/bamiyanapp/karuta/commit/2aabeeaf62bbe8cac6ab3d53662466b74525ed44))
+* **db:** データ構造の変更（userIdをパーティションキーに） ([#50](https://github.com/bamiyanapp/karuta/issues/50)) ([e92b7bd](https://github.com/bamiyanapp/karuta/commit/e92b7bd035489f68919125504c94e7814158d694))
+* redesign stock management screen to focus on remaining estimation ([#54](https://github.com/bamiyanapp/karuta/issues/54)) ([b118f7f](https://github.com/bamiyanapp/karuta/commit/b118f7f049430ea5f246c3f36a6d5baa05b56e45))
+* 日付ピッカーを追加して在庫予想を基準日付で表示 ([#66](https://github.com/bamiyanapp/karuta/issues/66)) ([db9336e](https://github.com/bamiyanapp/karuta/commit/db9336e9cf14ab41dbd328e6867b2d4c7eb54e8c))
+
+### Bug Fixes
+
+* **cd:** CDパイプラインのタグ重複エラーを修正 ([994b620](https://github.com/bamiyanapp/karuta/commit/994b62092ade0e40a3f7c4f199a055c7e4a072eb))
+* **detail:** 詳細画面の履歴・推定データの取得を安定化 ([#59](https://github.com/bamiyanapp/karuta/issues/59)) ([7d1ea03](https://github.com/bamiyanapp/karuta/commit/7d1ea032f6e8d0e056ea01d4babf9c7c2d682a55))
+* update cd.yml ([#48](https://github.com/bamiyanapp/karuta/issues/48)) ([7aa6abe](https://github.com/bamiyanapp/karuta/commit/7aa6abeeba02e61ff48ef1163a7c6b9c5c87c4fd))
+* update cd.yml ([#53](https://github.com/bamiyanapp/karuta/issues/53)) ([e6be381](https://github.com/bamiyanapp/karuta/commit/e6be38107cdeaab6518c54345d5c502c7d1acd89))
+* update cd.yml ([#55](https://github.com/bamiyanapp/karuta/issues/55)) ([d04cb95](https://github.com/bamiyanapp/karuta/commit/d04cb95cb75fc3f475e22efd18dc6f6d493c3b5e))
+* update ci.yml ([747a949](https://github.com/bamiyanapp/karuta/commit/747a94985c3bbf13652c4eb3881dbd50a5f41b92))
+* update ci.yml ([0776343](https://github.com/bamiyanapp/karuta/commit/07763435ff398d908fd099bb077fa03b71af2d2b))
+* update ci.yml ([#47](https://github.com/bamiyanapp/karuta/issues/47)) ([c7f6eb6](https://github.com/bamiyanapp/karuta/commit/c7f6eb683f4120e811908a2efacd91a0d2726cfb))
+* update ci.yml ([#56](https://github.com/bamiyanapp/karuta/issues/56)) ([2ee214c](https://github.com/bamiyanapp/karuta/commit/2ee214ca161714550b1db01927a5ada3101aba66))
+## [1.14.1](https://github.com/bamiyanapp/karuta/compare/v1.13.0...1.14.1) (2026-01-14)
 
 ### Features
 
@@ -32,6 +52,7 @@
 * **frontend:** 品目追加時のUIフィードバックを改善 ([#6](https://github.com/bamiyanapp/karuta/issues/6)) ([32cc3f0](https://github.com/bamiyanapp/karuta/commit/32cc3f0b93a174d3d03aadd7b78d018102e95c42))
 * **frontend:** 失敗するテストケースを削除 ([#1](https://github.com/bamiyanapp/karuta/issues/1)) ([654c9eb](https://github.com/bamiyanapp/karuta/commit/654c9eb5edf8d46836d8662cfaf11b74040764b6))
 * **frontend:** 失敗するテストケースを削除 ([#4](https://github.com/bamiyanapp/karuta/issues/4)) ([63ff065](https://github.com/bamiyanapp/karuta/commit/63ff065d0a884708926e0b15a41922cc831808c1))
+* marge ([#46](https://github.com/bamiyanapp/karuta/issues/46)) ([4236120](https://github.com/bamiyanapp/karuta/commit/42361205eb46ce64487e69c15650e9e6467e8236)), closes [#47](https://github.com/bamiyanapp/karuta/issues/47)
 * update .releaserc.cjs ([#40](https://github.com/bamiyanapp/karuta/issues/40)) ([0a4ef6d](https://github.com/bamiyanapp/karuta/commit/0a4ef6de3046b1a6d7cdec87596dcf44c7b62ddd))
 * update cd.yml ([972e676](https://github.com/bamiyanapp/karuta/commit/972e67638b18788c6d44e7fe7e355cb64e379b39))
 * update cd.yml ([#31](https://github.com/bamiyanapp/karuta/issues/31)) ([8a68b6a](https://github.com/bamiyanapp/karuta/commit/8a68b6ae722be2e837ceced13338a7d2f6eba153))
