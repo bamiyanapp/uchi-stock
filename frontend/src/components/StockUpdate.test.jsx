@@ -11,6 +11,8 @@ vi.mock('lucide-react', () => ({
   Minus: () => <div />,
   Plus: () => <div />,
   Calendar: () => <div />,
+  AlertCircle: () => <div />,
+  Home: () => <div />,
 }));
 
 const mockUser = {
@@ -140,6 +142,20 @@ describe('StockUpdate', () => {
           body: expect.stringContaining(dateStrPrefix)
         })
       );
+    });
+  });
+
+  it('renders NotFound when item is not found', async () => {
+    fetch.mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    });
+
+    renderComponent('nonexistent');
+
+    await waitFor(() => {
+      expect(screen.getByText('404')).toBeInTheDocument();
+      expect(screen.getByText('指定された品目が見つかりませんでした。既に削除された可能性があります。')).toBeInTheDocument();
     });
   });
 });

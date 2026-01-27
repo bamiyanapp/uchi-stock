@@ -25,6 +25,8 @@ vi.mock('lucide-react', () => ({
   Minus: () => <div />,
   Plus: () => <div />,
   Edit: () => <div />,
+  AlertCircle: () => <div />,
+  Home: () => <div />,
 }));
 
 const mockUser = {
@@ -105,7 +107,8 @@ describe('ItemDetail', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('品目が見つかりませんでした。')).toBeInTheDocument();
+      expect(screen.getByText('404')).toBeInTheDocument();
+      expect(screen.getByText('指定された品目が見つかりませんでした。既に削除された可能性があります。')).toBeInTheDocument();
     });
   });
 
@@ -144,7 +147,7 @@ describe('ItemDetail', () => {
 
     await waitFor(() => {
       // Still shows not found because item will be null
-      expect(screen.getByText('品目が見つかりませんでした。')).toBeInTheDocument();
+      expect(screen.getByText('404')).toBeInTheDocument();
     });
     expect(console.error).toHaveBeenCalled();
   });
