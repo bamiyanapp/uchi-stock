@@ -7,6 +7,7 @@ import StockUpdate from "./components/StockUpdate";
 import FamilyInvite from "./components/FamilyInvite";
 import InviteAccept from "./components/InviteAccept";
 import DemoHome from "./components/DemoHome";
+import NotFound from "./components/NotFound";
 import { UserProvider } from "./contexts/UserProvider";
 import { useUser } from "./contexts/UserContext";
 import "./App.css";
@@ -34,6 +35,7 @@ function AppRoutes() {
       <Route path="/item/:itemId/update" element={<StockUpdate />} />
       <Route path="/invite/manage" element={<FamilyInvite />} />
       <Route path="/invite/:token" element={<InviteAccept />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
