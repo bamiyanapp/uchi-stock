@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { ArrowLeft, History as HistoryIcon, TrendingDown, Edit } from "lucide-react";
 import { useUser } from "../contexts/UserContext";
 import Header from "./Header";
+import NotFound from "./NotFound";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev";
 
@@ -151,14 +152,7 @@ const ItemDetail = () => {
   }
 
   if (!item) {
-    return (
-      <div className="container py-5 text-center">
-        <h2>品目が見つかりませんでした。</h2>
-        <Link to={homePath} className="btn btn-primary mt-3">
-          戻る
-        </Link>
-      </div>
-    );
+    return <NotFound message="指定された品目が見つかりませんでした。既に削除された可能性があります。" />;
   }
 
   return (
