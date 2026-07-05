@@ -7,6 +7,7 @@ import StockUpdate from "./components/StockUpdate";
 import FamilyInvite from "./components/FamilyInvite";
 import InviteAccept from "./components/InviteAccept";
 import DemoHome from "./components/DemoHome";
+import Changelog from "./components/Changelog";
 import NotFound from "./components/NotFound";
 import { UserProvider } from "./contexts/UserProvider";
 import { useUser } from "./contexts/UserContext";
@@ -30,6 +31,7 @@ function AppRoutes() {
       <Route path="/" element={<Top />} />
       <Route path="/guide" element={<UserGuide />} />
       <Route path="/demo" element={<DemoHome />} />
+      <Route path="/changelog" element={<Changelog />} />
       <Route path="/:userId" element={<Home />} />
       <Route path="/item/:itemId" element={<ItemDetail />} />
       <Route path="/item/:itemId/update" element={<StockUpdate />} />
