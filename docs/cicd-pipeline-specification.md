@@ -30,11 +30,11 @@ graph TD
 
 ## 2. CI ワークフロー (`ci.yml`)
 - **トリガー**:
-  - `main` または `release` ブランチへのプッシュ
   - 全てのプルリクエスト
-- **実行内容**:
+- **実行内容**: `bamiyanapp/dev-standards` の `reusable-ci.yml`（`workflow_call`）を呼び出して実行する。
   - `commitlint`: コミットメッセージが Conventional Commits 形式に従っているか検証。
   - `frontend-test`: フロントエンドの Lint、ビルド、および Vitest によるテスト
+  - `frontend-e2e-test`: フロントエンドの Playwright による E2E テスト
   - `backend-test`: バックエンドの Vitest によるテスト
   - `merge`: PR の場合、テスト成功後に `main` ブランチへ自動マージ（Squash merge）
 
