@@ -20,5 +20,7 @@ jobs:
       node_version: "20"
       enable_e2e_test: true
       enable_duplication_check: true
+      enable_mermaid_render: true
+      mermaid_doc_paths: "docs/internal-design.md"
     secrets:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
