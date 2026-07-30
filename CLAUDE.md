@@ -27,4 +27,4 @@ frontend/backendともにVitestの `--coverage` を実行する。C0/C1カバレ
 
 ### CD（`.github/workflows/cd.yml`）
 
-semantic-release は `.releaserc.cjs` の設定により `main` ブランチに対して直接実行される（release ブランチへの切り替えを前提としない）。そのため dev-standards の `reusable-cd.yml`（base_branch→release_branchの同期・release_branch上でのリリースを前提としたreusable workflow）は本リポジトリの実際のリリース運用と一致せず、使用しない。`cd.yml` は本リポジトリ固有のワークフローとしてそのまま維持する。frontend（GitHub Pages）・backend（Serverless Framework経由のAWS Lambda）へのデプロイ手順もプロダクト固有のため、共通化の対象外とする。
+semantic-release は `.releaserc.cjs` の設定により `main` ブランチに対して直接実行される（release ブランチへの切り替えを前提としない）。そのため dev-standards の `reusable-cd.yml`（base_branch→release_branchの同期・release_branch上でのリリースを前提としたreusable workflow）は本リポジトリの実際のリリース運用と一致せず、使用しない。`cd.yml` は本リポジトリ固有のワークフローとしてそのまま維持する。frontend（GitHub Pages）・backend（OSLS経由のAWS Lambda）へのデプロイ手順もプロダクト固有のため、共通化の対象外とする。

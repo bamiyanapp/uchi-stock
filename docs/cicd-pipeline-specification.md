@@ -47,7 +47,7 @@ graph TD
 - **実行内容**:
   - `release`: `semantic-release` によるバージョン自動採番、タグ付け、および `CHANGELOG.md` の更新
   - `build-and-deploy-frontend`: フロントエンドをビルドし、GitHub Pages へデプロイ
-  - `deploy-backend`: バックエンドを Serverless Framework を使用して AWS Lambda へデプロイ
+  - `deploy-backend`: バックエンドを OSLS を使用して AWS Lambda へデプロイ
     - デプロイ前に DynamoDB の破壊的変更チェックと自動バックアップを実行します。
 
 ---
