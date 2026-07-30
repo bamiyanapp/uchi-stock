@@ -29,7 +29,7 @@ VITE_FIREBASE_APP_ID=your-app-id
 1.  Firebase Console の **プロジェクトの設定** > **サービス アカウント** に移動します。
 2.  **新しい秘密鍵の生成** をクリックし、JSON ファイルをダウンロードします。
 3.  ダウンロードした JSON の内容を、環境変数 `FIREBASE_SERVICE_ACCOUNT` に設定します。
-    *   Serverless Framework を使用してデプロイする場合、`.env` ファイル等に JSON 文字列（改行を詰めたもの）を設定してください。
+    *   OSLS（Serverless Framework v3互換のCLI）を使用してデプロイする場合、`.env` ファイル等に JSON 文字列（改行を詰めたもの）を設定してください。
     *   セキュリティのため、本番環境では AWS Secrets Manager 等の使用を推奨します。
 
 ### 環境変数リスト (Backend)
