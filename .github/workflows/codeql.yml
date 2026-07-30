@@ -1,0 +1,19 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  security-events: write
+  actions: read
+  contents: read
+
+jobs:
+  analyze:
+    uses: bamiyanapp/dev-standards/.github/workflows/reusable-codeql.yml@v1.14.0
+    with:
+      languages: '["javascript-typescript"]'
