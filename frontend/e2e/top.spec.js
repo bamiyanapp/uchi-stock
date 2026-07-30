@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { captureScreenshot } from './screenshot.js';
 
 test.describe('Top Page and Demo Mode', () => {
   test.beforeEach(async ({ page }) => {
@@ -6,14 +7,16 @@ test.describe('Top Page and Demo Mode', () => {
     await page.goto('./');
   });
 
-  test('should stay on top page and can navigate back from other pages', async ({ page }) => {
+  test('should stay on top page and can navigate back from other pages', async ({ page }, testInfo) => {
     // 1. トップページに留まることを確認
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByText('利用開始')).toBeVisible();
+    await captureScreenshot(page, testInfo, 'top-page', 'トップページ');
 
     // 2. ユーザーガイド画面へ遷移
     await page.click('button:has-text("使い方")');
     await expect(page).toHaveURL(/\/guide/);
+    await captureScreenshot(page, testInfo, 'top-guide', 'ユーザーガイド画面');
 
     // 3. ユーザーガイド独自の「戻る」ボタンをクリックしてトップに戻る
     // (UserGuideには共通Headerが含まれていないため)
@@ -25,7 +28,7 @@ test.describe('Top Page and Demo Mode', () => {
     await expect(page.getByText('利用開始')).toBeVisible();
   });
 
-  test('should display demo mode data and can navigate back', async ({ page }) => {
+  test('should display demo mode data and can navigate back', async ({ page }, testInfo) => {
     // 1. デモモードへ遷移
     const demoButton = page.getByRole('button', { name: 'デモモード' });
     await demoButton.waitFor({ state: 'visible' });
@@ -38,6 +41,7 @@ test.describe('Top Page and Demo Mode', () => {
     const demoItem = page.getByText('トイレットペーパー').first();
     await demoItem.waitFor({ state: 'visible', timeout: 10000 });
     await expect(demoItem).toBeVisible();
+    await captureScreenshot(page, testInfo, 'top-demo-mode', 'デモモード画面');
 
     // 3. ヘッダーのロゴをクリックしてトップに戻る
     const logoLink = page.locator('header a:has-text("うちストック")');

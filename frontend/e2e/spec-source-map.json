@@ -1,0 +1,31 @@
+{
+  "top.spec.js": {
+    "should stay on top page and can navigate back from other pages": [
+      "frontend/src/components/Top.jsx",
+      "frontend/src/components/UserGuide.jsx"
+    ],
+    "should display demo mode data and can navigate back": [
+      "frontend/src/components/Top.jsx",
+      "frontend/src/components/DemoHome.jsx",
+      "frontend/src/components/Header.jsx"
+    ]
+  },
+  "home.spec.js": {
+    "should display item list": [
+      "frontend/src/components/DemoHome.jsx"
+    ],
+    "should add a new item": [
+      "frontend/src/components/DemoHome.jsx"
+    ]
+  },
+  "item-detail.spec.js": {
+    "should display item details and history": [
+      "frontend/src/components/ItemDetail.jsx"
+    ]
+  },
+  "stock-update.spec.js": {
+    "should allow entering consumption and purchase": [
+      "frontend/src/components/StockUpdate.jsx"
+    ]
+  }
+}

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { captureScreenshot } from './screenshot.js';
 
 test.describe('Home Page', () => {
   test.beforeEach(async ({ page }) => {
@@ -39,19 +40,20 @@ test.describe('Home Page', () => {
     await demoButton.click();
   });
 
-  test('should display item list', async ({ page }) => {
+  test('should display item list', async ({ page }, testInfo) => {
     await expect(page.getByText('うちストック')).toBeVisible();
-    
+
     const itemCard = page.locator('.card').filter({ hasText: 'トイレットペーパー' });
     await expect(itemCard).toBeVisible();
     await expect(itemCard.getByText('5', { exact: true })).toBeVisible();
     await expect(itemCard.getByText('ロール', { exact: true })).toBeVisible();
-    
+
     // Use regex to be flexible with the exact number of days
     await expect(page.getByText(/あと約 \d+ 日/)).toBeVisible();
+    await captureScreenshot(page, testInfo, 'home-item-list', '品目一覧画面');
   });
 
-  test('should add a new item', async ({ page }) => {
+  test('should add a new item', async ({ page }, testInfo) => {
     // Mock POST /items
     await page.route('**/items', async (route) => {
       if (route.request().method() === 'POST') {
@@ -105,6 +107,7 @@ test.describe('Home Page', () => {
     await expect(newItemCard).toBeVisible();
     await expect(newItemCard.getByText('0', { exact: true })).toBeVisible();
     await expect(newItemCard.getByText('箱', { exact: true })).toBeVisible();
+    await captureScreenshot(page, testInfo, 'home-add-item', '品目追加後の一覧画面');
   });
 
   test.skip('should display past history date when it is not a prediction', async ({ page }) => {

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { captureScreenshot } from './screenshot.js';
 
 test.describe('Stock Update Page', () => {
   test.beforeEach(async ({ page }) => {
@@ -31,7 +32,7 @@ test.describe('Stock Update Page', () => {
     await page.goto('item/item-1/update');
   });
 
-  test('should allow entering consumption and purchase', async ({ page }) => {
+  test('should allow entering consumption and purchase', async ({ page }, testInfo) => {
     await expect(page.getByText('在庫を更新する')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText('トイレットペーパー')).toBeVisible();
 
@@ -45,6 +46,7 @@ test.describe('Stock Update Page', () => {
 
     // Enter memo
     await page.getByPlaceholder('例: 特売で購入').fill('テストメモ');
+    await captureScreenshot(page, testInfo, 'stock-update-form', '在庫更新フォーム入力画面');
 
     // Mock navigation after submit
     await page.route('**/items/*/history', async route => {
