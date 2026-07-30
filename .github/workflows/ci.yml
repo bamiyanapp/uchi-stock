@@ -17,6 +17,5 @@ jobs:
       backend_dir: backend
       node_version: "20"
       enable_e2e_test: true
-      enable_release_sync: false
     secrets:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
