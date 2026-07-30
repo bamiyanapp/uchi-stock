@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { captureScreenshot } from './screenshot.js';
 
 test.describe('Item Detail Page', () => {
   test.beforeEach(async ({ page }) => {
@@ -51,7 +52,7 @@ test.describe('Item Detail Page', () => {
     await page.goto('item/item-1');
   });
 
-  test('should display item details and history', async ({ page }) => {
+  test('should display item details and history', async ({ page }, testInfo) => {
     // Wait for the page to load and display the item name
     // Use data-testid to uniquely identify the item name and avoid conflict with header title
     await expect(page.getByTestId('item-name')).toContainText('トイレットペーパー', { timeout: 10000 });
@@ -69,5 +70,6 @@ test.describe('Item Detail Page', () => {
     await expect(page.getByText('買い出し')).toBeVisible();
     await expect(page.getByText('12 ロール')).toBeVisible();
     await expect(page.getByText('購入')).toBeVisible();
+    await captureScreenshot(page, testInfo, 'item-detail', '品目詳細画面');
   });
 });
