@@ -18,7 +18,7 @@
     "@semantic-release/release-notes-generator": "^14.0.1",
     "js-yaml": "^4.1.1",
     "semantic-release": "^25.0.2",
-    "conventional-changelog": "^7.1.1",
+    "conventional-changelog": "^8.0.0",
     "conventional-changelog-conventionalcommits": "^8.0.0"
   },
   "scripts": {
