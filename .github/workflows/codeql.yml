@@ -14,6 +14,6 @@ permissions:
 
 jobs:
   analyze:
-    uses: bamiyanapp/dev-standards/.github/workflows/reusable-codeql.yml@v1.15.0
+    uses: bamiyanapp/dev-standards/.github/workflows/reusable-codeql.yml@v1.15.1
     with:
       languages: '["javascript-typescript"]'
