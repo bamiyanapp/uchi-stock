@@ -27,6 +27,6 @@
     "@aws-sdk/polly-request-presigner": "^3.958.0",
     "@aws-sdk/s3-request-presigner": "^3.958.0",
     "csv-parse": "^7.0.0",
-    "firebase-admin": "^13.6.0"
+    "firebase-admin": "^14.0.0"
   }
 }
