@@ -94,8 +94,21 @@ jobs:
             -i CHANGELOG.md \
             -s \
             -r 0
+      # scripts/convert-changelog-to-json.jsはリポジトリに常駐させず、dev-standards側の
+      # 最新版をCD実行のたびにコピーして使う（issue #233）
+      - name: Checkout dev-standards (for the local composite action)
+        uses: actions/checkout@v4
+        with:
+          repository: bamiyanapp/dev-standards
+          ref: v1.14.0
+          path: .dev-standards-actions
+      - name: Copy changelog-to-JSON conversion script
+        uses: ./.dev-standards-actions/.github/actions/copy-changelog-script
       # JSON 変換（任意）
       - name: Convert changelog to JSON
+        env:
+          CHANGELOG_SOURCE_PATH: CHANGELOG.md
+          CHANGELOG_JSON_OUTPUT_PATH: frontend/src/changelog.json
         run: node scripts/convert-changelog-to-json.js
       - name: Commit & push to release
         run: |
