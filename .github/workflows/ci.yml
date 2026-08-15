@@ -19,7 +19,7 @@ jobs:
     with:
       frontend_dir: frontend
       backend_dir: backend
-      node_version: "20"
+      node_version: "22"
       enable_e2e_test: true
       enable_duplication_check: true
       enable_mermaid_render: true
