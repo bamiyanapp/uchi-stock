@@ -109,6 +109,8 @@ sequenceDiagram
     S-->>B: Aの在庫データを返却
 ```
 
+![家族招待シーケンス図](https://raw.githubusercontent.com/bamiyanapp/uchi-stock/docs-diagrams/latest/internal-design-1.png)
+
 ---
 
 ## 6. システム構成 (Architecture)
@@ -134,6 +136,8 @@ graph TD
     I -- API Request with ID Token --> J;
 ```
 
+![システム構成図](https://raw.githubusercontent.com/bamiyanapp/uchi-stock/docs-diagrams/latest/internal-design-2.png)
+
 ### 画面遷移図
 
 ```mermaid
@@ -154,6 +158,8 @@ graph TD
     Any --> |存在しないパス/品目| NotFound[NotFound 画面]
     NotFound --> |「在庫一覧に戻る」をクリック| Home
 ```
+
+![画面遷移図](https://raw.githubusercontent.com/bamiyanapp/uchi-stock/docs-diagrams/latest/internal-design-3.png)
 
 ### 画面一覧
 
