@@ -41,6 +41,10 @@ const InviteAccept = () => {
 
   useEffect(() => {
     if (userId && userId !== 'pending' && userId !== 'test-user') {
+      // acceptInvitationは非同期関数で、setState呼び出しはawait後（非同期）に発生する。
+      // react-hooks/set-state-in-effectはこのマウント時fetchパターンを静的解析で
+      // 誤検出する既知の課題があるため抑制する（issue #253参照）
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       acceptInvitation();
     }
   }, [userId, acceptInvitation]);
