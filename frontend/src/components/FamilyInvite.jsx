@@ -32,6 +32,10 @@ const FamilyInvite = () => {
   }, [userId, getIdToken, API_URL]);
 
   useEffect(() => {
+    // fetchFamiliesは非同期関数で、setFamiliesの呼び出しはawait後（非同期）に発生する。
+    // react-hooks/set-state-in-effectはこのマウント時fetchパターンを静的解析で
+    // 誤検出する既知の課題があるため抑制する（issue #253参照）
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchFamilies();
   }, [fetchFamilies]);
 

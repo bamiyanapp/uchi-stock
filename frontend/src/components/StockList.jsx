@@ -54,6 +54,13 @@ function StockList({
 
   useEffect(() => {
     if (propUserId) {
+      // propUserIdをそのままstateへ同期しており、react-hooks/set-state-in-effectが
+      // 指摘する「propからstateを直接同期する」パターンに本当に該当する。ただし
+      // propUserIdは呼び出し元（Home.jsx）でマウント時に一度確定した後は
+      // 変化しない運用のため実害は無い。将来的にはpropUserId ?? 内部stateの
+      // 導出計算へリファクタする余地があるが、挙動変更を伴うため本対応の
+      // スコープ外とする（issue #253参照）
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedUserId(propUserId);
     } else if (userId && userId !== 'pending') {
       setSelectedUserId(userId);
@@ -134,6 +141,10 @@ function StockList({
   }, [getHeaders, selectedDate, user, idToken, selectedUserId]);
 
   useEffect(() => {
+    // fetchItemsは非同期関数で、setItems等の呼び出しはawait後（非同期）に発生する。
+    // react-hooks/set-state-in-effectはこのマウント時fetchパターンを静的解析で
+    // 誤検出する既知の課題があるため抑制する（issue #253参照）
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchItems();
   }, [fetchItems]);
 
