@@ -57,7 +57,7 @@
 * **auth:** UserProvider に getIdToken 関数を追加し招待URL発行エラーを修正 ([#133](https://github.com/bamiyanapp/karuta/issues/133)) ([2ef7f73](https://github.com/bamiyanapp/karuta/commit/2ef7f734f6b0400e343afd1e00be71b5acca3ace))
 * **backend:** API GatewayでのCORSエラーを修正 ([#7](https://github.com/bamiyanapp/karuta/issues/7)) ([c2700ba](https://github.com/bamiyanapp/karuta/commit/c2700ba8b6078f2e5efcff9e49e421bce60107e4))
 * **backend:** CORS設定に x-user-id ヘッダーを追加 ([#20](https://github.com/bamiyanapp/karuta/issues/20)) ([97122cf](https://github.com/bamiyanapp/karuta/commit/97122cf93067d6234a5d7ef18008d3987aa2137b))
-* **backend:** 在庫割合の計��で購入履歴がない場合のフォールバックを追加 ([#100](https://github.com/bamiyanapp/karuta/issues/100)) ([53e3061](https://github.com/bamiyanapp/karuta/commit/53e306116f8f5096d9ed11b618756fd6e56f65c0))
+* **backend:** 在庫割合の計算で購入履歴がない場合のフォールバックを追加 ([#100](https://github.com/bamiyanapp/karuta/issues/100)) ([53e3061](https://github.com/bamiyanapp/karuta/commit/53e306116f8f5096d9ed11b618756fd6e56f65c0))
 * **cd:** CDパイプラインのタグ重複エラーを修正 ([994b620](https://github.com/bamiyanapp/karuta/commit/994b62092ade0e40a3f7c4f199a055c7e4a072eb))
 * **ci:** CDワークフローがCI成功時のみ実行されるように修正 ([#84](https://github.com/bamiyanapp/karuta/issues/84)) ([31770c4](https://github.com/bamiyanapp/karuta/commit/31770c48290ccfb222a42a0c0f6f8817732a8f30))
 * **ci:** mergeジョブにおけるマージ可能性の判定と待機処理の追加 ([#75](https://github.com/bamiyanapp/karuta/issues/75)) ([e5039e6](https://github.com/bamiyanapp/karuta/commit/e5039e6929245c2fcc72c10ebab8546ff9b3a237))
