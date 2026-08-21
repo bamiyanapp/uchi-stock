@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, PutCommand, UpdateCommand, GetCommand, QueryCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { createRequire } from 'node:module';
 import {
   createItem,
   getItems,
@@ -12,6 +13,13 @@ import {
   getEstimatedDepletionDate
 } from './handler';
 import crypto from 'crypto';
+
+// firebase-admin/app・firebase-admin/authはサブパスエクスポートのゲッター形式で
+// 公開されており、vi.mock()ではhandler.js側のrequire()に反映されないため、
+// 実モジュールのgetter自体をvi.spyOnで差し替える
+const requireCjs = createRequire(import.meta.url);
+const firebaseApp = requireCjs('firebase-admin/app');
+const firebaseAuth = requireCjs('firebase-admin/auth');
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 
@@ -177,18 +185,17 @@ describe('うちストック API', () => {
     });
 
     it('should sync user info when Authorization header is present', async () => {
-      // firebase-admin のモックを設定
-      const admin = require('firebase-admin');
-      vi.spyOn(admin, 'apps', 'get').mockReturnValue([{ name: 'mock-app' }]);
+      // firebase-admin（モジュラーAPI）のモックを設定
+      vi.spyOn(firebaseApp, 'getApps', 'get').mockReturnValue(() => [{ name: 'mock-app' }]);
       const verifyIdTokenMock = vi.fn().mockResolvedValue({
         uid: 'uid123',
         email: 'test@example.com',
         name: 'Test User',
         picture: 'https://example.com/photo.jpg'
       });
-      vi.spyOn(admin, 'auth').mockReturnValue({
+      vi.spyOn(firebaseAuth, 'getAuth', 'get').mockReturnValue(() => ({
         verifyIdToken: verifyIdTokenMock
-      });
+      }));
 
       const event = {
         headers: { 'Authorization': 'Bearer mock-token' },

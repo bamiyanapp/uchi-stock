@@ -1,11 +1,12 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand, QueryCommand } = require("@aws-sdk/lib-dynamodb");
 const crypto = require("crypto");
-const admin = require('firebase-admin');
+const firebaseApp = require('firebase-admin/app');
+const firebaseAuth = require('firebase-admin/auth');
 const stockLogic = require("./stock-logic");
 
 // Firebase Admin SDKの初期化
-if (!admin.apps.length) {
+if (!firebaseApp.getApps().length) {
   try {
     let saValue = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (saValue && !saValue.trim().startsWith('{')) {
@@ -23,8 +24,8 @@ if (!admin.apps.length) {
     const serviceAccount = saValue ? JSON.parse(saValue) : null;
     
     if (serviceAccount) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+      firebaseApp.initializeApp({
+        credential: firebaseApp.cert(serviceAccount)
       });
       console.log('[FirebaseInit] Firebase Admin initialized successfully');
     } else {
@@ -45,11 +46,11 @@ const FAMILIES_TABLE = () => process.env.FAMILIES_TABLE_NAME;
 const INVITATIONS_TABLE = () => process.env.INVITATIONS_TABLE_NAME;
 
 const verifyFirebaseToken = async (token) => {
-  if (!admin.apps.length) {
+  if (!firebaseApp.getApps().length) {
     throw new Error('Firebase Admin not initialized');
   }
   try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    const decodedToken = await firebaseAuth.getAuth().verifyIdToken(token);
     return {
       userId: decodedToken.uid,
       email: decodedToken.email,
