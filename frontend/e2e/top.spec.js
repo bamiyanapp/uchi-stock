@@ -29,6 +29,35 @@ test.describe('Top Page and Demo Mode', () => {
   });
 
   test('should display demo mode data and can navigate back', async ({ page }, testInfo) => {
+    // デモモードは実際のバックエンド（test-userの共有データ）を参照するため、
+    // 他PRのCIが並行して同じデータを操作すると本テストが不安定化する
+    // （issue #307）。他specと同様にAPIレスポンスをモックして独立させる。
+    // StockList.jsxはuserId確定後に`?userId=test-user`付きで再フェッチする
+    // ため、末尾に`*`を付けクエリ文字列の有無どちらにもマッチさせる
+    await page.route('**/items*', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            itemId: 'demo-item-1',
+            name: 'トイレットペーパー',
+            currentStock: 5,
+            unit: 'ロール',
+            updatedAt: '2026-01-01T00:00:00Z',
+          },
+        ]),
+      });
+    });
+
+    await page.route('**/items/demo-item-1/estimate*', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ estimatedDepletionDate: null }),
+      });
+    });
+
     // 1. デモモードへ遷移
     const demoButton = page.getByRole('button', { name: 'デモモード' });
     await demoButton.waitFor({ state: 'visible' });
