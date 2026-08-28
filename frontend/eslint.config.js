@@ -29,4 +29,15 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  {
+    // sw.js（dev-standardsからsymlink）・sw-config.jsはService Worker専用の
+    // グローバル（self・importScripts・caches等）を使うため、上記のbrowser/node
+    // globalsとは別にserviceworker globalsを適用する
+    files: ['public/sw.js', 'public/sw-config.js'],
+    languageOptions: {
+      globals: {
+        ...globals.serviceworker,
+      },
+    },
+  },
 ])
