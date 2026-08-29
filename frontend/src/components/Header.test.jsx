@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { BrowserRouter } from "react-router-dom";
 import Header from "./Header";
@@ -33,10 +33,32 @@ describe("Header Component", () => {
     expect(screen.getByText("ログイン")).toBeInTheDocument();
   });
 
-  it("displays user info and logout button when logged in", () => {
+  it("hides logout button and share button until the user menu is opened", () => {
     const user = { displayName: "Test User", photoURL: null, uid: "uid123" };
     renderHeader({ user });
     expect(screen.getByText("Test User")).toBeInTheDocument();
+    expect(screen.queryByText("ログアウト")).not.toBeInTheDocument();
+    expect(screen.queryByText("アプリを共有")).not.toBeInTheDocument();
+  });
+
+  it("displays logout button and share button after opening the user menu", () => {
+    const user = { displayName: "Test User", photoURL: null, uid: "uid123" };
+    renderHeader({ user });
+
+    fireEvent.click(screen.getByRole("button", { name: "ユーザーメニュー" }));
+
     expect(screen.getByText("ログアウト")).toBeInTheDocument();
+    expect(screen.getByText("アプリを共有")).toBeInTheDocument();
+  });
+
+  it("calls logout when the logout button in the menu is clicked", async () => {
+    const logout = vi.fn().mockResolvedValue();
+    const user = { displayName: "Test User", photoURL: null, uid: "uid123" };
+    renderHeader({ user, logout });
+
+    fireEvent.click(screen.getByRole("button", { name: "ユーザーメニュー" }));
+    fireEvent.click(screen.getByText("ログアウト"));
+
+    expect(logout).toHaveBeenCalled();
   });
 });

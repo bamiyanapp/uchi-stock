@@ -1,0 +1,20 @@
+.user-menu-dropdown {
+  min-width: 220px;
+  z-index: 1050;
+}
+
+.dropdown-item-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.dropdown-item-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
