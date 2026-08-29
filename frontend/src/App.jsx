@@ -11,6 +11,8 @@ import Changelog from "./components/Changelog";
 import NotFound from "./components/NotFound";
 import { UserProvider } from "./contexts/UserProvider";
 import { useUser } from "./contexts/UserContext";
+import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
+import UpdateNotifier from "./components/UpdateNotifier";
 import "./App.css";
 
 function AppRoutes() {
@@ -46,6 +48,8 @@ function App() {
   const basename = import.meta.env.MODE === 'test' ? '/' : import.meta.env.BASE_URL;
   return (
     <UserProvider>
+      <ServiceWorkerRegistration />
+      <UpdateNotifier />
       <Router basename={basename}>
         <AppRoutes />
       </Router>

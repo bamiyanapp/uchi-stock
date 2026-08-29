@@ -24,5 +24,6 @@ jobs:
       enable_duplication_check: true
       enable_mermaid_render: true
       mermaid_doc_paths: "docs/internal-design.md"
+      enable_standards_check: true
     secrets:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
