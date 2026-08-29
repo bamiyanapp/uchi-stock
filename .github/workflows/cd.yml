@@ -134,10 +134,16 @@ jobs:
       VITE_REDIRECT_SIGN_IN: ${{ secrets.VITE_REDIRECT_SIGN_IN }}
       VITE_REDIRECT_SIGN_OUT: ${{ secrets.VITE_REDIRECT_SIGN_OUT }}
     steps:
+      # PR #320でfrontend/src/components/UpdateNotifier.jsx・frontend/public/sw.jsを
+      # dev-standards submodule（shared/pwa/）へのsymlinkとして追加した。submodules: true
+      # を指定しないとリンク先が存在せずViteビルドがUNRESOLVED_IMPORTで失敗する
+      # （issue #333、CI側は既にenable_standards_check: trueで対応済みだったが
+      # cd.yml側の同種のcheckoutには反映漏れがあった）
       - name: Checkout
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          submodules: true
       - name: Checkout dev-standards (for the local composite action)
         uses: actions/checkout@v7
         with:
