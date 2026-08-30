@@ -1,5 +1,10 @@
 name: CD
-run-name: CD ${{ github.event.workflow_run.head_sha }}
+# dev-standardsのCD run-name規約（docs/cicd-pipeline-specification.md
+# 「2. CDワークフロー」）に倣い、コミットSHAの羅列ではなく内容が分かる
+# 表示にする（issue #337）
+run-name: >-
+  CD (${{ github.event_name == 'workflow_dispatch' && 'manual' || 'auto' }})
+  ${{ github.event.workflow_run.head_commit.message }}
 
 on:
   workflow_run:
