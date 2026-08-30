@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 import topImage from "../assets/top.png";
+import formatBuildTime from "./formatBuildTime.js"; // symlink
 import "./Top.css";
 
 function Top() {
@@ -98,6 +99,9 @@ function Top() {
 
       <footer className="top-footer">
         <p>&copy; 2026 uchi-stock</p>
+        <p className="top-footer-version">
+          v{__APP_VERSION__} / 更新日時: {formatBuildTime(__APP_BUILD_TIME__)}
+        </p>
       </footer>
     </div>
   );
