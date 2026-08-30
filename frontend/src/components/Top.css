@@ -241,3 +241,9 @@
   font-size: 0.9rem;
   color: #999;
 }
+
+.top-footer-version {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: #bbb;
+}

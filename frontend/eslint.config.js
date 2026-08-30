@@ -18,6 +18,10 @@ export default defineConfig([
       globals: {
         ...globals.browser,
         ...globals.node,
+        // vite.config.jsのdefineでビルド時に埋め込むグローバル定数
+        // （dev-standards/shared/ui/getAppVersionDefine.js参照）
+        __APP_VERSION__: 'readonly',
+        __APP_BUILD_TIME__: 'readonly',
       },
       parserOptions: {
         ecmaVersion: 'latest',

@@ -1,6 +1,8 @@
 {
   "symlinks": [
     { "source": "shared/pwa/sw.js", "target": "frontend/public/sw.js" },
-    { "source": "shared/pwa/UpdateNotifier.jsx", "target": "frontend/src/components/UpdateNotifier.jsx" }
+    { "source": "shared/pwa/UpdateNotifier.jsx", "target": "frontend/src/components/UpdateNotifier.jsx" },
+    { "source": "shared/ui/getAppVersionDefine.js", "target": "frontend/getAppVersionDefine.js" },
+    { "source": "shared/ui/formatBuildTime.js", "target": "frontend/src/components/formatBuildTime.js" }
   ]
 }
