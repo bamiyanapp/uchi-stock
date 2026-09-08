@@ -1,0 +1,1 @@
+should display demo mode data and can navigate back
