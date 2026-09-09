@@ -8,7 +8,12 @@ const localStorageMock = {
   clear: vi.fn(),
 };
 
-global.localStorage = localStorageMock;
+// vitest v5がバンドルするjsdomではwindow.localStorageがgetterのみの
+// アクセサプロパティになっており、直接代入（global.localStorage = ...）が
+// 「Cannot set property localStorage of [object Window] which has only a
+// getter」で例外になる。vi.stubGlobalはdefineProperty経由でグローバルを
+// 上書きするため、アクセサプロパティに対しても安全に差し替えられる
+vi.stubGlobal('localStorage', localStorageMock);
 
 // Mock Firebase
 vi.mock('firebase/app', () => ({
