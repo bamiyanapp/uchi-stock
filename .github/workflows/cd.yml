@@ -37,6 +37,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -75,6 +77,23 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN || secrets.GITHUB_TOKEN }}
           DEBUG: semantic-release:*
         run: npx semantic-release
+      # .releaserc.cjsに@semantic-release/npmが無くpackage.jsonのversionは
+      # 更新されないため、実際にリリースされたバージョンをgit tagから
+      # 取得する。このジョブのチェックアウトはコミットしないため、
+      # git historyには一切影響しない（issue #348、frontend側で
+      # トップページに表示するバージョンがpackage.json更新の仕組み
+      # 不在によりリリースのたびに乖離していた問題への対応）
+      - name: Get released version
+        id: get-version
+        run: |
+          TAG=$(git tag --points-at HEAD --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          if [ -z "$TAG" ]; then
+            # このpushではリリース対象のコミット（feat/fix等）が無く新規
+            # タグが発行されなかった。その場合は既存の最新タグ（＝現在
+            # 実際にデプロイされているバージョン）を使う
+            TAG=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*')
+          fi
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
   changelog:
     needs: release
@@ -155,6 +174,22 @@ jobs:
           repository: bamiyanapp/dev-standards
           ref: v1.15.1
           path: .dev-standards-actions
+      # frontend/getAppVersionDefine.js（symlink）がビルド時にルートの
+      # package.jsonのversionを読み込みトップページへ埋め込む（issue #339）。
+      # package.jsonのversionはreleaseジョブでは更新されないため、実際に
+      # リリースされたバージョン（releaseジョブのoutputs.version）を
+      # このジョブのチェックアウト内でのみ反映する。コミット・pushは
+      # 行わないためgit historyには影響しない（issue #348）
+      - name: Sync root package.json version for build-time embedding
+        env:
+          RELEASE_VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
+            pkg.version = process.env.RELEASE_VERSION;
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
       - name: 🚀 Build and Deploy to GitHub Pages
         id: deploy
         uses: ./.dev-standards-actions/.github/actions/deploy-github-pages
