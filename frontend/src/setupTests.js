@@ -30,4 +30,6 @@ vi.mock('firebase/auth', () => ({
     callback(null);
     return () => {};
   }),
+  setPersistence: vi.fn(() => Promise.resolve()),
+  browserLocalPersistence: {},
 }));

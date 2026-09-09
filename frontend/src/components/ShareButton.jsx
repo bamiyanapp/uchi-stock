@@ -50,9 +50,14 @@ export default function ShareButton({ label = "アプリを共有", className = 
           style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", zIndex: 1090 }}
           onClick={() => setOpen(false)}
         >
+          {/* iOS Safariでアドレスバー表示時・横向き等でビューポート高が
+              低くなると、見出し＋QR＋URL＋ボタンの合計高がoverflow escapeの
+              手段なしに画面をはみ出し、QRコードが見切れて操作できなくなって
+              いた（issue #347）。maxHeight+overflowYでモーダル内スクロールへ
+              フォールバックさせる */}
           <div
             className="bg-white rounded-3 shadow p-4"
-            style={{ maxWidth: "320px", width: "100%" }}
+            style={{ maxWidth: "320px", width: "100%", maxHeight: "90vh", overflowY: "auto" }}
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="h5 fw-bold mb-3">{label}</h3>
