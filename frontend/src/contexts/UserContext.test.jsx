@@ -15,6 +15,8 @@ vi.mock('firebase/auth', () => ({
   signInWithRedirect: vi.fn(),
   signOut: vi.fn(),
   onAuthStateChanged: vi.fn(),
+  setPersistence: vi.fn(() => Promise.resolve()),
+  browserLocalPersistence: {},
 }));
 
 // Mock firebaseConfig

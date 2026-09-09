@@ -1,7 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 import { UserContext } from './UserContext';
+
+// ホーム画面に追加したPWA（standalone表示）は、iOS SafariのITP
+// （Intelligent Tracking Prevention）により、一定期間操作が無いと
+// IndexedDB・localStorage等のスクリプト書き込み可能なストレージが
+// 消去されることがある。Firebase AuthのセッションもIndexedDBへ永続化
+// されているため、これに巻き込まれてログインセッションが意図せず
+// 切れる（issue #326）。navigator.storage.persist()でブラウザに
+//永続ストレージを要求することで、この自動消去の対象になりにくくする
+// （Safari 15.2+でサポート、未対応環境ではAPI自体が存在しないため
+// フィーチャー検出で無視する。付与されるかはブラウザの裁量であり
+// 確実な保証ではない）
+async function requestPersistentStorage() {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.storage?.persist) {
+      await navigator.storage.persist();
+    }
+  } catch (error) {
+    console.warn('[UserProvider] storage.persist() failed:', error);
+  }
+}
 
 const isE2E = import.meta.env.MODE === 'test';
 const isDev = import.meta.env.MODE === 'development';
@@ -22,6 +42,11 @@ export const UserProvider = ({ children }) => {
       console.log('[UserProvider] Auth skipping (E2E or no API key)');
       return;
     }
+
+    requestPersistentStorage();
+    setPersistence(auth, browserLocalPersistence).catch((error) => {
+      console.warn('[UserProvider] setPersistence failed:', error);
+    });
 
     console.log('[UserProvider] Registering onAuthStateChanged');
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
