@@ -38,10 +38,6 @@ function Top() {
     navigate("/guide");
   };
 
-  const handleChangelog = () => {
-    navigate("/changelog");
-  };
-
   return (
     <div className={`top-container ${isLoaded ? "is-loaded" : ""}`}>
       {/* ヒーローセクション：感情に訴えかけるビジュアル */}
@@ -88,10 +84,6 @@ function Top() {
             <button onClick={handleDemo} className="btn-top btn-demo">
               デモモード
               <span className="btn-subtext">ログインなしでお試し</span>
-            </button>
-            <button onClick={handleChangelog} className="btn-top btn-changelog">
-              更新履歴
-              <span className="btn-subtext">バージョン情報を見る</span>
             </button>
           </div>
         </div>
