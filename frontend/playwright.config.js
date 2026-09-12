@@ -4,9 +4,27 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  retries: 0,
+  workers: 1,
+  reporter: [
+    ['list'],
+    ['monocart-reporter', {
+      name: 'uchi-stock E2E Report',
+      outputFile: './monocart-report/index.html',
+      coverage: {
+        outputDir: './coverage',
+        reports: [
+          ['json-summary'],
+          ['console-summary'],
+        ],
+        entryFilter: (entry) => entry.url.includes('/uchi-stock/'),
+        sourceFilter: {
+          '**/node_modules/**': false,
+          'src/**': true,
+        },
+      },
+    }],
+  ],
   use: {
     baseURL: 'http://localhost:4173/uchi-stock/',
     trace: 'on-first-retry',

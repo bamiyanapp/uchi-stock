@@ -10,6 +10,7 @@ export default defineConfig({
   // importしている。Viteは既定でシンボリックリンクの実体パス（dev-standards配下）を
   // 起点にnode_modulesを探索してしまうため、preserveSymlinksが必須
   // （dev-standards/docs/shared-ui-components.md参照）
+  build: { sourcemap: true },
   resolve: {
     preserveSymlinks: true,
   },
