@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './coverageFixture.js';
 import { captureScreenshot } from './screenshot.js';
 
 test.describe('Stock Update Page', () => {

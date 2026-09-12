@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run && npm run lint && npm run build",
-    "test:e2e": "playwright test",
+    "test:e2e": "NODE_OPTIONS=--preserve-symlinks playwright test",
     "predeploy": "npm run build",
     "deploy": "npx gh-pages -d dist"
   },
@@ -37,6 +37,7 @@
     "eslint-plugin-react-refresh": "^0.5.0",
     "globals": "^17.0.0",
     "jsdom": "^30.0.0",
+    "monocart-reporter": "^2.13.1",
     "vite": "^8.0.0",
     "vitest": "^5.0.0"
   }
