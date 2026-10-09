@@ -109,7 +109,7 @@ sequenceDiagram
     S-->>B: Aの在庫データを返却
 ```
 
-![家族招待シーケンス図](https://raw.githubusercontent.com/bamiyanapp/uchi-stock/docs-diagrams/latest/internal-design-1.png?5d8793ba174119a6097950eab4222c8128e33774)
+![家族招待シーケンス図](https://raw.githubusercontent.com/bamiyanapp/uchi-stock/docs-diagrams/latest/internal-design-1.png?6289e680615a19928b1f72e8f06080e0438426ae)
 
 ---
 
@@ -136,7 +136,7 @@ graph TD
     I -- API Request with ID Token --> J;
 ```
 
-![システム構成図](https://raw.githubusercontent.com/bamiyanapp/uchi-stock/docs-diagrams/latest/internal-design-2.png?5d8793ba174119a6097950eab4222c8128e33774)
+![システム構成図](https://raw.githubusercontent.com/bamiyanapp/uchi-stock/docs-diagrams/latest/internal-design-2.png?6289e680615a19928b1f72e8f06080e0438426ae)
 
 ### 画面遷移図
 
@@ -159,7 +159,7 @@ graph TD
     NotFound --> |「在庫一覧に戻る」をクリック| Home
 ```
 
-![画面遷移図](https://raw.githubusercontent.com/bamiyanapp/uchi-stock/docs-diagrams/latest/internal-design-3.png?5d8793ba174119a6097950eab4222c8128e33774)
+![画面遷移図](https://raw.githubusercontent.com/bamiyanapp/uchi-stock/docs-diagrams/latest/internal-design-3.png?6289e680615a19928b1f72e8f06080e0438426ae)
 
 ### 画面一覧
 
