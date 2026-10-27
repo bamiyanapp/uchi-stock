@@ -17,6 +17,7 @@ jobs:
   ci:
     uses: bamiyanapp/dev-standards/.github/workflows/reusable-ci.yml@v2.114.1
     with:
+      self_ref: v2.114.1
       frontend_dir: frontend
       backend_dir: backend
       node_version: "22"
