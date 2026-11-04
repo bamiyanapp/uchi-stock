@@ -1,0 +1,114 @@
+import { useEffect, useState, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useUser } from "../contexts/UserContext";
+
+const InviteAccept = () => {
+  const { token } = useParams();
+  const { userId, getIdToken, login } = useUser();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const API_URL = import.meta.env.VITE_API_URL || "https://u8ix9o2m78.execute-api.ap-northeast-1.amazonaws.com/dev";
+
+  const acceptInvitation = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const idToken = await getIdToken();
+      const response = await fetch(`${API_URL}/invitations/accept`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ invitationToken: token }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "招待の受諾に失敗しました");
+      }
+
+      // 成功したらホームへ
+      navigate("/");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [getIdToken, API_URL, token, navigate]);
+
+  useEffect(() => {
+    if (userId && userId !== 'pending' && userId !== 'test-user') {
+      // acceptInvitationは非同期関数で、setState呼び出しはawait後（非同期）に発生する。
+      // react-hooks/set-state-in-effectはこのマウント時fetchパターンを静的解析で
+      // 誤検出する既知の課題があるため抑制する（issue #253参照）
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      acceptInvitation();
+    }
+  }, [userId, acceptInvitation]);
+
+  const handleLogin = async () => {
+    try {
+      await login();
+      // login() 成功後、userIdが更新され、useEffectでacceptInvitationが呼ばれる
+    } catch {
+      setError("ログインに失敗しました");
+    }
+  };
+
+  const renderStatus = () => {
+    if (loading) {
+      return (
+        <div className="py-4">
+          <div className="spinner-border text-primary mb-3" role="status">
+            <span className="visually-hidden">処理中...</span>
+          </div>
+          <p>家族登録を処理しています...</p>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="py-4">
+          <div className="alert alert-danger mb-4">{error}</div>
+          <button className="btn btn-primary" onClick={() => navigate("/")}>
+            ホームへ戻る
+          </button>
+        </div>
+      );
+    }
+
+    if (!userId || userId === 'pending' || userId === 'test-user') {
+      return (
+        <div className="py-4">
+          <p className="mb-4">家族登録を完了するにはログインが必要です。</p>
+          <button className="btn btn-primary btn-lg w-100" onClick={handleLogin}>
+            Googleでログインして受諾する
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="py-4">
+         <p>家族として登録しています...</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="container py-5 text-center">
+      <div className="card shadow-sm mx-auto" style={{ maxWidth: "500px" }}>
+        <div className="card-body p-5">
+          <h1 className="h3 mb-4">家族への招待が届いています</h1>
+          {renderStatus()}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default InviteAccept;

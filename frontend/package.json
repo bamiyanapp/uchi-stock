@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
+    "build": "tsc -b && vite build",
+    "lint": "eslint . --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest run && npm run lint && npm run build",
     "test:e2e": "NODE_OPTIONS=--preserve-symlinks playwright test",
@@ -32,12 +32,16 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.0",
     "@vitest/coverage-v8": "^5.0.0",
+    "bootstrap": "^5.3.0",
     "eslint": "^10.0.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.0",
+    "eslint-plugin-sonarjs": "^4.2.2",
     "globals": "^17.0.0",
     "jsdom": "^30.0.0",
     "monocart-reporter": "^2.13.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1",
     "vite": "^8.0.0",
     "vitest": "^5.0.0"
   }
