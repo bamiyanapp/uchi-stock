@@ -26,5 +26,11 @@ jobs:
       enable_mermaid_render: true
       mermaid_doc_paths: "docs/internal-design.md"
       enable_standards_check: true
+      # frontend_dir/backend_dir形式のため両方のジョブに共通で適用される。
+      # frontend実測値（lines 65.05%・statements 63.46%）に余裕を持たせつつ、
+      # branches/functionsはfrontend側が低すぎるため対象外にする（uchi-stock issue #637）。
+      # frontendのテスト厚み自体の改善は別issueで段階的に行う
+      coverage_threshold: 60
+      coverage_metrics: "lines,statements"
     secrets:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
