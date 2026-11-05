@@ -1,9 +1,8 @@
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, PutCommand, ScanCommand, DeleteCommand } = require("@aws-sdk/lib-dynamodb");
+const { PutCommand, ScanCommand } = require("@aws-sdk/lib-dynamodb");
 const crypto = require("crypto");
+const { createDocClient, deleteItems } = require("./dynamo-client");
 
-const client = new DynamoDBClient({ region: "ap-northeast-1" });
-const docClient = DynamoDBDocumentClient.from(client);
+const docClient = createDocClient();
 
 const ITEMS_TABLE = "uchi-stock-app-items-v2";
 const HISTORY_TABLE = "uchi-stock-app-stock-history-v4";
@@ -136,22 +135,12 @@ async function clearTestData() {
   // Clear test items
   const itemsData = await docClient.send(new ScanCommand({ TableName: ITEMS_TABLE }));
   const testItems = (itemsData.Items || []).filter(item => item.userId === DEFAULT_USER_ID && item.name.startsWith("テスト"));
-  for (const item of testItems) {
-    await docClient.send(new DeleteCommand({
-      TableName: ITEMS_TABLE,
-      Key: { userId: item.userId, itemId: item.itemId }
-    }));
-  }
+  await deleteItems(docClient, ITEMS_TABLE, testItems, (item) => ({ userId: item.userId, itemId: item.itemId }));
 
   // Clear test history
   const historyData = await docClient.send(new ScanCommand({ TableName: HISTORY_TABLE }));
   const testHistory = (historyData.Items || []).filter(item => item.userId === DEFAULT_USER_ID && item.memo && item.memo.includes("テスト"));
-  for (const item of testHistory) {
-    await docClient.send(new DeleteCommand({
-      TableName: HISTORY_TABLE,
-      Key: { itemId: item.itemId, date: item.date }
-    }));
-  }
+  await deleteItems(docClient, HISTORY_TABLE, testHistory, (item) => ({ itemId: item.itemId, date: item.date }));
 
   console.log("Test data cleared.");
 }

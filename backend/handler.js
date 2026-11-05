@@ -22,7 +22,7 @@ if (!firebaseApp.getApps().length) {
     }
 
     const serviceAccount = saValue ? JSON.parse(saValue) : null;
-    
+
     if (serviceAccount) {
       firebaseApp.initializeApp({
         credential: firebaseApp.cert(serviceAccount)
@@ -44,6 +44,21 @@ const HISTORY_TABLE = () => process.env.STOCK_HISTORY_TABLE_NAME;
 const USERS_TABLE = () => process.env.USERS_TABLE_NAME;
 const FAMILIES_TABLE = () => process.env.FAMILIES_TABLE_NAME;
 const INVITATIONS_TABLE = () => process.env.INVITATIONS_TABLE_NAME;
+
+// 全レスポンス共通のCORSヘッダー
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Credentials": true,
+};
+
+/**
+ * CORSヘッダー付きの成功レスポンスを生成する。
+ */
+const jsonResponse = (statusCode, body) => ({
+  statusCode,
+  headers: CORS_HEADERS,
+  body: typeof body === "string" ? body : JSON.stringify(body),
+});
 
 const verifyFirebaseToken = async (token) => {
   if (!firebaseApp.getApps().length) {
@@ -106,7 +121,7 @@ const getUserId = async (event) => {
 
   const authHeader = normalizedHeaders["authorization"];
   const xUserIdHeader = normalizedHeaders["x-user-id"];
-  
+
   // 1. Authorization header (Bearer token) を確認
   if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
     const token = authHeader.split(" ")[1];
@@ -162,6 +177,45 @@ const checkFamilyPermission = async (userId, targetUserId) => {
 };
 
 /**
+ * クエリパラメータの`userId`を対象ユーザーとして解決し、家族権限を検証する。
+ * 権限が無い場合はHttpError(403)を投げる。
+ */
+const resolveAuthorizedTargetUserId = async (event, userId, errorMessage) => {
+  const targetUserId = event.queryStringParameters?.userId || userId;
+  const hasPermission = await checkFamilyPermission(userId, targetUserId);
+  if (!hasPermission) {
+    throw new HttpError(403, errorMessage);
+  }
+  return targetUserId;
+};
+
+/**
+ * パスパラメータから`itemId`を取得する。無い場合はHttpError(400)を投げる。
+ */
+const requireItemId = (event) => {
+  const { itemId } = event.pathParameters || {};
+  if (!itemId) {
+    throw new HttpError(400, "itemId is required");
+  }
+  return itemId;
+};
+
+/**
+ * リクエストボディをJSONとしてパースする。
+ * ボディが無い、またはJSONとして不正な場合はHttpErrorを投げる。
+ */
+const parseJsonBody = (event) => {
+  if (!event.body) {
+    throw new HttpError(400, "Request body is missing");
+  }
+  try {
+    return JSON.parse(event.body);
+  } catch {
+    throw new HttpError(400, "Invalid JSON in request body");
+  }
+};
+
+/**
  * 共通のエラーレスポンス生成
  */
 const errorResponse = (error, context = "") => {
@@ -169,15 +223,12 @@ const errorResponse = (error, context = "") => {
   const statusCode = error instanceof HttpError ? error.statusCode : 500;
   const message = error instanceof HttpError ? error.message : "Internal Server Error";
   const detail = error.detail || error.message;
-  
+
   return {
     statusCode,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Credentials": true,
-    },
-    body: JSON.stringify({ 
-      message, 
+    headers: CORS_HEADERS,
+    body: JSON.stringify({
+      message,
       error: detail,
       context,
       ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
@@ -191,17 +242,7 @@ const errorResponse = (error, context = "") => {
 exports.createItem = async (event) => {
   try {
     const userId = await getUserId(event);
-    if (!event.body) {
-      throw new HttpError(400, "Request body is missing");
-    }
-    
-    let body;
-    try {
-      body = JSON.parse(event.body);
-    } catch {
-      throw new HttpError(400, "Invalid JSON in request body");
-    }
-
+    const body = parseJsonBody(event);
     const { name, unit } = body;
 
     if (!name || !unit) {
@@ -240,14 +281,7 @@ exports.createItem = async (event) => {
       },
     }));
 
-    return {
-      statusCode: 201,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify(item),
-    };
+    return jsonResponse(201, item);
   } catch (error) {
     return errorResponse(error, "createItem");
   }
@@ -278,13 +312,7 @@ const getLatestUpdateDate = async (itemId) => {
 exports.getItems = async (event) => {
   try {
     const userId = await getUserId(event);
-    const targetUserId = event.queryStringParameters?.userId || userId;
-
-    // 権限チェック
-    const hasPermission = await checkFamilyPermission(userId, targetUserId);
-    if (!hasPermission) {
-      throw new HttpError(403, "You do not have permission to access these items.");
-    }
+    const targetUserId = await resolveAuthorizedTargetUserId(event, userId, "You do not have permission to access these items.");
 
     const { Items: items } = await docClient.send(new QueryCommand({
       TableName: ITEMS_TABLE(),
@@ -300,14 +328,7 @@ exports.getItems = async (event) => {
       };
     }));
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify(itemsWithUpdatedAt),
-    };
+    return jsonResponse(200, itemsWithUpdatedAt);
   } catch (error) {
     return errorResponse(error, "getItems");
   }
@@ -319,30 +340,9 @@ exports.getItems = async (event) => {
 exports.updateItem = async (event) => {
   try {
     const userId = await getUserId(event);
-    const targetUserId = event.queryStringParameters?.userId || userId;
-
-    // 権限チェック
-    const hasPermission = await checkFamilyPermission(userId, targetUserId);
-    if (!hasPermission) {
-      throw new HttpError(403, "You do not have permission to update this item.");
-    }
-
-    const { itemId } = event.pathParameters || {};
-    if (!itemId) {
-      throw new HttpError(400, "itemId is required");
-    }
-
-    if (!event.body) {
-      throw new HttpError(400, "Request body is missing");
-    }
-
-    let body;
-    try {
-      body = JSON.parse(event.body);
-    } catch {
-      throw new HttpError(400, "Invalid JSON in request body");
-    }
-
+    const targetUserId = await resolveAuthorizedTargetUserId(event, userId, "You do not have permission to update this item.");
+    const itemId = requireItemId(event);
+    const body = parseJsonBody(event);
     const { name, unit, currentStock } = body;
 
     const now = new Date().toISOString();
@@ -402,14 +402,7 @@ exports.updateItem = async (event) => {
       updatedAt: now
     };
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify(responseItem),
-    };
+    return jsonResponse(200, responseItem);
   } catch (error) {
     return errorResponse(error, "updateItem");
   }
@@ -421,23 +414,13 @@ exports.updateItem = async (event) => {
 exports.deleteItem = async (event) => {
   try {
     const userId = await getUserId(event);
-    const { itemId } = event.pathParameters || {};
-    if (!itemId) {
-      throw new HttpError(400, "itemId is required");
-    }
+    const itemId = requireItemId(event);
 
     await docClient.send(new DeleteCommand({
       TableName: ITEMS_TABLE(),
       Key: { userId, itemId },
     }));
-    return {
-      statusCode: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: "",
-    };
+    return jsonResponse(204, "");
   } catch (error) {
     return errorResponse(error, "deleteItem");
   }
@@ -449,30 +432,9 @@ exports.deleteItem = async (event) => {
 exports.addStock = async (event) => {
   try {
     const userId = await getUserId(event);
-    const targetUserId = event.queryStringParameters?.userId || userId;
-
-    // 権限チェック
-    const hasPermission = await checkFamilyPermission(userId, targetUserId);
-    if (!hasPermission) {
-      throw new HttpError(403, "You do not have permission to add stock.");
-    }
-
-    const { itemId } = event.pathParameters || {};
-    if (!itemId) {
-      throw new HttpError(400, "itemId is required");
-    }
-
-    if (!event.body) {
-      throw new HttpError(400, "Request body is missing");
-    }
-
-    let body;
-    try {
-      body = JSON.parse(event.body);
-    } catch {
-      throw new HttpError(400, "Invalid JSON in request body");
-    }
-
+    const targetUserId = await resolveAuthorizedTargetUserId(event, userId, "You do not have permission to add stock.");
+    const itemId = requireItemId(event);
+    const body = parseJsonBody(event);
     const { quantity, date, memo } = body;
 
     if (!quantity || quantity <= 0) {
@@ -508,14 +470,7 @@ exports.addStock = async (event) => {
       ReturnValues: "ALL_NEW",
     }));
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify({ ...Attributes, updatedAt: now }),
-    };
+    return jsonResponse(200, { ...Attributes, updatedAt: now });
   } catch (error) {
     return errorResponse(error, "addStock");
   }
@@ -548,30 +503,9 @@ const calculateAverageConsumptionRate = async (userId, itemId) => {
 exports.consumeStock = async (event) => {
   try {
     const userId = await getUserId(event);
-    const targetUserId = event.queryStringParameters?.userId || userId;
-
-    // 権限チェック
-    const hasPermission = await checkFamilyPermission(userId, targetUserId);
-    if (!hasPermission) {
-      throw new HttpError(403, "You do not have permission to consume stock.");
-    }
-
-    const { itemId } = event.pathParameters || {};
-    if (!itemId) {
-      throw new HttpError(400, "itemId is required");
-    }
-
-    if (!event.body) {
-      throw new HttpError(400, "Request body is missing");
-    }
-
-    let body;
-    try {
-      body = JSON.parse(event.body);
-    } catch {
-      throw new HttpError(400, "Invalid JSON in request body");
-    }
-
+    const targetUserId = await resolveAuthorizedTargetUserId(event, userId, "You do not have permission to consume stock.");
+    const itemId = requireItemId(event);
+    const body = parseJsonBody(event);
     const { quantity, date, memo } = body;
 
     if (!quantity || quantity <= 0) {
@@ -611,14 +545,7 @@ exports.consumeStock = async (event) => {
       ReturnValues: "ALL_NEW",
     }));
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify({ ...Attributes, updatedAt: now }),
-    };
+    return jsonResponse(200, { ...Attributes, updatedAt: now });
   } catch (error) {
     return errorResponse(error, "consumeStock");
   }
@@ -630,18 +557,8 @@ exports.consumeStock = async (event) => {
 exports.getConsumptionHistory = async (event) => {
   try {
     const userId = await getUserId(event);
-    const targetUserId = event.queryStringParameters?.userId || userId;
-
-    // 権限チェック
-    const hasPermission = await checkFamilyPermission(userId, targetUserId);
-    if (!hasPermission) {
-      throw new HttpError(403, "You do not have permission to access history.");
-    }
-
-    const { itemId } = event.pathParameters || {};
-    if (!itemId) {
-      throw new HttpError(400, "itemId is required");
-    }
+    const targetUserId = await resolveAuthorizedTargetUserId(event, userId, "You do not have permission to access history.");
+    const itemId = requireItemId(event);
 
     const { Items } = await docClient.send(new QueryCommand({
       TableName: HISTORY_TABLE(),
@@ -652,18 +569,21 @@ exports.getConsumptionHistory = async (event) => {
       ScanIndexForward: false, // 降順（新しい順）
     }));
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify(Items || []),
-    };
+    return jsonResponse(200, Items || []);
   } catch (error) {
     return errorResponse(error, "getConsumptionHistory");
   }
 };
+
+/**
+ * 消費データが無い場合の共通レスポンスを生成する。
+ */
+const noConsumptionDataResponse = (item) => jsonResponse(200, {
+  estimatedDepletionDate: null,
+  dailyConsumption: 0,
+  currentStock: item.currentStock,
+  message: "No consumption data available"
+});
 
 /**
  * 在庫切れ推定日を取得する。
@@ -671,18 +591,8 @@ exports.getConsumptionHistory = async (event) => {
 exports.getEstimatedDepletionDate = async (event) => {
   try {
     const userId = await getUserId(event);
-    const targetUserId = event.queryStringParameters?.userId || userId;
-
-    // 権限チェック
-    const hasPermission = await checkFamilyPermission(userId, targetUserId);
-    if (!hasPermission) {
-      throw new HttpError(403, "You do not have permission to access this estimate.");
-    }
-
-    const { itemId } = event.pathParameters || {};
-    if (!itemId) {
-      throw new HttpError(400, "itemId is required");
-    }
+    const targetUserId = await resolveAuthorizedTargetUserId(event, userId, "You do not have permission to access this estimate.");
+    const itemId = requireItemId(event);
 
     const { date } = event.queryStringParameters || {};
     let referenceDate = new Date();
@@ -705,19 +615,7 @@ exports.getEstimatedDepletionDate = async (event) => {
 
     // 平均消費ペースが0以下の場合は、履歴を取得せずに早期リターン
     if (!item.averageConsumptionRate || item.averageConsumptionRate <= 0) {
-      return {
-        statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Credentials": true,
-        },
-        body: JSON.stringify({
-          estimatedDepletionDate: null,
-          dailyConsumption: 0,
-          currentStock: item.currentStock,
-          message: "No consumption data available"
-        }),
-      };
+      return noConsumptionDataResponse(item);
     }
 
     // 全履歴を取得
@@ -732,33 +630,14 @@ exports.getEstimatedDepletionDate = async (event) => {
     const result = stockLogic.calculateEstimatedDepletion(item, historyData || [], referenceDate);
 
     if (!result.estimatedDepletionDate) {
-      return {
-        statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Credentials": true,
-        },
-        body: JSON.stringify({
-          estimatedDepletionDate: null,
-          dailyConsumption: 0,
-          currentStock: item.currentStock,
-          message: "No consumption data available"
-        }),
-      };
+      return noConsumptionDataResponse(item);
     }
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify({
-        ...result,
-        dailyConsumption: result.dailyConsumption.toFixed(2),
-        currentStock: item.currentStock
-      }),
-    };
+    return jsonResponse(200, {
+      ...result,
+      dailyConsumption: result.dailyConsumption.toFixed(2),
+      currentStock: item.currentStock
+    });
   } catch (error) {
     return errorResponse(error, "getEstimatedDepletionDate");
   }
@@ -784,14 +663,7 @@ exports.createInvitation = async (event) => {
       },
     }));
 
-    return {
-      statusCode: 201,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify({ invitationToken, expiresAt }),
-    };
+    return jsonResponse(201, { invitationToken, expiresAt });
   } catch (error) {
     return errorResponse(error, "createInvitation");
   }
@@ -803,17 +675,7 @@ exports.createInvitation = async (event) => {
 exports.acceptInvitation = async (event) => {
   try {
     const userId = await getUserId(event);
-    if (!event.body) {
-      throw new HttpError(400, "Request body is missing");
-    }
-
-    let body;
-    try {
-      body = JSON.parse(event.body);
-    } catch {
-      throw new HttpError(400, "Invalid JSON in request body");
-    }
-
+    const body = parseJsonBody(event);
     const { invitationToken } = body;
     if (!invitationToken) {
       throw new HttpError(400, "invitationToken is required");
@@ -864,14 +726,7 @@ exports.acceptInvitation = async (event) => {
       Key: { invitationToken },
     }));
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify({ message: "Family registration successful", familyUserId: inviterUserId }),
-    };
+    return jsonResponse(200, { message: "Family registration successful", familyUserId: inviterUserId });
   } catch (error) {
     return errorResponse(error, "acceptInvitation");
   }
@@ -904,14 +759,7 @@ exports.getFamilies = async (event) => {
       };
     }));
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify(familyMembers),
-    };
+    return jsonResponse(200, familyMembers);
   } catch (error) {
     return errorResponse(error, "getFamilies");
   }

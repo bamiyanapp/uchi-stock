@@ -32,5 +32,7 @@ jobs:
       # frontendのテスト厚み自体の改善は別issueで段階的に行う
       coverage_threshold: 60
       coverage_metrics: "lines,statements"
+      # 重複解消後の実測値（lines 1.70%）に十分な余裕を持たせた目標閾値（uchi-stock issue #422）
+      duplication_threshold: 5
     secrets:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
