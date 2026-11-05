@@ -14,6 +14,10 @@ provider:
     INVITATIONS_TABLE_NAME: ${self:custom.invitationsTableName}
     FIREBASE_SERVICE_ACCOUNT: ${env:FIREBASE_SERVICE_ACCOUNT, ''}
     ALLOW_INSECURE_USER_ID: ${env:ALLOW_INSECURE_USER_ID, 'false'}
+    # 運用監視専用LINE Bot（dev-standards/docs/ops-monitoring-pattern.md）。
+    # 未設定でもデプロイ・実行自体は失敗しない（handler.opsAlertが送信をスキップする）
+    OPS_ALERT_LINE_CHANNEL_ACCESS_TOKEN: ${env:OPS_ALERT_LINE_CHANNEL_ACCESS_TOKEN, ''}
+    OPS_ALERT_LINE_USER_ID: ${env:OPS_ALERT_LINE_USER_ID, ''}
   iam:
     role:
       statements:
@@ -217,9 +221,91 @@ functions:
               - X-Amz-Security-Token
               - X-Amz-User-Agent
               - x-user-id
+  # CloudWatch Alarm発報時のSNS通知を受け、運用監視専用LINE Botへ通知する
+  # （dev-standards/docs/ops-monitoring-pattern.md）
+  opsAlert:
+    handler: handler.opsAlert
+    events:
+      - sns:
+          arn: !Ref OpsAlertTopic
+          topicName: ${self:custom.appName}-ops-alert
 
 resources:
   Resources:
+    # 運用監視（サイレント障害検知）用のSNS Topic。主要Lambdaのエラー多発を
+    # CloudWatch AlarmがここへPublishし、opsAlert関数がLINEへ通知する
+    OpsAlertTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${self:custom.appName}-ops-alert
+    CreateItemErrorAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:custom.appName}-${sls:stage}-createItem-errors
+        Namespace: AWS/Lambda
+        MetricName: Errors
+        Dimensions:
+          - Name: FunctionName
+            Value: ${self:custom.appName}-${sls:stage}-createItem
+        Statistic: Sum
+        Period: 300
+        EvaluationPeriods: 1
+        Threshold: 1
+        ComparisonOperator: GreaterThanOrEqualToThreshold
+        TreatMissingData: notBreachingThreshold
+        AlarmActions:
+          - !Ref OpsAlertTopic
+    GetItemsErrorAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:custom.appName}-${sls:stage}-getItems-errors
+        Namespace: AWS/Lambda
+        MetricName: Errors
+        Dimensions:
+          - Name: FunctionName
+            Value: ${self:custom.appName}-${sls:stage}-getItems
+        Statistic: Sum
+        Period: 300
+        EvaluationPeriods: 1
+        Threshold: 1
+        ComparisonOperator: GreaterThanOrEqualToThreshold
+        TreatMissingData: notBreachingThreshold
+        AlarmActions:
+          - !Ref OpsAlertTopic
+    AddStockErrorAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:custom.appName}-${sls:stage}-addStock-errors
+        Namespace: AWS/Lambda
+        MetricName: Errors
+        Dimensions:
+          - Name: FunctionName
+            Value: ${self:custom.appName}-${sls:stage}-addStock
+        Statistic: Sum
+        Period: 300
+        EvaluationPeriods: 1
+        Threshold: 1
+        ComparisonOperator: GreaterThanOrEqualToThreshold
+        TreatMissingData: notBreachingThreshold
+        AlarmActions:
+          - !Ref OpsAlertTopic
+    ConsumeStockErrorAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:custom.appName}-${sls:stage}-consumeStock-errors
+        Namespace: AWS/Lambda
+        MetricName: Errors
+        Dimensions:
+          - Name: FunctionName
+            Value: ${self:custom.appName}-${sls:stage}-consumeStock
+        Statistic: Sum
+        Period: 300
+        EvaluationPeriods: 1
+        Threshold: 1
+        ComparisonOperator: GreaterThanOrEqualToThreshold
+        TreatMissingData: notBreachingThreshold
+        AlarmActions:
+          - !Ref OpsAlertTopic
     HouseholdItemsTable:
       Type: AWS::DynamoDB::Table
       Properties:
