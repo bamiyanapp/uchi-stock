@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "test": "vitest run && npm run lint && npx serverless package --stage local-test",
     "deploy": "npx serverless deploy"
   },
@@ -16,6 +16,7 @@
     "@vitest/coverage-v8": "^5.0.0",
     "aws-sdk-client-mock": "^4.1.0",
     "eslint": "^10.0.0",
+    "eslint-plugin-sonarjs": "^4.2.2",
     "globals": "^17.1.0",
     "osls": "^4.0.0",
     "vitest": "^5.0.0"
