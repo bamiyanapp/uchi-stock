@@ -221,6 +221,22 @@ functions:
               - X-Amz-Security-Token
               - X-Amz-User-Agent
               - x-user-id
+  reportClientError:
+    handler: handler.reportClientError
+    events:
+      - http:
+          path: report-client-error
+          method: post
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - x-user-id
   # CloudWatch Alarm発報時のSNS通知を受け、運用監視専用LINE Botへ通知する
   # （dev-standards/docs/ops-monitoring-pattern.md）
   opsAlert:

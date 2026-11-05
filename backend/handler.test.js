@@ -10,7 +10,8 @@ import {
   addStock,
   consumeStock,
   getConsumptionHistory,
-  getEstimatedDepletionDate
+  getEstimatedDepletionDate,
+  reportClientError
 } from './handler';
 import crypto from 'crypto';
 
@@ -917,6 +918,36 @@ describe('うちストック API', () => {
       expect(body.estimatedDepletionDate).toBe('2023-04-11T12:00:00.000Z');
       expect(body.dailyConsumption).toBe("0.10");
       expect(body.currentStock).toBe(10);
+    });
+  });
+
+  describe('reportClientError', () => {
+    it('正常なペイロードを受け取るとCloudWatch Logsへ記録し200を返す', async () => {
+      const result = await reportClientError({
+        body: JSON.stringify({
+          message: 'TypeError: foo is not a function',
+          stack: 'TypeError: foo is not a function\n  at App',
+          componentStack: 'in App',
+          url: 'https://example.com/uchi-stock/user-1',
+        }),
+      });
+
+      expect(result.statusCode).toBe(200);
+      expect(JSON.parse(result.body).message).toBe('Error reported successfully');
+    });
+
+    it('messageが無い不正な入力の場合は400を返す', async () => {
+      const result = await reportClientError({
+        body: JSON.stringify({ stack: 'stack only' }),
+      });
+
+      expect(result.statusCode).toBe(400);
+    });
+
+    it('リクエストボディが無い場合は400を返す', async () => {
+      const result = await reportClientError({});
+
+      expect(result.statusCode).toBe(400);
     });
   });
 });
