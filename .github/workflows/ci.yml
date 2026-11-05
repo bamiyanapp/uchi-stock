@@ -17,7 +17,7 @@ jobs:
   ci:
     uses: bamiyanapp/dev-standards/.github/workflows/reusable-ci.yml@v2.116.0
     with:
-      self_ref: v2.115.6
+      self_ref: v2.116.0
       frontend_dir: frontend
       backend_dir: backend
       node_version: "22"
@@ -26,6 +26,10 @@ jobs:
       enable_mermaid_render: true
       mermaid_doc_paths: "docs/internal-design.md"
       enable_standards_check: true
+      # PR差分中の誤コミットされた認証情報を検知する（uchi-stock issue #647）
+      enable_secret_scan: true
+      # Renovate等の依存更新PRへupdate type等をコメントする（uchi-stock issue #647）
+      enable_dependency_risk_summary: true
       # frontend_dir/backend_dir形式のため両方のジョブに共通で適用される。
       # frontend実測値（lines 65.05%・statements 63.46%）に余裕を持たせつつ、
       # branches/functionsはfrontend側が低すぎるため対象外にする（uchi-stock issue #637）。
