@@ -126,7 +126,7 @@ npm test
 
 ### CI/CD実行
 
-GitHub Actions で以下のテストが自動実行されます：
+GitHub Actions で以下のテストが自動実行されます。
 - ユニットテスト
 - リンター（ESLint）
 - ビルド確認

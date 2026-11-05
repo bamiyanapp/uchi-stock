@@ -21,7 +21,7 @@ GitHub Actions を介さずにローカル環境からリリースノートの�
    ```bash
    npm run release:local -- --dry-run
    ```
-2. 実際にリリースを実行する:
+2. 実際にリリースする:
    ```bash
    npm run release:local
    ```
