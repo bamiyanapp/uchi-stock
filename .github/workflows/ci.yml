@@ -38,5 +38,8 @@ jobs:
       coverage_metrics: "lines,statements"
       # 重複解消後の実測値（lines 1.70%）に十分な余裕を持たせた目標閾値（uchi-stock issue #422）
       duplication_threshold: 5
+      # docs/*.md・README.md・CLAUDE.mdへtextlintを有効化する（uchi-stock issue #651）
+      enable_text_lint: true
+      text_lint_paths: "docs/*.md,README.md,CLAUDE.md"
     secrets:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}

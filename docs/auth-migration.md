@@ -1,7 +1,7 @@
 # 認証方式の移行ガイド (Cognito → Firebase)
 
 本プロジェクトの認証方式を AWS Cognito から Firebase Authentication に移行しました。
-移行を完了するために、以下の手順で設定を行ってください。
+移行を完了するために、以下の手順で設定してください。
 
 ## 1. Firebase プロジェクトの設定
 
@@ -41,5 +41,5 @@ VITE_FIREBASE_APP_ID=your-app-id
 
 ## 4. ローカル開発時の注意
 
-ローカル開発やテストで Firebase の認証をスキップしたい場合は、環境変数 `ALLOW_INSECURE_USER_ID=true` を設定することで、従来通り `x-user-id` ヘッダーによるユーザー識別が有効になります。
+ローカル開発やテストで Firebase の認証をスキップしたい場合は、環境変数 `ALLOW_INSECURE_USER_ID=true` を設定します。これにより、従来通り `x-user-id` ヘッダーによるユーザー識別が有効になります。
 ただし、本番環境ではセキュリティ確保のため必ず `false` に設定してください。
