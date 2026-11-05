@@ -217,6 +217,22 @@ functions:
               - X-Amz-Security-Token
               - X-Amz-User-Agent
               - x-user-id
+  reportClientError:
+    handler: handler.reportClientError
+    events:
+      - http:
+          path: report-client-error
+          method: post
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - x-user-id
 
 resources:
   Resources:

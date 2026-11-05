@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const firebaseApp = require('firebase-admin/app');
 const firebaseAuth = require('firebase-admin/auth');
 const stockLogic = require("./stock-logic");
+const { buildClientErrorLogPayload } = require("./client-error-reporting"); // symlink
 
 // Firebase Admin SDKの初期化
 if (!firebaseApp.getApps().length) {
@@ -762,5 +763,26 @@ exports.getFamilies = async (event) => {
     return jsonResponse(200, familyMembers);
   } catch (error) {
     return errorResponse(error, "getFamilies");
+  }
+};
+
+/**
+ * フロントエンドのErrorBoundaryが捕捉した未捕捉例外をCloudWatch Logsへ記録する。
+ * 認証の無い公開エンドポイントのため、内容の真偽は検証できない前提とする
+ * （dev-standards/docs/client-error-reporting-pattern.md参照）。
+ */
+exports.reportClientError = async (event) => {
+  try {
+    const body = parseJsonBody(event);
+    const payload = buildClientErrorLogPayload(body);
+    if (!payload) {
+      throw new HttpError(400, "Invalid input");
+    }
+
+    console.error("[ClientError]", payload);
+
+    return jsonResponse(200, { message: "Error reported successfully" });
+  } catch (error) {
+    return errorResponse(error, "reportClientError");
   }
 };
