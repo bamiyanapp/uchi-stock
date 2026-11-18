@@ -10,25 +10,26 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: ap-northeast-1
     steps:
-      - name: Lambda settings (env vars excluded)
+      - name: Try runtimes with the deployed package
         run: |
-          aws lambda get-function-configuration --function-name uchi-stock-app-dev-getItems \
-            --query '{Runtime:Runtime,Handler:Handler,State:State,StateReason:StateReason,LastUpdateStatus:LastUpdateStatus,LastUpdateStatusReason:LastUpdateStatusReason,CodeSize:CodeSize,LastModified:LastModified,Timeout:Timeout,Memory:MemorySize}' | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Invoke getItems directly
-        run: |
+          set -u
+          role=$(aws lambda get-function-configuration --function-name uchi-stock-app-dev-getItems --query Role --output text)
+          url=$(aws lambda get-function --function-name uchi-stock-app-dev-getItems --query Code.Location --output text)
+          curl -sS -o code.zip "$url"
           echo '{"headers":{}}' > payload.json
-          aws lambda invoke --function-name uchi-stock-app-dev-getItems --cli-binary-format raw-in-base64-out --payload file://payload.json out.json --query '{Status:StatusCode,FnError:FunctionError}' | tee -a "$GITHUB_STEP_SUMMARY"
-          head -c 1500 out.json | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Recent logs
+          try() {
+            name=$1; runtime=$2; envjson=$3
+            aws lambda create-function --function-name "$name" --runtime "$runtime" --role "$role" --handler handler.getItems \
+              --zip-file fileb://code.zip --timeout 15 --memory-size 512 --environment "$envjson" --query State --output text
+            aws lambda wait function-active-v2 --function-name "$name"
+            echo "== $runtime env=$envjson" | tee -a "$GITHUB_STEP_SUMMARY"
+            aws lambda invoke --function-name "$name" --cli-binary-format raw-in-base64-out --payload file://payload.json out.json --query '{Status:StatusCode,FnError:FunctionError}' | tee -a "$GITHUB_STEP_SUMMARY"
+            head -c 600 out.json | tee -a "$GITHUB_STEP_SUMMARY"; echo | tee -a "$GITHUB_STEP_SUMMARY"
+            aws lambda delete-function --function-name "$name"
+          }
+          try uchi-diag-node24 nodejs24.x '{"Variables":{"NODE_ENV":"production"}}' || true
+          try uchi-diag-node22flag nodejs22.x '{"Variables":{"NODE_OPTIONS":"--experimental-require-module"}}' || true
+      - name: Cleanup leftovers
+        if: always()
         run: |
-          aws logs tail /aws/lambda/uchi-stock-app-dev-getItems --since 3h 2>&1 | grep -v "^$" | tail -40 | cut -c1-300 | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: API Gateway deployment and stage
-        run: |
-          id=$(aws apigateway get-rest-apis --query "items[?name=='dev-uchi-stock-app'].id" --output text)
-          echo "restApiId=$id" | tee -a "$GITHUB_STEP_SUMMARY"
-          aws apigateway get-stage --rest-api-id "$id" --stage-name dev --query '{Deployment:deploymentId,LastUpdated:lastUpdatedDate}' | tee -a "$GITHUB_STEP_SUMMARY"
-          aws apigateway get-deployments --rest-api-id "$id" --query 'items[0:3].{Id:id,Created:createdDate}' | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Stack events
-        run: |
-          aws cloudformation describe-stack-events --stack-name uchi-stock-app-dev --max-items 12 \
-            --query 'StackEvents[].[Timestamp,LogicalResourceId,ResourceStatus,ResourceStatusReason]' --output text | cut -c1-250 | tee -a "$GITHUB_STEP_SUMMARY"
+          for n in uchi-diag-node24 uchi-diag-node22flag; do aws lambda delete-function --function-name "$n" 2>/dev/null || true; done
