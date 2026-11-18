@@ -6,7 +6,8 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import sonarjs from 'eslint-plugin-sonarjs'
 
 const sharedLanguageOptions = {
-  ecmaVersion: 2020,
+  // dev-standardsの共有ErrorBoundary.jsxがクラスフィールド構文（ES2022）を使う
+  ecmaVersion: 2022,
   globals: {
     ...globals.browser,
     ...globals.node,
