@@ -7,6 +7,10 @@ provider:
   runtime: nodejs22.x
   region: ap-northeast-1
   environment:
+    # firebase-admin 14 → jwks-rsa 4 → jose 6（ESM専用）をrequire()で読み込む。Lambdaのマネージド
+    # ランタイムはrequire(esm)が既定で無効（Node 22・24とも）で、ERR_REQUIRE_ESMにより
+    # 全関数が起動時に失敗する。有効化するため明示する（issue #715。実Lambdaで動作を確認済み）
+    NODE_OPTIONS: --experimental-require-module
     TABLE_NAME: ${self:custom.tableName}
     STOCK_HISTORY_TABLE_NAME: ${self:custom.stockHistoryTableName}
     USERS_TABLE_NAME: ${self:custom.usersTableName}
