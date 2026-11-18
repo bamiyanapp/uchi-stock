@@ -268,7 +268,7 @@ resources:
         EvaluationPeriods: 1
         Threshold: 1
         ComparisonOperator: GreaterThanOrEqualToThreshold
-        TreatMissingData: notBreachingThreshold
+        TreatMissingData: notBreaching
         AlarmActions:
           - !Ref OpsAlertTopic
     GetItemsErrorAlarm:
@@ -285,7 +285,7 @@ resources:
         EvaluationPeriods: 1
         Threshold: 1
         ComparisonOperator: GreaterThanOrEqualToThreshold
-        TreatMissingData: notBreachingThreshold
+        TreatMissingData: notBreaching
         AlarmActions:
           - !Ref OpsAlertTopic
     AddStockErrorAlarm:
@@ -302,7 +302,7 @@ resources:
         EvaluationPeriods: 1
         Threshold: 1
         ComparisonOperator: GreaterThanOrEqualToThreshold
-        TreatMissingData: notBreachingThreshold
+        TreatMissingData: notBreaching
         AlarmActions:
           - !Ref OpsAlertTopic
     ConsumeStockErrorAlarm:
@@ -319,7 +319,7 @@ resources:
         EvaluationPeriods: 1
         Threshold: 1
         ComparisonOperator: GreaterThanOrEqualToThreshold
-        TreatMissingData: notBreachingThreshold
+        TreatMissingData: notBreaching
         AlarmActions:
           - !Ref OpsAlertTopic
     HouseholdItemsTable:
