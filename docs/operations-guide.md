@@ -11,3 +11,19 @@
 - **自動バックアップと保護**:
   - CD パイプラインによるデプロイ直前に、DynamoDB データのスナップショットと JSON へのダンプを自動実行しています。
   - デプロイ時にはテーブル構造の破壊的変更を自動検知し、不用意なデータ消失を防止します。詳細は [CI/CD Pipeline Specification](cicd-pipeline-specification.md) を参照してください。
+
+## 異常の通知と対応
+
+障害に気づけるよう、次の仕組みを置いています（issue #715・#723）。
+
+- **CD失敗の通知**: CDが失敗すると、「CD失敗」というタイトルのissueが起票されます。すでに未解決のissueがあれば、コメントが追加されます。GitHubアプリへ通知が届きます。LINEのSecretsが登録済みなら、LINEにも届きます。
+- **デプロイ後の疎通確認**: CDの`smoke-test`ジョブが、デプロイされた本番APIを呼びます。ゲストでの一覧取得が200、認証なしが401、`/report-client-error`のルートが存在することを確認します。失敗するとCDが失敗します。
+- **API Gatewayの5xxアラーム**: 5分間に5xxが1件以上あると、CloudWatch Alarmが発報します。運用監視用のLINE Botへ通知します。Secrets（`OPS_ALERT_LINE_CHANNEL_ACCESS_TOKEN`・`OPS_ALERT_LINE_USER_ID`）が未登録の場合、通知はスキップされます。
+
+通知を受けたときの確認手順は次のとおりです。
+
+1. CD失敗のissueから、失敗したrunを開き、失敗したジョブとログを確認します。
+2. `smoke-test`が失敗した場合、デプロイ済みのLambdaが起動できていない可能性があります。`deploy-backend`のログと、Lambdaのログ（CloudWatch Logs）を確認します。
+3. 原因が分からない場合は、一時workflowでLambdaのログを取得します（`sandbox-unreachable-investigation` Skill）。
+4. 復旧後、「CD失敗」のissueをクローズします。
+

@@ -4,8 +4,9 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint . --max-warnings 0",
-    "test": "vitest run && npm run lint && npx serverless package --stage local-test",
-    "deploy": "npx serverless deploy"
+    "test": "vitest run && npm run lint && npx serverless package --stage local-test && npm run verify-package",
+    "deploy": "npx serverless deploy",
+    "verify-package": "node ../dev-standards/scripts/verify-lambda-package.js --zip .serverless/uchi-stock-app.zip --service-file serverless.yml --forbid '*.test.js' --forbid 'seed*.js' --forbid 'migrate*.js' --forbid '*.csv'"
   },
   "keywords": [],
   "author": "",

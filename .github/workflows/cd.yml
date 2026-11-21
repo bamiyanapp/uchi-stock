@@ -106,7 +106,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
-          node-version: 26
+          node-version: 22
           cache: npm
       - name: Install dependencies
         run: npm ci
@@ -221,13 +221,19 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 26
+          node-version: 22
           cache: 'npm'
       - name: Install Root dependencies
         run: npm ci
       - name: Install Backend dependencies
         working-directory: backend
         run: npm ci
+      # serverless packageはsymlink先の欠落等でzipからファイルが抜けても成功する。展開して
+      # 全ハンドラを読み込めること、テスト等が混入していないことを、デプロイ前に検証する
+      # （issue #736。共通スクリプトはdev-standards submodule）
+      - name: 📦 Verify deploy package
+        working-directory: backend
+        run: npm run verify-package
       - name: 🛡️ Check for Destructive Changes
         run: node scripts/check-destructive-changes.js
         env:
@@ -268,7 +274,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 26
+          node-version: 22
           cache: 'npm'
       - name: Install Backend dependencies
         working-directory: backend
@@ -289,3 +295,50 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+  # デプロイされたAPIが実際に応答するかを確認する。E2EはAPIをモックしているため、
+  # デプロイ後のバックエンドの異常を検知できるのはここだけである（issue #723）
+  smoke-test:
+    needs: deploy-backend
+    runs-on: ubuntu-latest
+    env:
+      # frontend/srcのフォールバック先と同じ本番API
+      API_URL: https://b974xlcqia.execute-api.ap-northeast-1.amazonaws.com/dev
+    steps:
+      - name: 🩺 Smoke test the deployed API
+        run: |
+          check() {
+            name=$1; expected=$2; shift 2
+            for attempt in 1 2 3 4; do
+              status=$(curl -s -o body.txt -w '%{http_code}' --max-time 20 "$@" || echo 000)
+              echo "$name: HTTP $status (試行 $attempt)"
+              if [ "$status" = "$expected" ]; then return 0; fi
+              sleep 5
+            done
+            echo "::error::$name: 期待 HTTP $expected、実際 HTTP $status"
+            head -c 300 body.txt || true
+            return 1
+          }
+          fail=0
+          check "GET /items（ゲスト）" 200 -H 'x-user-id: test-user' "$API_URL/items" || fail=1
+          python3 -c "import json; assert isinstance(json.load(open('body.txt')), list)" || { echo "::error::GET /items がJSON配列を返しません"; fail=1; }
+          check "GET /items（認証なし）" 401 "$API_URL/items" || fail=1
+          # 空のボディで呼び、ルートが存在しハンドラが動くこと（400）を確認する。ログへの書き込みは起きない
+          check "POST /report-client-error（ルートの存在）" 400 -X POST -H 'Content-Type: application/json' -d '{}' "$API_URL/report-client-error" || fail=1
+          exit $fail
+
+  # CDのどこかが失敗したら、スマートフォンで気づける形で通知する（issue #723）。
+  # 固定タイトルのissueへコメント（無ければ起票）し、LINEのSecretsがあればLINEにも送る
+  notify-failure:
+    if: failure()
+    needs: [release, changelog, build-and-deploy-frontend, deploy-backend, seed-backend, smoke-test]
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: 🔔 Notify CD failure
+        uses: bamiyanapp/dev-standards/.github/actions/notify-cd-failure@v2.170.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          line-channel-access-token: ${{ secrets.OPS_ALERT_LINE_CHANNEL_ACCESS_TOKEN }}
+          line-user-id: ${{ secrets.OPS_ALERT_LINE_USER_ID }}
