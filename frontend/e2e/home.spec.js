@@ -1,10 +1,14 @@
 import { test, expect } from './coverageFixture.js';
 import { captureScreenshot } from './screenshot.js';
 
+// StockListは`/items?userId=...`の形でも取得・登録する。glob（`**/items`）はクエリ付きURLに
+// 一致せず、モックをすり抜けて本番APIへ実通信してしまう（issue #779）
+const ITEMS_URL = /\/items(\?.*)?$/;
+
 test.describe('Home Page', () => {
   test.beforeEach(async ({ page }) => {
     // Mock API calls
-    await page.route('**/items', async route => {
+    await page.route(ITEMS_URL, async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -55,7 +59,7 @@ test.describe('Home Page', () => {
 
   test('should add a new item', async ({ page }, testInfo) => {
     // Mock POST /items
-    await page.route('**/items', async (route) => {
+    await page.route(ITEMS_URL, async (route) => {
       if (route.request().method() === 'POST') {
         const body = route.request().postDataJSON();
         await route.fulfill({
@@ -114,7 +118,7 @@ test.describe('Home Page', () => {
     const pastDateTime = '2026-01-10T12:00:00Z';
     
     // Mock items with a past updatedAt
-    await page.route('**/items', async route => {
+    await page.route(ITEMS_URL, async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
