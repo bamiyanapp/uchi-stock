@@ -32,7 +32,12 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        // モックし損ねたAPI呼び出しが本番へ届かないよう、本番APIのホスト名解決を拒否する
+        // （E2Eが本番のtest-userデータへ読み書きしていた。issue #779）
+        launchOptions: { args: ['--host-resolver-rules=MAP *.execute-api.ap-northeast-1.amazonaws.com ~NOTFOUND'] },
+      },
     },
   ],
   webServer: {
