@@ -23,6 +23,19 @@
         "major"
       ],
       "enabled": false
+    },
+    {
+      "description": "CDのNode（setup-nodeのnode-version）のmajor更新を保留する。ルートのpackage-lock.jsonがnpm 11で作られており、npm 10（Node 22付属）のnpm ciが失敗するため、CDはNode 26で動かしている。一方Lambdaはnodejs22.x、CIは22で、CDだけが異なる。Renovateが上げ直すたびに環境がぶれるのを避ける。解除条件: Lambda・CI・CDのNodeを、まとめて上げるときに、このルールを削除する（issue #788）。",
+      "matchPackageNames": [
+        "node"
+      ],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
     }
   ],
   "customManagers": [

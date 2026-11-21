@@ -233,7 +233,9 @@ jobs:
       # （issue #736。共通スクリプトはdev-standards submodule）
       - name: 📦 Verify deploy package
         working-directory: backend
-        run: npm run verify-package
+        run: |
+          npx serverless package --stage verify-package
+          npm run verify-package
       - name: 🛡️ Check for Destructive Changes
         run: node scripts/check-destructive-changes.js
         env:
