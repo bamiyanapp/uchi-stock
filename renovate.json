@@ -1,7 +1,43 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": [
+    "config:recommended"
+  ],
   "git-submodules": {
     "enabled": true
-  }
+  },
+  "packageRules": [
+    {
+      "description": "uses:行（github-actions）とself_ref:行（下のcustomManager）を、同じPRで同じバージョンへ更新する（issue #781）。",
+      "matchPackageNames": [
+        "bamiyanapp/dev-standards"
+      ],
+      "groupName": "dev-standards workflows"
+    },
+    {
+      "description": "semantic-release v26はNode v26.13.0以上が必須だが、AWSがLambda実行環境としてNode 26をまだ提供しない。Renovateもロックファイルを再生成できずCIが失敗するため、major更新を保留する。解除条件: LambdaがNode 26を提供し、バックエンドのNodeを上げた後にこのルールを削除する（dev-standards#1506、issue #781）。",
+      "matchPackageNames": [
+        "semantic-release"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "self_refはuses:行と同じdev-standardsバージョンを指すべきだが、Renovateのgithub-actionsマネージャーはプレーンな文字列入力であるself_ref:を検知しない。正規表現で明示的に検知対象へ加える（dev-standards docs/reusable-workflows-reference.md、issue #781）",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.*\\.yml$/"
+      ],
+      "matchStrings": [
+        "self_ref: v(?<currentValue>[\\d.]+)"
+      ],
+      "depNameTemplate": "bamiyanapp/dev-standards",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    }
+  ]
 }
