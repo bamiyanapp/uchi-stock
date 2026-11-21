@@ -70,7 +70,7 @@
 * **deploy:** パイプラインのインラインスクリプト化による堅牢化 ([#72](https://github.com/bamiyanapp/karuta/issues/72)) ([b0463c3](https://github.com/bamiyanapp/karuta/commit/b0463c324104d926c8b64076e02028dd42a48dee))
 * **deploy:** パイプラインの失敗検知修正とGSI制限回避のためのV4移行 ([#79](https://github.com/bamiyanapp/karuta/issues/79)) ([b7058e8](https://github.com/bamiyanapp/karuta/commit/b7058e887920c8cec2f53d4040ca8e039dc4761f))
 * **deploy:** バックエンドデプロイパイプラインの修正 ([#70](https://github.com/bamiyanapp/karuta/issues/70)) ([bac730e](https://github.com/bamiyanapp/karuta/commit/bac730e43b5a56a5aa6c4220d93ccf5cf14b392f))
-* **deploy:** バックエンドデプロイパイプラインの堅牢化 (v2) ([#71](https://github.com/bamiyanapp/karuta/issues/71)) ([ef1ce84](https://github.com/bamiyanapp/karuta/commit/ef1ce8401061c53525bcaf0ce0d135555340eb57))
+* **deploy:** バ���クエンドデプロイパイプラインの堅牢化 (v2) ([#71](https://github.com/bamiyanapp/karuta/issues/71)) ([ef1ce84](https://github.com/bamiyanapp/karuta/commit/ef1ce8401061c53525bcaf0ce0d135555340eb57))
 * **detail:** 詳細画面の履歴・推定データの取得を安定化 ([#59](https://github.com/bamiyanapp/karuta/issues/59)) ([7d1ea03](https://github.com/bamiyanapp/karuta/commit/7d1ea032f6e8d0e056ea01d4babf9c7c2d682a55))
 * **docs:** 画面一覧のテーブル表示を修正し、ルーティングパスを正規化 ([#130](https://github.com/bamiyanapp/karuta/issues/130)) ([8205e45](https://github.com/bamiyanapp/karuta/commit/8205e45693db23fa9c54505845ea35c790412cdc))
 * **frontend:** configure basename for GitHub Pages ([#82](https://github.com/bamiyanapp/karuta/issues/82)) ([628b83f](https://github.com/bamiyanapp/karuta/commit/628b83f21dab44a36fe3da92c13934bf8f9946bb))
