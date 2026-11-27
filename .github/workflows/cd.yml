@@ -339,7 +339,7 @@ jobs:
       issues: write
     steps:
       - name: 🔔 Notify CD failure
-        uses: bamiyanapp/dev-standards/.github/actions/notify-cd-failure@v2.180.1
+        uses: bamiyanapp/dev-standards/.github/actions/notify-cd-failure@v2.187.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           line-channel-access-token: ${{ secrets.OPS_ALERT_LINE_CHANNEL_ACCESS_TOKEN }}
